@@ -49,3 +49,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-github-relea
 
 
 从 v0.5.18 起，使用说明共用 `src/content/tutorial.json`。更新教程后运行 `corepack pnpm docs:generate`，提交生成的 `docs/tutorial.md`；准备发布时会执行 `corepack pnpm docs:check`，不一致时阻止构建。便携包与 Release 的 `README-zh-CN.md` 同时包含完整入门与功能教程。赞助名单维护于 `README.md` 和 `docs/sponsors.md`。
+
+2026-10-07已正式发布v0.5.18并确认Latest。6项真实附件的回读SHA256及公开digest/size一致，标签对应源码8971dbfa0a1c2049c9faa30c2014fe3a8d7593fe。新版0.5.18与旧版0.5.17均通过真实GitHub桌面更新查询。程序内教程、GitHub教程与赞助说明已同步，后续验证记录提交不更改发布标签与程序的对应关系。
