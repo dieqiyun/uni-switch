@@ -2,6 +2,9 @@
 
 # 配置与界面验证清单
 
+2026-10-07，v0.5.19 已正式发布并标记 Latest：上传五项程序/说明/校验附件，下载回读 SHA256、公开 digest 与 size 均一致。GitHub main 发布前后都为 6404646f5eea9d87b96217e5f51d00d64953d0e4，未推送本次源码、未上传 source.zip；Release 标签复用该历史公开提交，不能作为本次程序源码。程序本地构建提交为 eb85cd55d3214a71a921a0635684ef1897aedd3c。仅程序发布模拟6组通过。新版0.5.19真实GitHub检查显示当前版本，旧版0.5.18检测到0.5.19并在左下角明确提醒，安装包地址正确；两次隔离配置不变，pageErrors为0。正式单实例运行烟测因用户旧版正在运行而跳过，未关闭该进程。结果：.qa/published-0.5.19.json、.qa/github-live/results.json、.qa/github-upgrade-live/results.json、.qa/production-0.5.19.json。
+
+
 2026-10-07，v0.5.19 图片输入与模型能力修复：140项前端测试、125项Rust测试（1项环境辅助ignored）、TypeScript/Vite、Clippy及教程一致性检查通过。模型/顶部/更新/品牌/教程/能力19组原生场景和38处Axe审计通过；协议8组场景和8处Axe通过，合计27组和46处，违规及pageErrors均为0。真实独立Codex app-server逐个对五个当前GPT/Codex型号发送图片，上游mock收到input_image并完成响应；手动开启未知模型同样成功。旧受管目录启动自动修复、保留配置及密钥并提示重启。验证两方向实际HTTP转换的图片块、能力取消不写入、刷新保留手动设置与390px无溢出。图片专项未执行内部codex-auto-review的桌面思考强度菜单验证，结果中明确标注；不使用真实上游或付费请求。结果：.qa/model-dialog/results.json、.qa/protocol-controls/results.json。能力规则见[模型能力说明](model-capabilities.md)。本次按维护者要求只发布程序，不上传新的源码。
 
 
