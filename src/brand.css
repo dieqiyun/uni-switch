@@ -1,0 +1,164 @@
+.brand {
+  gap: 8px;
+  padding-inline: 9px;
+  font-size: 23px;
+}
+.brand-logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.workspace-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  flex-shrink: 0;
+  gap: 8px 16px;
+  min-height: 74px;
+  padding-block: 12px;
+  background: #f7f7f7;
+}
+.workspace-footer .footer-status {
+  grid-column: 1;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  line-height: 1.7;
+  min-width: 0;
+}
+.footer-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.footer-status-text .footer-dot {
+  flex-shrink: 0;
+}
+.footer-status .text-button {
+  font-size: 11px;
+}
+.service-promotion {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  min-width: 0;
+  max-width: 560px;
+}
+.service-promotion-link {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  color: #202020;
+  text-decoration: none;
+  border-radius: 5px;
+}
+.service-promotion-logo {
+  display: block;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.service-promotion-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.service-promotion-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  color: #6f48ad;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.service-promotion-title > span {
+  font-family: "Segoe UI", sans-serif;
+  color: #656565;
+  font-size: 11px;
+  font-weight: 400;
+}
+.service-promotion-description {
+  color: #656565;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.service-promotion-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.service-promotion-link:hover .service-promotion-action {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.service-promotion-link[aria-disabled="true"] {
+  cursor: wait;
+}
+.service-promotion-error {
+  margin: 5px 0 0;
+  max-width: 430px;
+  color: #656565;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  font-size: 11px;
+}
+@media (max-width: 1100px) {
+  .brand {
+    font-size: 21px;
+    gap: 6px;
+    padding-inline: 6px;
+  }
+}
+@media (max-width: 1000px) {
+  .workspace-footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-footer .footer-status {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+    justify-content: center;
+  }
+  .service-promotion {
+    grid-column: 1;
+    max-width: 100%;
+  }
+}
+@media (max-width: 560px) {
+  .brand {
+    font-size: 22px;
+  }
+  .service-promotion-title > span {
+    display: none;
+  }
+  .service-promotion-link {
+    gap: 10px;
+  }
+  .service-promotion-action {
+    margin-left: 0;
+  }
+}
+
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.project-links a {
+  text-decoration: none;
+}

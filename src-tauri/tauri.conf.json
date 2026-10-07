@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "uni-switch",
+  "version": "0.5.17",
+  "identifier": "io.uni-switch.desktop",
+  "build": {
+    "beforeDevCommand": "corepack pnpm dev:web",
+    "beforeBuildCommand": "corepack pnpm build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "uni-switch",
+        "width": 1120,
+        "height": 780,
+        "minWidth": 760,
+        "minHeight": 600,
+        "center": true,
+        "decorations": false,
+        "shadow": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "resources": {
+      "../LICENSE": "LICENSE",
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
+      "../third-party/codex/LICENSE": "licenses/codex-LICENSE",
+      "../third-party/dependency-licenses.txt": "licenses/dependency-licenses.txt",
+      "../NOTICE": "NOTICE"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "windows/hooks.nsh",
+        "displayLanguageSelector": false,
+        "languages": ["SimpChinese"],
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

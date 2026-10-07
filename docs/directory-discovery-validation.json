@@ -1,0 +1,97 @@
+{
+  "version": "0.3.9",
+  "date": "2026-10-07",
+  "platform": "windows-x64",
+  "frontendTests": {
+    "passed": 37
+  },
+  "rustTests": {
+    "passed": 69,
+    "ignoredHelper": 1,
+    "nativeProcessEnvironmentVerified": true
+  },
+  "clippy": "passed with -D warnings",
+  "formatting": "passed",
+  "directoryDiscovery": {
+    "version": "0.3.9",
+    "passed": 6,
+    "checks": [
+      "打开设置自动搜索；唯一全局配置自动绑定；搜索不改写文件；排除备份和项目局部配置",
+      "多个有效目录不按修改时间自动切换；键盘一键选择；重启记住手动选择；与运行进程冲突时保留选择并提示",
+      "已接管目录不自动更换；UI 禁用更换并说明原因；后端拒绝绕过；恢复原配置保留原文件",
+      "额外文件夹搜索找到任意名称的 Codex Home；搜索不切换绑定；过期搜索不能覆盖后来选择",
+      "Claude 桌面标准目录与其他安装实例分别显示；检查当前 profile；不暴露 Key；只写入选中实例且可恢复",
+      "Claude CLI 环境线索只推荐；进程确认后允许自动选择；自动绑定由后端重新核实"
+    ],
+    "accessibility": [
+      {
+        "label": "Unique automatic directory",
+        "violations": []
+      },
+      {
+        "label": "Multiple candidates and keyboard selection",
+        "violations": []
+      },
+      {
+        "label": "Narrow settings dialog",
+        "violations": []
+      }
+    ],
+    "pageErrors": [],
+    "runDirectory": "D:\\code\\uni-switch\\.qa\\directory-discovery\\native\\1791312810242",
+    "fixtureProcessHints": true
+  },
+  "regressions": {
+    "models": [
+      "只填地址与 Key 自动同步；勾选、切换默认、全部取消校验；只将启用模型写入 Codex",
+      "每模型默认256k，可单独编辑且刷新保留；当前供应商自动写入新增启用模型和长度；真实Codex识别三模型，同一会话切换模型分别使用128k/512k/256k上下文",
+      "编辑复用已保存 Key，刷新保留勾选和默认，新模型不自动启用；同步失败仍可保存原配置",
+      "同步不锁定表单；更换地址与 Key 丢弃旧模型和旧响应",
+      "空模型和权限失败不会虚构模型或保存；根地址自动尝试 /v1/models",
+      "大量模型可搜索；键盘勾选、小窗口和 Axe 验证通过",
+      "Claude x-api-key 认证、自动分页合并、禁用不支持模型、桌面多模型写入与 CLI 默认/档位映射"
+    ],
+    "codexToClaude": [
+      "UI selects Claude protocol, discovers both models, writes a loopback route and separate token; zero Axe violations; JSON and SSE text work",
+      "Real Codex 0.160 app-server loads both Claude IDs, completes five turns and compaction, executes shell read and custom apply_patch, sends results and signed thinking back, and switches model in the same thread",
+      "Real Codex CLI exec completes a Claude reply and maps high reasoning to Anthropic adaptive thinking with high effort",
+      "Compaction summary replay, custom tool stream, sanitized 429/stream errors, truncated stream rejection and upstream cancellation",
+      "Closing the main window leaves the bridge running in tray; restarting uni-switch retains the port, token and applied route without reapplying Codex config",
+      "Unapplied credential edits leave active requests on the applied snapshot; restoring original config deactivates bridge route"
+    ],
+    "claudeToOpenAI": [
+      "Native UI selects OpenAI for Claude, discovers GPT models, writes desktop aliases with real GPT display labels; JSON/SSE alias routing, authentication and count estimate work; zero Axe violations",
+      "Real Claude CLI 2.1.179 completes GPT text, executes Read and Write, returns tool results and encrypted reasoning, resumes a saved session and switches GPT model",
+      "Real Claude CLI also executes a complete GPT tool loop through Chat Completions fallback after Responses 404",
+      "JSON Chat fallback and stop sequences; no fallback on 429 or malformed success; redacted HTTP/SSE errors, truncated stream rejection and upstream cancellation",
+      "Independent desktop/CLI suppliers, unapplied credential isolation, tray lifetime, persistent routes after restart and transactional restore of CLI settings and both routes"
+    ]
+  },
+  "production": {
+    "version": "0.3.9",
+    "databaseInitialized": true,
+    "windowTitle": "uni-switch",
+    "responding": true,
+    "qaDebugPortOpen": false,
+    "path": "D:\\code\\uni-switch\\release\\windows-x64\\uni-switch_0.3.9_x64.exe",
+    "runDirectory": "D:\\code\\uni-switch\\.qa\\reasoning-repair\\release-smoke\\1791312940190"
+  },
+  "artifacts": [
+    {
+      "file": "release/windows-x64/uni-switch_0.3.9_x64-setup.exe",
+      "bytes": 3633885,
+      "sha256": "923b296eb54b414f75d9e2e8269ce53f19be4cbbe1a635e64a520f899e419909"
+    },
+    {
+      "file": "release/windows-x64/uni-switch_0.3.9_x64.exe",
+      "bytes": 12660224,
+      "sha256": "1fc23132bc9d56876d001469ef40690dc3230ad5734af41485b86afd4b0ae274"
+    }
+  ],
+  "limitations": [
+    "Native UI process hints use QA fixture; actual Windows remote-process reading separately tested with an isolated x64 process.",
+    "WSL and remote client directories are not automatically mapped.",
+    "One Codex directory is managed at a time.",
+    "Filesystem and metadata identification do not prove final inference routing."
+  ]
+}

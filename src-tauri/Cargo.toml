@@ -1,0 +1,54 @@
+[package]
+name = "uni-switch"
+version = "0.5.17"
+description = "Codex 与 Claude Code 桌面及 CLI API 配置工具"
+edition = "2021"
+rust-version = "1.89"
+license = "AGPL-3.0-only"
+repository = "https://github.com/dieqiyun/uni-switch"
+
+[lib]
+name = "uni_switch_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "uni-switch"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[features]
+default = ["desktop"]
+desktop = ["dep:tauri", "dep:tauri-build", "dep:tauri-plugin-dialog", "dep:tauri-plugin-single-instance"]
+qa-webview = ["desktop"]
+
+[build-dependencies]
+tauri-build = { version = "2", optional = true , features = [] }
+
+[dependencies]
+tauri = { version = "2", optional = true , features = ["tray-icon"] }
+tauri-plugin-dialog = { version = "2", optional = true }
+tauri-plugin-single-instance = { version = "2", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+toml_edit = "0.22"
+thiserror = "2"
+dirs = "6"
+tempfile = "3"
+uuid = { version = "1", features = ["v4"] }
+url = "2"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+axum = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "time", "sync"] }
+async-stream = "0.3"
+futures-util = "0.3"
+base64 = "0.22"
+sha2 = "0.10"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_System_Diagnostics_Debug", "Win32_System_Diagnostics_ToolHelp", "Win32_System_Memory", "Win32_System_Registry", "Win32_System_Environment", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_Graphics_Gdi", "Win32_System_RestartManager"] }
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+strip = true

@@ -1,0 +1,22 @@
+{
+  "version": "0.3.7",
+  "codexVersion": "0.160.0",
+  "checks": [
+    "UI selects Claude protocol, discovers both models, writes a loopback route and separate token; zero Axe violations; JSON and SSE text work",
+    "Real Codex 0.160 app-server loads both Claude IDs, completes five turns and compaction, executes shell read and custom apply_patch, sends results and signed thinking back, and switches model in the same thread",
+    "Real Codex CLI exec completes a Claude reply and maps high reasoning to Anthropic adaptive thinking with high effort",
+    "Compaction summary replay, custom tool stream, sanitized 429/stream errors, truncated stream rejection and upstream cancellation",
+    "Closing the main window leaves the bridge running in tray; restarting uni-switch retains the port, token and applied route without reapplying Codex config",
+    "Unapplied credential edits leave active requests on the applied snapshot; restoring original config deactivates bridge route"
+  ],
+  "runDirectory": ".qa/protocol-bridge/native/1791307142393",
+  "regression": {
+    "frontendTests": 31,
+    "rustTests": 46,
+    "clippyWarnings": 0,
+    "modelsChecks": 7,
+    "reasoningChecks": 7,
+    "balanceChecks": 9
+  },
+  "limitation": "Real Codex runtime and native uni-switch against an isolated fake Anthropic supplier; no real supplier credentials or user configuration used."
+}

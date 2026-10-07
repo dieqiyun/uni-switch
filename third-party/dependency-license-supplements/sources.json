@@ -1,0 +1,12 @@
+{
+  "saxes": "https://github.com/lddubeau/saxes/blob/v6.0.0/LICENSE",
+  "alloc-stdlib": "https://github.com/dropbox/rust-alloc-no-stdlib/blob/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE",
+  "defmt-parser": "https://github.com/knurling-rs/defmt/blob/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-APACHE",
+  "tauri-plugin": "https://github.com/tauri-apps/tauri/blob/30da1fd6e17de6107ecc850c95dfb16b5729f2dd/LICENSE-APACHE-2.0",
+  "webview2-com": "https://github.com/wravery/webview2-rs/blob/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+  "webview2-com-macros": "https://github.com/wravery/webview2-rs/blob/dffa41a8a46d3f5565eefbff2de57d38d399f158/LICENSE",
+  "react-remove-scroll-bar": "https://github.com/theKashey/react-remove-scroll-bar/blob/master/LICENSE",
+  "selectors": "https://www.mozilla.org/media/MPL/2.0/index.txt; package source: https://github.com/servo/stylo/tree/572ecba2d1600e7c3d490586692a209faf703baa/selectors",
+  "dlv": "https://github.com/developit/dlv; MIT declaration and author from installed package.json / README.md",
+  "stackback": "https://github.com/shtylman/node-stackback; MIT declaration and author from installed package.json / README.md"
+}

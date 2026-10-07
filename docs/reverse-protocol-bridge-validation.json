@@ -1,0 +1,43 @@
+{
+  "version": "0.3.8",
+  "claudeCliVersion": "2.1.179",
+  "claudeDesktopSchemaVersion": "2.9939.2.0",
+  "runDirectory": ".qa/reverse-bridge/native/1791310511464",
+  "checks": [
+    "Native UI selects OpenAI for Claude, discovers GPT models, writes desktop aliases with real GPT display labels; JSON/SSE alias routing, authentication and count estimate work; zero Axe violations",
+    "Real Claude CLI 2.1.179 completes GPT text, executes Read and Write, returns tool results and encrypted reasoning, resumes a saved session and switches GPT model",
+    "Real Claude CLI also executes a complete GPT tool loop through Chat Completions fallback after Responses 404",
+    "JSON Chat fallback and stop sequences; no fallback on 429 or malformed success; redacted HTTP/SSE errors, truncated stream rejection and upstream cancellation",
+    "Independent desktop/CLI suppliers, unapplied credential isolation, tray lifetime, persistent routes after restart and transactional restore of CLI settings and both routes"
+  ],
+  "forwardRunDirectory": ".qa/protocol-bridge/native/1791310499604",
+  "forwardChecks": [
+    "UI selects Claude protocol, discovers both models, writes a loopback route and separate token; zero Axe violations; JSON and SSE text work",
+    "Real Codex 0.160 app-server loads both Claude IDs, completes five turns and compaction, executes shell read and custom apply_patch, sends results and signed thinking back, and switches model in the same thread",
+    "Real Codex CLI exec completes a Claude reply and maps high reasoning to Anthropic adaptive thinking with high effort",
+    "Compaction summary replay, custom tool stream, sanitized 429/stream errors, truncated stream rejection and upstream cancellation",
+    "Closing the main window leaves the bridge running in tray; restarting uni-switch retains the port, token and applied route without reapplying Codex config",
+    "Unapplied credential edits leave active requests on the applied snapshot; restoring original config deactivates bridge route"
+  ],
+  "regression": {
+    "frontendTests": 32,
+    "rustTests": 54,
+    "clippyWarnings": 0,
+    "modelsChecks": 7,
+    "reasoningChecks": 7,
+    "balanceChecks": 9,
+    "axeViolations": 0
+  },
+  "limitation": "Real Claude CLI and native uni-switch against isolated fake OpenAI suppliers; desktop profile and routing verified, desktop inference UI not exercised; no real user keys or client configs used.",
+  "productionSmoke": {
+    "version": "0.3.8",
+    "databaseInitialized": true,
+    "windowTitle": "uni-switch",
+    "responding": true,
+    "qaDebugPortOpen": false
+  },
+  "releaseChecksums": [
+    "8dec71439e5a54fbe9272b5cf4d592ca722520817d8666f6cce9460aeba8c4d6  uni-switch_0.3.8_x64-setup.exe",
+    "06060517a23e8ff2a9968ae91a58fa576295edf2c369144ed8a82da090ca9211  uni-switch_0.3.8_x64.exe"
+  ]
+}

@@ -1,0 +1,122 @@
+.app-update-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #656565;
+  margin-bottom: 10px;
+}
+.app-update-status strong {
+  margin-left: 5px;
+  color: #202020;
+  font-weight: 600;
+}
+.update-version {
+  color: #202020;
+  font-weight: 600;
+}
+.app-update-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-section .app-update-error {
+  margin: 10px 0 0;
+  color: #4a4a4a;
+}
+.settings-section .app-update-checked {
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+.app-update-notes {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.app-update-notes h3,
+.app-update-notes h4 {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.app-update-notes p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 220px;
+  overflow: auto;
+}
+.app-update-open-error label {
+  display: block;
+  font-size: 12px;
+  margin: 10px 0 5px;
+  color: #656565;
+}
+.app-update-open-error input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+}
+.app-update-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  color: #656565;
+}
+.app-update-entry:hover,
+.app-update-entry:focus-visible {
+  background: #ededed;
+}
+.app-version-label {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.app-update-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #656565;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.app-update-entry.has-update .app-update-action {
+  color: #202020;
+  font-weight: 600;
+}
+@media (max-width: 800px) {
+  .sidebar-bottom {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .app-update-entry {
+    width: auto;
+    padding: 6px;
+  }
+  .app-version-label {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .sidebar-bottom {
+    gap: 8px;
+  }
+  .help-link {
+    width: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-update-entry .spinning {
+    animation: none;
+  }
+}

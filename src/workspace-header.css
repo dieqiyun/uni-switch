@@ -1,0 +1,124 @@
+/* One toolbar owns the page title, target and supplier actions. */
+.workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 32px 20px;
+  flex-shrink: 0;
+}
+.desktop-shell .workspace-header {
+  padding-top: 40px;
+}
+.workspace-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.workspace-title h1 {
+  margin: 0;
+  font-size: 25px;
+  letter-spacing: -0.6px;
+  white-space: nowrap;
+  user-select: none;
+}
+.supplier-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #656565;
+  white-space: nowrap;
+}
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.header-tools .icon-button {
+  width: 34px;
+  height: 36px;
+}
+.header-tools .button {
+  min-height: 36px;
+  padding: 8px 11px;
+}
+.header-tools .primary {
+  margin: 0 6px;
+}
+.settings-trigger {
+  background: #ffffff;
+  border-color: var(--line);
+  color: #656565;
+}
+.settings-trigger:hover:not(:disabled) {
+  background: #f7f7f7;
+}
+.workspace-title .segmented {
+  gap: 2px;
+  padding: 2px;
+}
+.workspace-title .segmented button {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (min-width: 1400px) {
+  .workspace-header {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}
+@media (max-width: 1100px) {
+  .workspace-header {
+    padding-left: 24px;
+    padding-right: 24px;
+    gap: 12px;
+  }
+  .workspace-title {
+    gap: 10px;
+  }
+  .header-import > span,
+  .supplier-total-label {
+    display: none;
+  }
+  .header-tools .header-import {
+    width: 34px;
+    padding: 0;
+  }
+}
+@media (max-width: 800px) {
+  .desktop-shell .workspace-header {
+    padding-top: 20px;
+  }
+}
+@media (max-width: 560px) {
+  .workspace-header {
+    flex-wrap: wrap;
+    padding: 18px;
+    gap: 12px;
+  }
+  .workspace-title {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .workspace-title h1 {
+    font-size: 22px;
+  }
+  .header-tools {
+    width: 100%;
+  }
+  .header-tools .primary {
+    margin-right: auto;
+  }
+  .settings-trigger > span {
+    display: none;
+  }
+  .header-tools .settings-trigger {
+    width: 34px;
+    padding: 0;
+  }
+}
