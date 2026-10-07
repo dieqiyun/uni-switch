@@ -7,6 +7,7 @@ import "./provider-list.css";
 import "./workspace-header.css";
 import "./app-update.css";
 import "./brand.css";
+import "./tutorial.css";
 
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } },

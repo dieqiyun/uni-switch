@@ -62,6 +62,17 @@ function mount() {
   );
 }
 describe("供应商列表的下一步操作", () => {
+  it("列表与后台 API 不再提供导入功能，教程可从侧栏打开", async () => {
+    mount();
+    await screen.findByRole("button", { name: "使用" });
+    expect(screen.queryByRole("button", { name: "导入现有配置" })).toBeNull();
+    expect(api).not.toHaveProperty("import");
+    await userEvent.click(screen.getByRole("button", { name: "使用说明" }));
+    expect(screen.getByRole("dialog", { name: "使用说明" })).toBeVisible();
+    expect(screen.getByRole("navigation", { name: "教程目录" })).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "开始使用" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
   it("Codex 关闭 Claude 转换后禁止使用，开启仅保存偏好，下次点击使用才应用", async () => {
     data.providers = [{ ...provider, family: "claude" }];
     const conversion = vi

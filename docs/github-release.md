@@ -46,3 +46,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-github-relea
 ## 0.5.17 发布结果
 
 2026-10-07已公开发布v0.5.17并确认Latest。六项附件下载回读与SHA256一致，发布标签对应源码提交b7c9feece3c9051dbec003b5cbba1e2105751265。旧版0.5.16和新版0.5.17的真实桌面更新查询均通过，分别验证发现新版和当前版本。发布时GitHub暂时返回HTTP500；草稿和完整附件保留，服务恢复后成功公开。默认分支补上显式源码标签创建修订，未来发布不依赖GitHub草稿自动生成标签。
+
+
+从 v0.5.18 起，使用说明共用 `src/content/tutorial.json`。更新教程后运行 `corepack pnpm docs:generate`，提交生成的 `docs/tutorial.md`；准备发布时会执行 `corepack pnpm docs:check`，不一致时阻止构建。便携包与 Release 的 `README-zh-CN.md` 同时包含完整入门与功能教程。赞助名单维护于 `README.md` 和 `docs/sponsors.md`。

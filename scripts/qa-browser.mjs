@@ -79,7 +79,12 @@ try {
       .evaluate((n) => n === document.activeElement),
     true,
   );
-  assert.equal(await page.locator(".form-advanced:not(.balance-options)").getAttribute("open"), null);
+  assert.equal(
+    await page
+      .locator(".form-advanced:not(.balance-options)")
+      .getAttribute("open"),
+    null,
+  );
   await settle();
   await page.screenshot({ path: ".qa/codex-options/regression/form.png" });
   await audit("默认三项表单");
@@ -153,7 +158,9 @@ try {
   checks.push("Claude 默认桌面、认证选择、密钥隐藏、保存并应用一键完成");
   await page.getByRole("button", { name: "关闭提示" }).click();
   await page.evaluate(() => document.activeElement?.blur());
-  await page.screenshot({ path: ".qa/codex-options/regression/claude-desktop.png" });
+  await page.screenshot({
+    path: ".qa/codex-options/regression/claude-desktop.png",
+  });
   await audit("已应用配置页面");
   await page.getByRole("button", { name: "CLI", exact: true }).click();
   assert.equal(await page.getByText("当前使用", { exact: true }).count(), 0);
@@ -184,15 +191,21 @@ try {
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await page.getByText("D:\\演示 配置", { exact: true }).waitFor();
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "导入现有配置" }).click();
-  await page.getByText("请在桌面应用中导入客户端的现有配置。").waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "导入现有配置" }).count(),
+    0,
+  );
   await page.getByRole("button", { name: "使用说明", exact: true }).click();
   await page.getByRole("dialog").waitFor();
   await page.getByRole("button", { name: "开始使用" }).click();
-  checks.push("键盘 Escape、焦点返回、设置中的目录和恢复、导入错误和使用说明");
+  checks.push(
+    "键盘 Escape、焦点返回、设置中的目录和恢复、已移除导入入口和使用说明",
+  );
   await page.getByRole("tab", { name: /Codex/ }).click();
   await page.evaluate(() => document.activeElement?.blur());
-  await page.screenshot({ path: ".qa/codex-options/regression/codex-list.png" });
+  await page.screenshot({
+    path: ".qa/codex-options/regression/codex-list.png",
+  });
   for (const size of [
     { width: 1440, height: 900 },
     { width: 1120, height: 780 },
@@ -217,7 +230,9 @@ try {
       ),
       false,
     );
-    await page.screenshot({ path: `.qa/codex-options/regression/form-${size.width}.png` });
+    await page.screenshot({
+      path: `.qa/codex-options/regression/form-${size.width}.png`,
+    });
     await page.keyboard.press("Escape");
   }
   checks.push("1440、1120、760、390 窗口页面及表单无横向溢出");

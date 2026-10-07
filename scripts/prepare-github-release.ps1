@@ -30,6 +30,9 @@ $taskGitRoot = Invoke-Git @('rev-parse','--show-toplevel')
 if ([IO.Path]::GetFullPath($taskGitRoot) -ne $taskWorkspace) { throw '发布必须从本项目Git工作区执行' }
 if (Invoke-Git @('status','--porcelain')) { throw '源码包含未提交改动；请完成验证并提交后构建，以保证源码与程序对应' }
 $taskRevision = Invoke-Git @('rev-parse','HEAD')
+& corepack pnpm docs:check
+if ($LASTEXITCODE -ne 0) { throw 'GitHub教程与软件内说明未同步，停止发布' }
+
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'with-msvc.ps1') -Action build
 if ($LASTEXITCODE -ne 0) { throw '正式构建失败，未准备发布文件' }
 if (Invoke-Git @('status','--porcelain')) { throw '构建改变了源码或锁文件；请检查并提交后重新准备' }

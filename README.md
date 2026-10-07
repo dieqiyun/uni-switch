@@ -2,11 +2,30 @@
 
 简洁的 Codex / Claude Code API 配置工具。填写 **API 地址、API Key**，点击 **添加并使用**；日常切换只需一次点击。
 
-**当前版本：0.5.17 · Windows x64 · AGPL-3.0-only**
+**当前版本：0.5.18 · Windows x64 · AGPL-3.0-only**
 
-[下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [开源许可](LICENSE)
+[下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [开源许可](LICENSE)
 
 ![uni-switch 模型配置](docs/screenshots/model-catalog-pruned-local.png)
+
+## 供应商赞助名单
+
+感谢 **蝶祈云 API** 对 uni-switch 的支持。目前供应商赞助名单仅列出蝶祈云。
+
+<table>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://www.dieqiyun.top/"><img src="src/assets/dieqiyun-logo.png" width="88" alt="蝶祈云 API 紫色 Logo" /><br /><strong>蝶祈云 API</strong></a>
+    </td>
+    <td>
+      蝶祈云为个人开发者、科研探索者及团队提供 AI API 渠道接入，官网展示 GPT、Claude、Gemini 与国内模型生态。其渠道建设涵盖 <strong>GPT 真官 Key 科研探索、国外机构合作定制、高质量渠道聚合</strong>，让不同模型与渠道在同一入口更方便地选择。<br /><br />
+      除个人使用外，也面向项目开发与长期使用需求提供机构定制渠道；官网提供用户社区和联系支持入口，并支持开具发票，团队采购或报销可向支持确认开票资料与办理方式。接入时，从控制台复制对应渠道的 <strong>API 地址与 API Key</strong>，在 uni-switch 点击「添加并使用」，即可继续自动检测协议、同步模型和应用客户端配置。<br /><br />
+      <a href="https://www.dieqiyun.top/">访问蝶祈云官网 ↗</a> · <a href="docs/sponsors.md">详细介绍与接入说明</a> · <a href="docs/tutorial.md#getting-started">首次配置教程</a>
+    </td>
+  </tr>
+</table>
+
+介绍依据蝶祈云官网公开内容整理；模型权限、API 接入地址、价格和服务安排以实际控制台及服务方说明为准。
 
 ## 功能
 
@@ -18,9 +37,12 @@
 - 供应商列表直接切换默认模型、上下文、Fast 加速模式和协议转换；完整模型配置在弹窗中确认。
 - Codex 配置写入时自动检查思考强度显示。实际修改后提供立即重启 / 稍后重启；Claude 两端检测到对应运行客户端时也会提示。
 - 本地配置备份、外部修改冲突检测、恢复原配置；后台协议转换与可选 Windows 登录启动。
-- 左下角版本入口检查 GitHub 最新正式版，发现新版后前往发布页下载。
+- 左下角版本入口检查 GitHub 最新正式版，发现新版时持续显示明确提醒、目标版本和「立即更新」入口。
+- 软件内提供可离线查看的分类教程，与 GitHub 使用教程共用内容。
 
 ## 使用
+
+详细操作见 [完整中文教程](docs/tutorial.md)。软件左下角「使用说明」可离线阅读相同教程。
 
 1. 在左侧选择 Codex 或 Claude Code；Claude Code 可分别选择桌面端和 CLI。
 2. 点击 **添加供应商**，填写 API 地址和 API Key，点击 **添加并使用**。
@@ -37,10 +59,10 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| `uni-switch_0.5.17_x64-setup.exe` | Windows 安装包，推荐普通用户使用 |
-| `uni-switch_0.5.17_x64-portable.zip` | 便携程序、说明和许可证，解压后运行 |
-| `uni-switch_0.5.17_x64.exe` | 独立程序，需要系统已有 WebView2 |
-| `uni-switch_0.5.17_source.zip` | 与本版本程序对应的完整源码和构建文件 |
+| `uni-switch_0.5.18_x64-setup.exe` | Windows 安装包，推荐普通用户使用 |
+| `uni-switch_0.5.18_x64-portable.zip` | 便携程序、说明和许可证，解压后运行 |
+| `uni-switch_0.5.18_x64.exe` | 独立程序，需要系统已有 WebView2 |
+| `uni-switch_0.5.18_source.zip` | 与本版本程序对应的完整源码和构建文件 |
 | `SHA256SUMS.txt` | 发布附件校验值 |
 
 软件检测更新后打开发布页供用户下载，目前不自动替换正在运行的程序。

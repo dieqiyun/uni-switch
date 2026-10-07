@@ -71,7 +71,9 @@ export function errorMessage(error: unknown): string {
 }
 
 export const api = {
-  openProjectPage: async (page: "source" | "license"): Promise<void> => {
+  openProjectPage: async (
+    page: "source" | "license" | "tutorial",
+  ): Promise<void> => {
     if (desktopRuntime) return invoke("open_project_page", { page });
   },
   openServiceWebsite: async (): Promise<void> => {
@@ -406,11 +408,6 @@ export const api = {
     status.message = "预览：已恢复未接管状态。";
     persist(data);
     return status;
-  },
-  import: async (target: Target): Promise<Provider> => {
-    if (!desktopRuntime)
-      throw new Error("请在桌面应用中导入客户端的现有配置。");
-    return invoke("import_current", { target });
   },
   directory: async (target: Target, directory: string): Promise<void> => {
     if (desktopRuntime) return invoke("set_directory", { target, directory });

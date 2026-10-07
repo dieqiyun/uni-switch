@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile, copyFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
+import { verifyTutorial } from "./qa-tutorial.mjs";
 import { verifyWorkspaceHeader } from "./qa-workspace-header.mjs";
 import { verifyAppUpdates } from "./qa-app-update.mjs";
 import { verifyBrandRefresh } from "./qa-brand-refresh.mjs";
@@ -147,9 +148,9 @@ const snapshot = async () => ({
   }),
 });
 const dialog = () =>
-  page.getByRole("dialog", { name: "导入的配置 · 模型配置", exact: true });
+  page.getByRole("dialog", { name: "示例供应商 · 模型配置", exact: true });
 const trigger = () =>
-  page.getByRole("button", { name: "配置 导入的配置 的模型", exact: true });
+  page.getByRole("button", { name: "配置 示例供应商 的模型", exact: true });
 async function openModels(selected = upstreamIds?.length ?? (many ? 85 : 5)) {
   await trigger().click();
   await dialog().waitFor();
@@ -208,7 +209,7 @@ try {
     input: {
       id: null,
       family: "codex",
-      name: "导入的配置",
+      name: "示例供应商",
       baseUrl,
       apiKey: key,
       authMode: "bearer",
@@ -267,7 +268,7 @@ try {
   );
   assert.deepEqual(await snapshot(), before);
   checks.push(
-    "导入一个模型、同步五个模型显示本次选择及保存前后数量，打开弹窗不写入",
+    "已保存一个模型、同步五个模型显示本次选择及保存前后数量，打开弹窗不写入",
   );
   await audit("Five-model dialog");
   await page.screenshot({
@@ -450,6 +451,8 @@ try {
   checks.push(
     "设置展示AGPL版权与无保证声明，源码及许可使用固定原生跳转；拒绝任意URL且不改变客户端配置",
   );
+
+  await verifyTutorial({ page, snapshot, root, checks, audit });
 
   const catalogExpected = (saved) =>
     Object.fromEntries(saved.models.map((m) => [m.slug, m.context_window]));

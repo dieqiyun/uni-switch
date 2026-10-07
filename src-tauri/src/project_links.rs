@@ -6,12 +6,14 @@ use serde::Deserialize;
 pub enum ProjectPage {
     Source,
     License,
+    Tutorial,
 }
 
 impl ProjectPage {
     pub fn url(&self) -> &'static str {
         match self {
             Self::Source => "https://github.com/dieqiyun/uni-switch",
+            Self::Tutorial => "https://github.com/dieqiyun/uni-switch/blob/main/docs/tutorial.md",
             Self::License => "https://github.com/dieqiyun/uni-switch/blob/main/LICENSE",
         }
     }

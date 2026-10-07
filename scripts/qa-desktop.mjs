@@ -102,10 +102,10 @@ try {
     codex.includes("# 保留注释") && codex.includes("mcp_servers.example"),
   );
   checks.push("真实 Tauri IPC：Codex 地址、Key、模型写入和原注释保留");
-  await page.getByRole("button", { name: "导入现有配置" }).click();
-  await page
-    .getByRole("heading", { name: "导入的配置", exact: true })
-    .waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "导入现有配置" }).count(),
+    0,
+  );
   await page.getByRole("button", { name: "删除 Codex 测试 API" }).click();
   await page
     .getByRole("dialog")
@@ -116,7 +116,7 @@ try {
     .getByText(/此配置仍在客户端中使用/)
     .waitFor();
   await page.getByRole("dialog").getByRole("button", { name: "取消" }).click();
-  checks.push("导入现有 Codex 与删除使用中配置的错误反馈");
+  checks.push("已移除导入入口，删除使用中配置保留错误反馈");
   await restore();
   const restoredCodex = await readFile(
     path.join(codexDir, "config.toml"),
@@ -126,7 +126,7 @@ try {
     restoredCodex.includes("original-model") &&
       !restoredCodex.includes("desktop-test-key"),
   );
-  await page.getByRole("button", { name: "删除 导入的配置" }).click();
+  await page.getByRole("button", { name: "删除 Codex 测试 API" }).click();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "删除配置" })
@@ -242,7 +242,9 @@ try {
       "false",
   );
   await page.evaluate(() => document.activeElement?.blur());
-  await page.screenshot({ path: ".qa/codex-options/regression/native-final.png" });
+  await page.screenshot({
+    path: ".qa/codex-options/regression/native-final.png",
+  });
   assert.deepEqual(errors, []);
   await writeFile(
     ".qa/codex-options/regression/desktop-results.json",

@@ -89,8 +89,53 @@
   font-size: 11px;
   white-space: nowrap;
 }
+.app-update-entry.has-update {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 10px;
+  background: #202020;
+  color: #fff;
+  padding: 12px;
+  margin-top: 8px;
+  border-radius: 8px;
+}
+.app-update-entry.has-update:hover {
+  background: #373737;
+}
+.app-update-entry.has-update:focus-visible {
+  outline: 2px solid #202020;
+  outline-offset: 3px;
+}
+.app-update-entry.has-update .app-version-label {
+  grid-column: 1;
+  color: #dedede;
+  font-size: 10px;
+}
+.app-update-notification {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.app-update-notification strong {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+.app-update-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+  margin-top: 7px;
+}
 .app-update-entry.has-update .app-update-action {
-  color: #202020;
+  grid-column: 2;
+  color: #fff;
   font-weight: 600;
 }
 @media (max-width: 800px) {
@@ -118,5 +163,27 @@
 @media (prefers-reduced-motion: reduce) {
   .app-update-entry .spinning {
     animation: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .app-update-entry.has-update {
+    gap: 2px;
+    margin: 0;
+    padding: 7px 10px;
+  }
+  .app-update-notification {
+    gap: 5px;
+    font-size: 10px;
+  }
+  .app-update-notification strong {
+    display: inline;
+    font-size: 11px;
+    margin-left: 3px;
+  }
+  .app-update-entry.has-update .app-update-action {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    font-size: 10px;
   }
 }

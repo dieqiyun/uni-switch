@@ -327,10 +327,6 @@ mod desktop {
         locked(&state)?.restore(target)
     }
     #[tauri::command]
-    fn import_current(state: State<AppState>, target: Target) -> Result<Provider> {
-        locked(&state)?.import(target)
-    }
-    #[tauri::command]
     fn set_directory(state: State<AppState>, target: Target, directory: String) -> Result<()> {
         locked(&state)?.set_directory(target, directory)
     }
@@ -486,7 +482,6 @@ mod desktop {
                 set_protocol_conversion,
                 rename_provider,
                 restore_original,
-                import_current,
                 set_directory,
                 sync_provider_models,
                 query_provider_balance

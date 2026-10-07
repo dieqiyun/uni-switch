@@ -719,25 +719,28 @@ impl Store {
             .transpose()?
             .or_else(|| self.bridge_record(target).ok().flatten().map(|p| p.summary))
             .or_else(|| {
-                adapters::import(target, &directory).ok().map(|imported| {
-                    let mut summary = newest.summary.clone();
-                    summary.model = imported.model;
-                    summary.reasoning_effort = imported.reasoning_effort;
-                    summary.codex_options.fast_mode = imported.codex_options.fast_mode;
-                    summary.codex_options.context_window = imported.codex_options.context_window;
-                    summary.codex_options.auto_compact_token_limit =
-                        imported.codex_options.auto_compact_token_limit;
-                    summary.codex_options.models = imported.codex_options.models;
-                    summary.codex_options.repair_reasoning_levels =
-                        baseline.as_ref().is_some_and(|files| {
-                            files.iter().any(|f| {
-                                f.keys
-                                    .iter()
-                                    .any(|key| key == adapters::REASONING_DISPLAY_KEY)
-                            })
-                        });
-                    summary
-                })
+                adapters::read_model_preferences(target, &directory)
+                    .ok()
+                    .map(|preferences| {
+                        let mut summary = newest.summary.clone();
+                        summary.model = preferences.model;
+                        summary.reasoning_effort = preferences.reasoning_effort;
+                        summary.codex_options.fast_mode = preferences.codex_options.fast_mode;
+                        summary.codex_options.context_window =
+                            preferences.codex_options.context_window;
+                        summary.codex_options.auto_compact_token_limit =
+                            preferences.codex_options.auto_compact_token_limit;
+                        summary.codex_options.models = preferences.codex_options.models;
+                        summary.codex_options.repair_reasoning_levels =
+                            baseline.as_ref().is_some_and(|files| {
+                                files.iter().any(|f| {
+                                    f.keys
+                                        .iter()
+                                        .any(|key| key == adapters::REASONING_DISPLAY_KEY)
+                                })
+                            });
+                        summary
+                    })
             });
         let mut merged = newest.clone();
         if let Some(old) = old {
@@ -813,7 +816,7 @@ impl Store {
         let mut message = if active.is_some() {
             "配置已写入。请完全退出客户端，再重新打开以使用新配置。"
         } else {
-            "添加或导入一组 API 配置，然后应用到此客户端。"
+            "添加一组 API 配置，然后应用到此客户端。"
         }
         .to_owned();
         if let Some(files) = &baseline {
@@ -827,7 +830,7 @@ impl Store {
                     Ok(true) => {
                         state = "external_change".into();
                         message =
-                            "API 字段已被其他工具修改。可以导入现有配置，或重新应用已保存的配置。"
+                            "API 字段已被其他工具修改。请先撤回其他工具的修改，再重试；现有文件未被覆盖。"
                                 .into();
                         break;
                     }
@@ -973,38 +976,6 @@ impl Store {
         Ok(())
     }
 
-    pub fn import(&mut self, target: Target) -> Result<Provider> {
-        let (directory, _, baseline) = self.target_record(target)?;
-        let input = adapters::import(target, &directory)?;
-        {
-            if let Some(provider) = self.bridge_record(target)? {
-                if self.bridge_route.as_ref().is_some_and(|route| {
-                    input.base_url
-                        == if target == Target::Codex {
-                            route.base_url(&provider.summary.id)
-                        } else {
-                            route.claude_base_url(target, &provider.summary.id)
-                        }
-                }) {
-                    return Ok(provider.summary);
-                }
-            }
-        }
-        let provider = self.save(input)?;
-        if let Some(mut baseline) = baseline {
-            for file in &mut baseline {
-                let current = adapters::read(&file.path)?;
-                adapters::projection(file, current.as_deref())?;
-                file.expected = current;
-            }
-            self.conn.execute(
-                "UPDATE targets SET baseline=?1 WHERE id=?2",
-                params![json(&baseline)?, target.id()],
-            )?;
-        }
-        Ok(provider)
-    }
-
     pub fn apply(&mut self, target: Target, provider_id: &str) -> Result<TargetStatus> {
         self.recover()?;
         let provider = self.provider(provider_id)?;
@@ -1058,7 +1029,7 @@ impl Store {
                         file.keys.push(adapters::REASONING_DISPLAY_KEY.into());
                     }
                     if adapters::changed_for_provider(previous, active_provider.as_ref())? {
-                        return Err(AppError::new("external_change", "当前 API 字段已被其他工具修改。请先导入现有配置，然后恢复或重新确认目标配置；为保护现有文件，此次没有写入"));
+                        return Err(AppError::new("external_change", "当前 API 字段已被其他工具修改。请先撤回其他工具对 API 字段的修改，再重试应用或恢复；为保护现有文件，此次没有写入"));
                     }
                 }
             }
@@ -1609,7 +1580,7 @@ impl Store {
             adapters::plan(Target::Codex, &directory, &saved)?;
             for file in &baseline {
                 if adapters::changed_for_provider(file, Some(&saved))? {
-                    return Err(AppError::new("external_change", "当前 API 配置或模型目录已被其他工具修改，请先导入现有配置后重试；此次没有写入"));
+                    return Err(AppError::new("external_change", "当前 API 配置或模型目录已被其他工具修改，请先撤回相应修改后重试；此次没有写入"));
                 }
             }
             let files = adapters::reasoning_repair_files(&directory, &provider)?;

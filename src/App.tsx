@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Check,
   CircleHelp,
-  Download,
   Monitor,
   Pencil,
   Plus,
@@ -24,6 +23,7 @@ import {
 import { api, desktopRuntime, errorMessage } from "./lib/api";
 import { APP_VERSION } from "./lib/appVersion";
 import { useAppUpdate } from "./lib/useAppUpdate";
+import { AppUpdateEntry } from "./components/AppUpdateEntry";
 import { AppUpdatePanel } from "./components/AppUpdatePanel";
 import { ProviderProtocolControl } from "./components/ProviderProtocolControl";
 import { ServicePromotion } from "./components/ServicePromotion";
@@ -56,6 +56,7 @@ import {
   restartNames,
 } from "./components/ClientRestartDialog";
 import { Modal } from "./components/Modal";
+import { TutorialDialog } from "./components/TutorialDialog";
 import { WindowChrome } from "./components/WindowChrome";
 import { ProviderName } from "./components/ProviderName";
 import {
@@ -83,7 +84,7 @@ type Popup =
   | { kind: "update" }
   | { kind: "directory" }
   | { kind: "conflict" }
-  | { kind: "help" }
+  | { kind: "help"; topic?: string }
   | { kind: "restart-client"; runtime: RuntimeStatus }
   | null;
 function Glyph({ family }: { family: Family }) {
@@ -529,37 +530,11 @@ export default function App() {
             <ShieldCheck size={15} aria-hidden />
             <span>密钥仅保存在本机</span>
           </div>
-          <button
-            type="button"
-            className={`app-version app-update-entry${appUpdate.check.data?.available ? " has-update" : ""}`}
-            aria-label={`检查更新，当前版本 v${APP_VERSION}${appUpdate.check.data?.available ? `，发现新版本 v${appUpdate.check.data.latestVersion}` : ""}`}
-            aria-haspopup="dialog"
-            aria-expanded={popup?.kind === "update"}
-            title={
-              appUpdate.check.data?.available
-                ? `发现新版本 v${appUpdate.check.data.latestVersion}，点击查看更新`
-                : "点击检查软件更新"
-            }
+          <AppUpdateEntry
+            state={appUpdate}
+            expanded={popup?.kind === "update"}
             onClick={openUpdates}
-          >
-            <span className="app-version-label">v{APP_VERSION}</span>
-            <span className="app-update-action">
-              {appUpdate.check.data?.available ? (
-                <Download size={12} aria-hidden />
-              ) : (
-                <RefreshCw
-                  size={12}
-                  className={appUpdate.check.isFetching ? "spinning" : ""}
-                  aria-hidden
-                />
-              )}
-              {appUpdate.check.isFetching
-                ? "检查中…"
-                : appUpdate.check.data?.available
-                  ? "有新版本"
-                  : "检查更新"}
-            </span>
-          </button>
+          />
         </div>
       </aside>
       <div className="workspace">
@@ -616,21 +591,6 @@ export default function App() {
                 <Search size={17} aria-hidden />
               </button>
             )}
-            <button
-              className="button quiet header-import"
-              aria-label="导入现有配置"
-              title="导入现有配置"
-              disabled={busy || query.isPending || !query.data}
-              onClick={() =>
-                void action(
-                  () => api.import(target),
-                  "已导入现有配置，请检查后应用。",
-                )
-              }
-            >
-              <Download size={16} aria-hidden />
-              <span>导入现有配置</span>
-            </button>
             {providers.length > 0 && (
               <button
                 className="button primary"
@@ -1652,7 +1612,7 @@ export default function App() {
       {popup?.kind === "conflict" && (
         <Modal
           title="处理现有配置"
-          description="其他软件或客户端修改了 API 配置。查看后选择导入现有设置，或恢复到 uni-switch 接管前。"
+          description="为保护现有配置，软件已暂停写入。请先撤回其他工具对 API 字段或模型目录的修改，再重试。"
           wide
           onClose={() => setPopup(null)}
           busy={busy}
@@ -1673,23 +1633,14 @@ export default function App() {
           <div className="modal-actions">
             <button
               className="button secondary"
-              disabled={busy || !status?.canRestore}
-              onClick={() => setPopup({ kind: "restore" })}
-            >
-              恢复接管前配置
-            </button>
-            <button
-              className="button primary"
-              disabled={busy}
               onClick={() =>
-                void action(
-                  () => api.import(target),
-                  "现有配置已导入并保留。可从供应商列表重新选择使用。",
-                  true,
-                )
+                setPopup({ kind: "help", topic: "troubleshooting" })
               }
             >
-              导入现有配置
+              查看处理教程
+            </button>
+            <button className="button primary" onClick={() => setPopup(null)}>
+              知道了
             </button>
           </div>
           {notice?.error && (
@@ -1700,61 +1651,10 @@ export default function App() {
         </Modal>
       )}
       {popup?.kind === "help" && (
-        <Modal
-          title="三步，连接你的 API"
-          description="准备供应商提供的接入信息，其余的配置写入交给 uni-switch。"
-          wide
+        <TutorialDialog
+          initialTopic={popup.topic}
           onClose={() => setPopup(null)}
-        >
-          <div className="help-content">
-            <ol>
-              <li>
-                <strong>选择客户端</strong>
-                <p>
-                  左侧选择 Codex 或 Claude Code。Claude 桌面端与 CLI
-                  分别应用；Codex 共用目录时一起生效。
-                </p>
-              </li>
-              <li>
-                <strong>添加供应商，点击使用</strong>
-                <p>
-                  只填写 API
-                  地址和密钥，点击「添加并使用」。协议和默认模型自动匹配，点击供应商行内模型可调整启用列表和默认模型。
-                </p>
-              </li>
-              <li>
-                <strong>重启后使用</strong>
-                <p>完全退出桌面客户端再重新打开；CLI 开启新进程或会话。</p>
-              </li>
-            </ol>
-            <div className="help-callout">
-              <ShieldCheck size={19} aria-hidden />
-              <p>
-                应用前会自动备份。需要撤回时，在右上角「设置」中选择「恢复原配置」。
-              </p>
-            </div>
-            <details>
-              <summary>接入要求与生效范围</summary>
-              <p>
-                Codex 可使用 Responses API，也可选择「Claude
-                Messages」通过本地转换使用 Claude 模型。 转换时请保持 uni-switch
-                运行，关闭主窗口会驻留托盘，可开启随 Windows 后台启动。Claude
-                也可自动使用 GPT， 自动处理工具调用和模型名称。Claude
-                桌面端需要支持第三方推理的客户端。
-                组织策略、启动参数或不同目录可能影响最终配置。
-              </p>
-              <p>
-                “已写入配置”表示文件校验成功，软件不会自动发送计费测试请求。
-              </p>
-            </details>
-          </div>
-          <div className="modal-actions">
-            <button className="button primary" onClick={() => setPopup(null)}>
-              开始使用
-              <ArrowRight size={16} aria-hidden />
-            </button>
-          </div>
-        </Modal>
+        />
       )}
     </Tabs.Root>
   );

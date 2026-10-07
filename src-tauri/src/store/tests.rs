@@ -1604,7 +1604,7 @@ fn completed_confirm_journal_recovers_a_new_provider_only_after_all_files_exist(
 }
 
 #[test]
-fn codex_x_api_key_round_trip_preserves_shared_authentication() {
+fn codex_x_api_key_configuration_preserves_shared_authentication() {
     let (temp, mut store) = fixture();
     let mut value = input(Family::Codex, "Header gateway");
     value.auth_mode = "x-api-key".into();
@@ -1613,12 +1613,17 @@ fn codex_x_api_key_round_trip_preserves_shared_authentication() {
     let config = std::fs::read_to_string(temp.path().join("codex/config.toml")).unwrap();
     assert!(config.contains("x-api-key"));
     assert!(!config.contains("experimental_bearer_token"));
-    let imported = store.import(Target::Codex).unwrap();
-    assert_eq!(imported.auth_mode, "x-api-key");
+    let doc: toml_edit::DocumentMut = config.parse().unwrap();
+    let id = doc["model_provider"].as_str().unwrap();
     assert_eq!(
-        store.provider(&imported.id).unwrap().api_key,
-        store.provider(&p.id).unwrap().api_key
+        doc["model_providers"][id]["http_headers"]["x-api-key"].as_str(),
+        Some(store.provider(&p.id).unwrap().api_key.as_str())
     );
+    assert_eq!(
+        store.provider(&p.id).unwrap().summary.auth_mode,
+        "x-api-key"
+    );
+    assert_eq!(store.list().unwrap().len(), 1);
 }
 
 #[test]
@@ -1734,7 +1739,11 @@ fn bridge_routes_use_private_applied_snapshot_and_restore_transactionally() {
     );
     assert!(store.bridge_required());
     assert_eq!(
-        store.import(Target::Codex).unwrap().base_url,
+        store
+            .bridge_provider(&provider.id)
+            .unwrap()
+            .summary
+            .base_url,
         "https://gateway.example.test/v1"
     );
     store.repair_reasoning_levels(&provider.id).unwrap();
@@ -1829,11 +1838,19 @@ fn reverse_bridges_have_independent_snapshots_aliases_and_restore_cli_environmen
     );
     assert!(profile.is_err(), "Direct adapter rejects unaliased GPT IDs");
     assert_eq!(
-        store.import(Target::ClaudeDesktop).unwrap().model,
+        store
+            .claude_bridge_provider(Target::ClaudeDesktop, &first.id)
+            .unwrap()
+            .summary
+            .model,
         "gpt-5.4"
     );
     assert_eq!(
-        store.import(Target::ClaudeCli).unwrap().base_url,
+        store
+            .claude_bridge_provider(Target::ClaudeCli, &first.id)
+            .unwrap()
+            .summary
+            .base_url,
         "https://gateway.example.test/v1"
     );
     value.id = None;
@@ -2508,7 +2525,7 @@ fn legacy_balance_presets_migrate_without_changing_custom_queries() {
 }
 
 #[test]
-fn codex_options_catalog_switch_import_and_restore_are_transactional() {
+fn codex_options_catalog_switch_and_restore_are_transactional() {
     let (temp, mut store) = fixture();
     let dir = temp.path().join("codex");
     let config = dir.join("config.toml");
@@ -2547,9 +2564,10 @@ fn codex_options_catalog_switch_import_and_restore_are_transactional() {
     assert_eq!(catalog["models"].as_array().unwrap().len(), 2);
     assert_eq!(catalog["models"][0]["visibility"], "list");
     assert_eq!(catalog["models"][0]["slug"], "test-model");
-    let imported = store.import(Target::Codex).unwrap();
-    assert_eq!(imported.codex_options.fast_mode, Some(true));
-    assert_eq!(imported.codex_options.models.len(), 2);
+    let preferences = adapters::read_model_preferences(Target::Codex, &dir).unwrap();
+    assert_eq!(preferences.codex_options.fast_mode, Some(true));
+    assert_eq!(preferences.codex_options.models.len(), 2);
+    assert_eq!(store.list().unwrap().len(), 1);
     value.id = Some(provider.id.clone());
     value.codex_options.fast_mode = Some(false);
     value.codex_options.models[1].enabled = false;
@@ -2788,8 +2806,8 @@ fn desktop_writes_profile_and_library_preserves_mcp_and_restores_new_settings() 
         profile["inferenceModels"],
         json!(["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"])
     );
-    let imported = adapters::import(Target::ClaudeDesktop, &dir).unwrap();
-    assert_eq!(imported.codex_options.models.len(), 3);
+    let preferences = adapters::read_model_preferences(Target::ClaudeDesktop, &dir).unwrap();
+    assert_eq!(preferences.codex_options.models.len(), 3);
     store.apply(Target::ClaudeCli, &provider.id).unwrap();
     let cli = read_json(&temp.path().join("claude_cli/settings.json"));
     assert_eq!(
@@ -2865,11 +2883,12 @@ fn damaged_desktop_file_prevents_all_four_writes() {
 }
 
 #[test]
-fn external_changes_are_reported_and_import_can_adopt_them() {
+fn external_changes_remain_protected_until_external_edit_is_reverted() {
     let (temp, mut store) = fixture();
     let p = store.save(input(Family::Claude, "A")).unwrap();
     store.apply(Target::ClaudeCli, &p.id).unwrap();
     let path = temp.path().join("claude_cli/settings.json");
+    let before = std::fs::read_to_string(&path).unwrap();
     let mut doc = read_json(&path);
     doc["env"]["ANTHROPIC_BASE_URL"] = json!("https://changed.example.test");
     put(&path, &doc.to_string());
@@ -2885,9 +2904,16 @@ fn external_changes_are_reported_and_import_can_adopt_them() {
         store.restore(Target::ClaudeCli).unwrap_err().code,
         "external_change"
     );
-    let imported = store.import(Target::ClaudeCli).unwrap();
-    assert_eq!(imported.base_url, "https://changed.example.test");
+    assert_eq!(read_json(&path), doc, "conflicting file is untouched");
+    assert_eq!(store.list().unwrap().len(), 1, "no provider is adopted");
+    assert_eq!(
+        store.provider(&p.id).unwrap().summary.base_url,
+        "https://gateway.example.test/v1"
+    );
+    put(&path, &before);
     store.apply(Target::ClaudeCli, &p.id).unwrap();
+    assert_eq!(store.status(Target::ClaudeCli).unwrap().state, "applied");
+    store.restore(Target::ClaudeCli).unwrap();
 }
 
 #[test]

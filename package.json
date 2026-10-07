@@ -1,6 +1,6 @@
 {
   "name": "uni-switch",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.12.3",
@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --no-default-features",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "docs:generate": "node scripts/generate-tutorial.mjs",
+    "docs:check": "node scripts/generate-tutorial.mjs --check"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

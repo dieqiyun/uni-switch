@@ -1094,7 +1094,7 @@ pub fn restore(file: &ManagedFile) -> Result<Change> {
         return Err(AppError::new(
             "external_change",
             format!(
-                "{} 中的 API 字段已被其他工具修改，请先导入或重新应用配置后再恢复",
+                "{} 中的 API 字段已被其他工具修改，请先撤回相应修改后再重试恢复",
                 file.path.display()
             ),
         ));
@@ -1205,7 +1205,18 @@ pub fn restore(file: &ManagedFile) -> Result<Change> {
     })
 }
 
-pub fn import(target: Target, directory: &Path) -> Result<crate::types::ProviderInput> {
+/// Read only model choices for upgrading an existing managed snapshot.
+/// Does not extract credentials or create/adopt a supplier.
+pub(crate) struct ClientModelPreferences {
+    pub model: String,
+    pub reasoning_effort: Option<String>,
+    pub codex_options: crate::types::CodexOptions,
+}
+
+pub(crate) fn read_model_preferences(
+    target: Target,
+    directory: &Path,
+) -> Result<ClientModelPreferences> {
     let files = specifications(target, directory);
     let path = if target == Target::ClaudeDesktop {
         let meta = parse_json(read(&files[3].0)?.as_deref(), &files[3].0)?;
@@ -1213,7 +1224,7 @@ pub fn import(target: Target, directory: &Path) -> Result<crate::types::Provider
             .get("appliedId")
             .and_then(Value::as_str)
             .ok_or_else(|| {
-                AppError::new("nothing_to_import", "Claude 桌面端还没有生效的第三方配置")
+                AppError::new("configuration_missing", "Claude 桌面端没有生效的第三方配置")
             })?;
         if uuid::Uuid::try_parse(id).is_err() {
             return Err(AppError::new(
@@ -1225,10 +1236,10 @@ pub fn import(target: Target, directory: &Path) -> Result<crate::types::Provider
     } else {
         files[0].0.clone()
     };
-    let text = read(&path)?
-        .ok_or_else(|| AppError::new("nothing_to_import", "目标配置文件不存在，请先添加配置"))?;
+    let text =
+        read(&path)?.ok_or_else(|| AppError::new("configuration_missing", "目标配置文件不存在"))?;
     let mut codex_options = crate::types::CodexOptions::default();
-    let (base_url, api_key, model, auth_mode, reasoning_effort) = match target {
+    let (model, reasoning_effort) = match target {
         Target::Codex => {
             let doc = parse_toml(Some(&text), &path)?;
             codex_options.fast_mode = doc
@@ -1240,7 +1251,7 @@ pub fn import(target: Target, directory: &Path) -> Result<crate::types::Provider
             codex_options.auto_compact_token_limit = doc
                 .get("model_auto_compact_token_limit")
                 .and_then(Item::as_integer);
-            // Only read our own catalog. An imported path must not cause arbitrary file reads.
+            // An arbitrary catalog path must never trigger unrelated file reads.
             let catalog_path = directory.join("uni-switch-models.json");
             if doc
                 .get("model_catalog_json")
@@ -1252,45 +1263,8 @@ pub fn import(target: Target, directory: &Path) -> Result<crate::types::Provider
                         crate::supplier::parse_models(&parse_json(Some(&catalog), &catalog_path)?)?;
                 }
             }
-            let id = doc
-                .get("model_provider")
-                .and_then(Item::as_str)
-                .ok_or_else(|| {
-                    AppError::new(
-                        "nothing_to_import",
-                        "当前 Codex 使用官方登录，未发现可导入的自定义 API 配置",
-                    )
-                })?;
-            let table = doc
-                .get("model_providers")
-                .and_then(|t| t.get(id))
-                .ok_or_else(|| AppError::new("unsupported_auth", "没有找到 Codex provider 配置"))?;
-            let bearer = table
-                .get("experimental_bearer_token")
-                .and_then(Item::as_str);
-            let native_key = table
-                .get("http_headers")
-                .and_then(|headers| headers.get("x-api-key"))
-                .and_then(Item::as_str);
-            let (key, mode) = bearer
-                .map(|key| (key, "bearer"))
-                .or_else(|| native_key.map(|key| (key, "x-api-key")))
-                .ok_or_else(|| {
-                    AppError::new(
-                        "unsupported_auth",
-                        "只支持导入直接配置的 API Key；环境变量或凭据助手需要手动填写",
-                    )
-                })?;
-            codex_options.upstream_protocol = Some(crate::types::CodexProtocol::Openai);
             (
-                table
-                    .get("base_url")
-                    .and_then(Item::as_str)
-                    .unwrap_or("")
-                    .into(),
-                key.into(),
                 doc.get("model").and_then(Item::as_str).unwrap_or("").into(),
-                mode.into(),
                 doc.get("model_reasoning_effort")
                     .and_then(Item::as_str)
                     .map(str::to_owned),
@@ -1298,12 +1272,6 @@ pub fn import(target: Target, directory: &Path) -> Result<crate::types::Provider
         }
         Target::ClaudeDesktop => {
             let doc = parse_json(Some(&text), &path)?;
-            if doc.get("inferenceProvider").and_then(Value::as_str) != Some("gateway") {
-                return Err(AppError::new(
-                    "unsupported_auth",
-                    "当前仅支持导入 Gateway 静态 API Key 配置",
-                ));
-            }
             if let Some(models) = doc.get("inferenceModels").and_then(Value::as_array) {
                 codex_options.models = models
                     .iter()
@@ -1316,68 +1284,28 @@ pub fn import(target: Target, directory: &Path) -> Result<crate::types::Provider
                     })
                     .collect();
             }
-            let model = doc
-                .get("inferenceModels")
-                .and_then(Value::as_array)
-                .and_then(|a| a.first())
-                .and_then(|v| v.as_str().or_else(|| v.get("name").and_then(Value::as_str)))
-                .unwrap_or("");
             (
-                doc.get("inferenceGatewayBaseUrl")
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .into(),
-                doc.get("inferenceGatewayApiKey")
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .into(),
-                model.into(),
-                doc.get("inferenceGatewayAuthScheme")
-                    .and_then(Value::as_str)
-                    .unwrap_or("bearer")
-                    .into(),
+                codex_options
+                    .models
+                    .first()
+                    .map(|m| m.id.clone())
+                    .unwrap_or_default(),
                 None,
             )
         }
         Target::ClaudeCli => {
             let doc = parse_json(Some(&text), &path)?;
-            let env = doc.get("env").unwrap_or(&Value::Null);
-            let (key, mode) =
-                if let Some(key) = env.get("ANTHROPIC_AUTH_TOKEN").and_then(Value::as_str) {
-                    (key, "bearer")
-                } else {
-                    (
-                        env.get("ANTHROPIC_API_KEY")
-                            .and_then(Value::as_str)
-                            .unwrap_or(""),
-                        "x-api-key",
-                    )
-                };
-            (
-                env.get("ANTHROPIC_BASE_URL")
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .into(),
-                key.into(),
-                env.get("ANTHROPIC_MODEL")
-                    .or_else(|| doc.get("model"))
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .into(),
-                mode.into(),
-                None,
-            )
+            let model = doc
+                .get("env")
+                .and_then(|env| env.get("ANTHROPIC_MODEL"))
+                .or_else(|| doc.get("model"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            (model.into(), None)
         }
     };
-    Ok(crate::types::ProviderInput {
-        id: None,
-        family: target.family(),
-        name: "导入的配置".into(),
-        base_url,
-        api_key: Some(api_key),
-        balance_access_token: None,
+    Ok(ClientModelPreferences {
         model,
-        auth_mode,
         reasoning_effort,
         codex_options,
     })

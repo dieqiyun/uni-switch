@@ -29,7 +29,7 @@ const models = ids.map((id) => ({
 const imported: Provider = {
   id: "imported",
   family: "codex",
-  name: "导入的配置",
+  name: "示例供应商",
   baseUrl: "https://gateway.test/v1",
   model: ids[0],
   authMode: "bearer",
@@ -106,12 +106,12 @@ function Harness({
     </>
   );
 }
-describe("导入配置自动同步后的模型计数", () => {
+describe("已保存配置自动同步后的模型计数", () => {
   it("原有一个模型、同步五个只形成草稿，取消后仍是一，确认后主列表立即变五", async () => {
     render(<Harness />);
     const user = userEvent.setup();
     const trigger = screen.getByRole("button", {
-      name: "配置 导入的配置 的模型",
+      name: "配置 示例供应商 的模型",
     });
     expect(trigger).toHaveTextContent("已启用 1 个");
     await user.click(trigger);
@@ -143,7 +143,7 @@ describe("导入配置自动同步后的模型计数", () => {
     );
     render(<Harness />);
     await userEvent.click(
-      screen.getByRole("button", { name: "配置 导入的配置 的模型" }),
+      screen.getByRole("button", { name: "配置 示例供应商 的模型" }),
     );
     await screen.findByText(/暂时无法连接/);
     expect(screen.getByText("当前已保存 1 个，保存后启用 1 个")).toBeVisible();
@@ -177,7 +177,7 @@ describe("导入配置自动同步后的模型计数", () => {
     );
     const user = userEvent.setup();
     const trigger = screen.getByRole("button", {
-      name: "配置 导入的配置 的模型",
+      name: "配置 示例供应商 的模型",
     });
     await user.click(trigger);
     await screen.findByText("已选择 4 / 4");

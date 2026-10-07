@@ -829,50 +829,6 @@ summary {
   font-size: 10px;
   word-break: break-all;
 }
-.help-content {
-  font-size: 13px;
-  color: #656565;
-  line-height: 1.8;
-}
-.help-content ol {
-  padding-left: 24px;
-  margin: 0;
-}
-.help-content li {
-  padding-left: 5px;
-  margin-bottom: 18px;
-}
-.help-content li::marker {
-  color: var(--accent);
-  font-weight: 600;
-}
-.help-content strong {
-  color: #4a4a4a;
-  font-size: 14px;
-  font-weight: 600;
-}
-.help-content p {
-  margin-top: 5px;
-}
-.help-callout {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  background: #f7f7f7;
-  padding: 12px;
-  border-radius: 9px;
-  margin: 20px 0;
-  color: #202020;
-}
-.help-callout p {
-  margin: 0;
-}
-.help-callout svg {
-  margin-top: 2px;
-}
-.help-content details {
-  font-size: 11px;
-}
 .spinning {
   animation: spin 1s linear infinite;
 }

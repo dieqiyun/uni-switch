@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 
 export async function verifyWorkspaceHeader({ page, checks, audit, version }) {
+  assert.equal(
+    await page
+      .getByRole("button", { name: "导入现有配置", exact: true })
+      .count(),
+    0,
+  );
   const header = page.locator(".workspace-header");
   const checkLayout = async (singleRow) => {
     assert.equal(
@@ -65,7 +71,7 @@ export async function verifyWorkspaceHeader({ page, checks, audit, version }) {
     path: `docs/screenshots/compact-codex-header-${version}.png`,
   });
   await header.getByRole("button", { name: "搜索供应商", exact: true }).click();
-  await page.getByRole("textbox", { name: "搜索 API 配置" }).fill("导入");
+  await page.getByRole("textbox", { name: "搜索 API 配置" }).fill("示例");
   assert.equal(await page.locator(".provider-card").count(), 1);
   await page.getByRole("textbox", { name: "搜索 API 配置" }).press("Escape");
   await header.getByRole("button", { name: "设置", exact: true }).click();
