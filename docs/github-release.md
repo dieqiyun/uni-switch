@@ -33,7 +33,7 @@ git push -u origin main
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-github-release.ps1 -Repository dieqiyun/uni-switch
 ```
 
-脚本核对仓库、远端源码提交、AGPL 许可、源码归档、便携包和六项附件的 SHA256。先创建草稿并指定源码提交，上传后下载所有附件核对校验值，检查标签确实指向对应源码，再公开并标记 Latest。不会覆盖已公开的同版本程序。
+脚本核对仓库、远端源码提交、AGPL 许可、源码归档、便携包和六项附件的 SHA256。先显式创建对应源码提交的标签（GitHub 草稿自身不会创建标签），再创建草稿并指定源码提交，上传后下载所有附件核对校验值，检查标签确实指向对应源码，再公开并标记 Latest。不会覆盖已公开的同版本程序。
 
 失败可用 `-ResumeDraft` 继续同版本未公开草稿。只恢复清单内的附件，校验失败继续保留草稿。版本发布成功后应从公开 API 确认最新版本、源码标签和附件；再运行 `node scripts/qa-github-live.mjs` 验证软件的真实更新查询。
 

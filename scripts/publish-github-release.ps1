@@ -74,9 +74,14 @@ if ($taskMatching.Count -and @($taskMatching[0].assets | Where-Object { $taskAll
 $taskRemoteTags = Invoke-Gh @('api',"repos/$Repository/tags?per_page=100") | Out-String | ConvertFrom-Json
 $taskTagMatches = @($taskRemoteTags | Where-Object { $_.name -ceq $taskTag })
 if ($taskTagMatches.Count -and ($taskTagMatches.Count -ne 1 -or $taskTagMatches[0].commit.sha -ne $taskManifest.sourceRevision)) { throw '发布标签指向其他提交，停止发布' }
+if (-not $taskTagMatches.Count) {
+    # GitHub does not create the tag while a release is still a draft.
+    # Create a lightweight source tag explicitly, never overwrite an existing tag.
+    Invoke-Gh @('api',"repos/$Repository/git/refs",'--method','POST','-f',"ref=refs/tags/$taskTag",'-f',"sha=$($taskManifest.sourceRevision)") | Out-Null
+}
 Write-Output "上传程序与对应源码：$Repository / $taskTag"
 if ($taskMatching.Count) {
-    Invoke-Gh @('release','edit',$taskTag,'--repo',$Repository,'--title',"uni-switch $taskVersion",'--notes-file',(Join-Path $taskStage 'release-notes.md'),'--draft=true') | Out-Null
+    Invoke-Gh @('release','edit',$taskTag,'--repo',$Repository,'--title',"uni-switch $taskVersion",'--notes-file',(Join-Path $taskStage 'release-notes.md'),'--target',$taskManifest.sourceRevision,'--draft=true') | Out-Null
     $taskAssetsToUpload = foreach ($taskAsset in $taskManifest.assets) {
         $taskAlready = @($taskMatching[0].assets | Where-Object { $_.name -ceq $taskAsset.name -and $_.size -eq $taskAsset.size -and $_.digest -ceq ('sha256:' + $taskAsset.sha256) })
         if ($taskAlready.Count -ne 1) { Join-Path $taskStage $taskAsset.name }

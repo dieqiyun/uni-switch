@@ -26,6 +26,9 @@ if ($args[0] -eq 'repo' -and $args[1] -eq 'view') { Write-Output 'main'; return 
 if ($args[0] -eq 'api') {
     $endpoint = $args[1]
     if ($endpoint -eq 'repos/example/uni-switch') { Write-Output '{"private":false,"default_branch":"main"}'; return }
+    if ($endpoint -like '*/git/refs' -and $args -contains 'POST') {
+        [IO.File]::WriteAllText((Join-Path $mockRoot 'source-tag-created.txt'),'source tag created',[Text.UTF8Encoding]::new($false)); return
+    }
     if ($endpoint -like '*/commits/*' -or $endpoint -like '*/git/ref/heads/*' -or $endpoint -like '*/tags?per_page*' -or $endpoint -like '*/contents/LICENSE*') {
         $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $mockRoot 'manifest.json') | ConvertFrom-Json
         if ($endpoint -like '*/commits/*') { @{sha=$manifest.sourceRevision} | ConvertTo-Json -Compress; return }
@@ -33,7 +36,9 @@ if ($args[0] -eq 'api') {
             $revision = if ($env:UNI_SWITCH_QA_SOURCE_MISMATCH -eq '1') { 'wrong-source' } else { $manifest.sourceRevision }
             @{object=@{sha=$revision}} | ConvertTo-Json -Compress; return
         }
-        if ($endpoint -like '*/tags?per_page*') { ConvertTo-Json -InputObject @(@{name=('v'+$manifest.version);commit=@{sha=$manifest.sourceRevision}}) -Depth 4 -Compress; return }
+        if ($endpoint -like '*/tags?per_page*') {
+            if (-not (Test-Path -LiteralPath (Join-Path $mockRoot 'source-tag-created.txt'))) { Write-Output '[]'; return }
+            ConvertTo-Json -InputObject @(@{name=('v'+$manifest.version);commit=@{sha=$manifest.sourceRevision}}) -Depth 4 -Compress; return }
         @{content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('GNU AFFERO GENERAL PUBLIC LICENSE'))} | ConvertTo-Json -Compress; return
     }
     if ($endpoint -like '*/git/trees/*') { Write-Output '{"truncated":false,"tree":[{"type":"blob","path":"README.md"}]}'; return }
@@ -116,8 +121,8 @@ try {
     $env:UNI_SWITCH_QA_CORRUPT_UPLOAD = $null
     $taskPublisher = Join-Path $taskScripts 'publish-github-release.ps1'
     & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath
-    if (-not (Test-Path -LiteralPath (Join-Path $taskMockRoot 'published.txt'))) { throw 'Mock publication did not complete' }
-    $taskChecks += 'Local fake GitHub flow uploaded only the six allowed assets, including corresponding AGPL source, verified downloaded checksums, then published'
+    if (-not (Test-Path -LiteralPath (Join-Path $taskMockRoot 'published.txt')) -or -not (Test-Path -LiteralPath (Join-Path $taskMockRoot 'source-tag-created.txt'))) { throw 'Mock publication did not create source tag or complete' }
+    $taskChecks += 'Local fake GitHub flow uploaded only the six allowed assets, including corresponding AGPL source, created the exact source tag, verified downloaded checksums, then published'
     # Use a separate mock directory for the failure scenario; no deletion needed.
     $taskFailureRoot = Join-Path $taskRunRoot 'mock-api-corrupt'
     New-Item -ItemType Directory -Path (Join-Path $taskFailureRoot 'uploads') -Force | Out-Null
