@@ -42,3 +42,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-github-relea
 `scripts/qa-github-release.ps1` 使用模拟 GitHub CLI，验证正常发布、损坏附件拒绝、草稿恢复、已发布版本拒绝，以及缺少对应源码时拒绝发布。无真实外部写入。
 
 软件的原生隔离模型、协议与更新验证说明见 `docs/qa-inventory.md`。历史的 v0.5.16 仅程序分发记录保留在更新记录中，不覆盖旧版附件。
+
+## 0.5.17 发布结果
+
+2026-10-07已公开发布v0.5.17并确认Latest。六项附件下载回读与SHA256一致，发布标签对应源码提交b7c9feece3c9051dbec003b5cbba1e2105751265。旧版0.5.16和新版0.5.17的真实桌面更新查询均通过，分别验证发现新版和当前版本。发布时GitHub暂时返回HTTP500；草稿和完整附件保留，服务恢复后成功公开。默认分支补上显式源码标签创建修订，未来发布不依赖GitHub草稿自动生成标签。
