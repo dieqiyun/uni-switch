@@ -4,7 +4,7 @@
 
 ## 下载
 
-请从 [GitHub Releases](https://github.com/78600620/uni-switch/releases/latest) 下载 Windows x64 正式版本。
+请从 [GitHub Releases](https://github.com/dieqiyun/uni-switch/releases/latest) 下载 Windows x64 正式版本。
 
 - 安装版：名称以 `x64-setup.exe` 结尾。
 - 便携版：名称以 `x64-portable.zip` 结尾，解压后运行 `uni-switch.exe`。
