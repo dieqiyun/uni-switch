@@ -1,0 +1,576 @@
+{
+  "verifiedAt": "2026-10-07",
+  "entries": [
+    {
+      "ids": ["gpt-6-astra"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-6.1-sol"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-6-luna"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-5.6-cyber"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-cyber"
+    },
+    {
+      "ids": ["gpt-6-sol"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-6-sol",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-5.6-sol", "gpt-5.6"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-5.6-terra"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-5.6-luna"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-5.5", "gpt-5.5-2026-04-23"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.5",
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-5.5-pro", "gpt-5.5-pro-2026-04-23"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.5-pro"
+    },
+    {
+      "ids": ["gpt-5.4", "gpt-5.4-2026-03-05"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4"
+    },
+    {
+      "ids": ["gpt-5.4-pro", "gpt-5.4-pro-2026-03-05"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-pro"
+    },
+    {
+      "ids": ["gpt-5.4-mini", "gpt-5.4-mini-2026-03-17"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-mini"
+    },
+    {
+      "ids": ["gpt-5.2", "gpt-5.2-2025-12-11"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2"
+    },
+    {
+      "ids": ["gpt-5.2-pro", "gpt-5.2-pro-2025-12-11"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-pro"
+    },
+    {
+      "ids": ["gpt-5", "gpt-5-2025-08-07"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5"
+    },
+    {
+      "ids": ["gpt-5-mini", "gpt-5-mini-2025-08-07"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-mini"
+    },
+    {
+      "ids": ["gpt-5-nano", "gpt-5-nano-2025-08-07"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-nano"
+    },
+    {
+      "ids": ["gpt-5-pro", "gpt-5-pro-2025-10-06"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-pro"
+    },
+    {
+      "ids": ["o3-pro", "o3-pro-2025-06-10"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o3-pro"
+    },
+    {
+      "ids": ["o3", "o3-2025-04-16"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o3"
+    },
+    {
+      "ids": ["gpt-4.1", "gpt-4.1-2025-04-14"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4.1"
+    },
+    {
+      "ids": ["gpt-4.1-mini", "gpt-4.1-mini-2025-04-14"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4.1-mini"
+    },
+    {
+      "ids": ["gpt-5.4-nano", "gpt-5.4-nano-2026-03-17"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-nano"
+    },
+    {
+      "ids": ["gpt-5.3-codex"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.3-codex"
+    },
+    {
+      "ids": ["gpt-5.1", "gpt-5.1-2025-11-13"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1"
+    },
+    {
+      "ids": ["gpt-5.3-chat-latest"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.3-chat-latest"
+    },
+    {
+      "ids": ["gpt-5.2-chat-latest"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-chat-latest"
+    },
+    {
+      "ids": ["gpt-5.2-codex"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-codex"
+    },
+    {
+      "ids": ["o3-deep-research", "o3-deep-research-2025-06-26"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o3-deep-research"
+    },
+    {
+      "ids": ["o4-mini-deep-research", "o4-mini-deep-research-2025-06-26"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o4-mini-deep-research"
+    },
+    {
+      "ids": ["gpt-4.1-nano", "gpt-4.1-nano-2025-04-14"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4.1-nano"
+    },
+    {
+      "ids": ["o4-mini", "o4-mini-2025-04-16"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o4-mini"
+    },
+    {
+      "ids": ["o1-pro", "o1-pro-2025-03-19"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o1-pro"
+    },
+    {
+      "ids": ["gpt-4.5-preview", "gpt-4.5-preview-2025-02-27"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4.5-preview"
+    },
+    {
+      "ids": ["o3-mini", "o3-mini-2025-01-31"],
+      "capabilities": {
+        "imageInput": false
+      },
+      "source": "https://developers.openai.com/api/docs/models/o3-mini"
+    },
+    {
+      "ids": ["o1", "o1-2024-12-17"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/o1"
+    },
+    {
+      "ids": ["o1-mini", "o1-mini-2024-09-12"],
+      "capabilities": {
+        "imageInput": false
+      },
+      "source": "https://developers.openai.com/api/docs/models/o1-mini"
+    },
+    {
+      "ids": ["o1-preview", "o1-preview-2024-09-12"],
+      "capabilities": {
+        "imageInput": false
+      },
+      "source": "https://developers.openai.com/api/docs/models/o1-preview"
+    },
+    {
+      "ids": ["gpt-4-turbo", "gpt-4-turbo-2024-04-09"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4-turbo"
+    },
+    {
+      "ids": ["chatgpt-4o-latest"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/chatgpt-4o-latest"
+    },
+    {
+      "ids": ["gpt-5.1-codex"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex"
+    },
+    {
+      "ids": ["gpt-5.1-codex-max"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-max"
+    },
+    {
+      "ids": ["gpt-5.1-codex-mini"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-mini"
+    },
+    {
+      "ids": ["gpt-5-codex"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-codex"
+    },
+    {
+      "ids": ["codex-mini-latest"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/codex-mini-latest"
+    },
+    {
+      "ids": [
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0125",
+        "gpt-3.5-turbo-1106",
+        "gpt-3.5-turbo-instruct"
+      ],
+      "capabilities": {
+        "imageInput": false
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-3.5-turbo"
+    },
+    {
+      "ids": ["gpt-4", "gpt-4-0314", "gpt-4-0613"],
+      "capabilities": {
+        "imageInput": false
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4"
+    },
+    {
+      "ids": ["gpt-4-0125-preview", "gpt-4-turbo-preview"],
+      "capabilities": {
+        "imageInput": false
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4-turbo-preview"
+    },
+    {
+      "ids": ["gpt-5.1-chat-latest"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-chat-latest"
+    },
+    {
+      "ids": ["gpt-5-chat-latest"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-chat-latest"
+    },
+    {
+      "ids": [
+        "gpt-4o",
+        "gpt-4o-2024-05-13",
+        "gpt-4o-2024-08-06",
+        "gpt-4o-2024-11-20"
+      ],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4o"
+    },
+    {
+      "ids": ["gpt-4o-mini", "gpt-4o-mini-2024-07-18"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4o-mini"
+    },
+    {
+      "ids": ["claude-fable-5-1"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/fable-5-1/overview"
+    },
+    {
+      "ids": ["claude-opus-5-5"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/opus-5-5/overview"
+    },
+    {
+      "ids": ["claude-sonnet-5-5"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
+    },
+    {
+      "ids": ["claude-haiku-4-5", "claude-haiku-4-5-20251001"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/haiku-4-5/overview"
+    },
+    {
+      "ids": ["claude-fable-5"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/fable-5/overview"
+    },
+    {
+      "ids": ["claude-opus-5"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/opus-5/overview"
+    },
+    {
+      "ids": ["claude-sonnet-5"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/sonnet-5/overview"
+    },
+    {
+      "ids": ["claude-opus-4-8"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/opus-4-8/overview"
+    },
+    {
+      "ids": ["claude-opus-4-7"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/opus-4-7/overview"
+    },
+    {
+      "ids": ["claude-opus-4-6"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/opus-4-6/overview"
+    },
+    {
+      "ids": ["claude-sonnet-4-6"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/sonnet-4-6/overview"
+    },
+    {
+      "ids": ["claude-opus-4-5", "claude-opus-4-5-20251101"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/opus-4-5/overview"
+    },
+    {
+      "ids": ["claude-sonnet-4-5", "claude-sonnet-4-5-20250929"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/sonnet-4-5/overview"
+    },
+    {
+      "ids": [
+        "gemini-3.8-flash",
+        "gemini-3.6-flash",
+        "gemini-3.1-pro-preview",
+        "gemini-3-flash-preview",
+        "gemini-3.1-flash-lite",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
+      ],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://ai.google.dev/gemini-api/docs/image-understanding"
+    },
+    {
+      "ids": ["deepseek-flash", "deepseek-v4-flash-vision-exp"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "source": "https://api-docs.deepseek.com/guides/vision/"
+    },
+    {
+      "ids": ["gpt-daybreak-blue-latest"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["gpt-daybreak-red-latest"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["codex-auto-review"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "source": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    }
+  ]
+}

@@ -15,9 +15,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see https://www.gnu.org/licenses/.
 
-Corresponding source, build instructions, and issue tracker:
+Historical public source, build instructions, and issue tracker:
 https://github.com/dieqiyun/uni-switch
 
-Each release includes its exact corresponding source ZIP. The source tag
-matches the release version. Third-party software and third-party brand
-marks retain their respective licenses and rights; see THIRD_PARTY_NOTICES.md.
+The repository contains previously published source. Binary-only releases
+do not include a new corresponding source ZIP; their GitHub tag snapshot
+is historical and must not be assumed to match the current binary.
+Third-party software and third-party brand marks retain their respective
+licenses and rights; see THIRD_PARTY_NOTICES.md.

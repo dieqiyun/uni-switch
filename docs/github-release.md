@@ -1,47 +1,34 @@
-# GitHub 开源与程序发布
+# GitHub 程序发布
 
-自 v0.5.17 起，`dieqiyun/uni-switch` 同时公开完整源码和 Windows 程序，项目许可为 AGPL-3.0-only。旧的“仅分发程序、不推送源码”流程已被替换。
-
-## 终端用户
-
-启动时检查 GitHub 最新正式版；左下角版本入口可手动检测。更新检查不使用供应商认证，过滤草稿及预发布，按数值比较版本。下载入口打开对应发布页，目前由用户下载并安装，不在后台替换程序。
-
-GitHub 公开仓库、源码标签、Release 中的对应源码 ZIP 均可获取本版本源码。程序设置提供源码、完整许可、版权和无保证声明；安装版和便携版附带许可与第三方通知。
+从 v0.5.19 起，按维护者要求只发布编译结果，本次及后续代码保留在本地，不推送新的源码，不上传 source.zip。仓库中原有源码和历史 Release 保留。
 
 ## 发布准备
 
-先更新 `package.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`、`src-tauri/tauri.conf.json` 的版本，更新 `CHANGELOG.md`。更新来源在 `release-config.json`，必须在提交构建前绑定实际仓库。
+更新前端、Rust、安装包版本和 CHANGELOG；完成前端、Rust、原生隔离验证。软件内教程与打包说明共用 tutorial.json，运行 `corepack pnpm docs:generate` 后以 `docs:check` 核对。
 
-将中文使用说明保存到 `release/notes/usage-版本.md`，更新说明保存到 `release/notes/版本.md`。这两个暂存文件不进入 Git；正式说明同时记录在 `CHANGELOG.md`，说明随 Release 分发。安装依赖后可运行 `python -X utf8 scripts/collect-dependency-licenses.py` 更新依赖许可清单，清单本身需要提交。
-
-完成测试、检查公开文件清单，运行 `python -X utf8 scripts/audit-source.py` 扫描已暂存文件中的常见凭据格式，然后提交完整源码。该扫描不打印匹配值，也不能替代人工检查。发布脚本要求干净工作区，构建不会接触用户真实客户端配置。
+更新说明存为 `release/notes/版本.md`，完整使用说明存为 `release/notes/usage-版本.md`。两个文件均不进入 Git。提交本地改动以固定构建版本，不执行 git push。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-github-release.ps1 -Repository dieqiyun/uni-switch
-```
-
-准备脚本从当前提交构建并用 `git archive` 生成对应源码 ZIP，检查构建是否改变源码或锁文件。输出在 `release/github/v版本/`。
-
-附件固定为六项：安装 EXE、独立 EXE、便携 ZIP、对应源码 ZIP、`README-zh-CN.md`、`SHA256SUMS.txt`。源码 ZIP 包含完整源码、锁文件、构建脚本、资源和许可；排除凭据、数据库、客户端配置、缓存、测试运行数据及程序包。
-
-## 发布
-
-使用 GitHub CLI 登录自己的账号，将完整源码推送到仓库默认分支。发布提交必须与准备时的提交一致。
-
-```powershell
-git push -u origin main
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa-github-release.ps1 -StageDirectory release/github/v版本
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-github-release.ps1 -Repository dieqiyun/uni-switch
 ```
 
-脚本核对仓库、远端源码提交、AGPL 许可、源码归档、便携包和六项附件的 SHA256。先显式创建对应源码提交的标签（GitHub 草稿自身不会创建标签），再创建草稿并指定源码提交，上传后下载所有附件核对校验值，检查标签确实指向对应源码，再公开并标记 Latest。不会覆盖已公开的同版本程序。
+默认固定上传五项：安装 EXE、独立 EXE、便携 ZIP、README-zh-CN.md、SHA256SUMS.txt。便携包只包含编译程序、说明、许可和第三方通知。manifest.json 保留本地构建提交与 includeSource=false，仅供本地核验，不上传。
 
-失败可用 `-ResumeDraft` 继续同版本未公开草稿。只恢复清单内的附件，校验失败继续保留草稿。版本发布成功后应从公开 API 确认最新版本、源码标签和附件；再运行 `node scripts/qa-github-live.mjs` 验证软件的真实更新查询。
+发布脚本不执行源码推送。GitHub Release 标签只能指向仓库现有公开提交，因此平台自动生成的 Source code 是历史源码快照，不对应本次程序；更新说明明确标注这一点。程序校验以附件 SHA256 为准。
 
-## 本地验证
+先建草稿、上传固定附件、下载回读并验证每项 SHA256，再公开和标记 Latest。失败可用 `-ResumeDraft` 继续未公开草稿，不覆盖公开版本。发布后确认最新版本、附件 digest / size，运行 `node scripts/qa-github-live.mjs` 和旧版本更新检测。
 
-`scripts/qa-github-release.ps1` 使用模拟 GitHub CLI，验证正常发布、损坏附件拒绝、草稿恢复、已发布版本拒绝，以及缺少对应源码时拒绝发布。无真实外部写入。
+## 防止误传源码
 
-软件的原生隔离模型、协议与更新验证说明见 `docs/qa-inventory.md`。历史的 v0.5.16 仅程序分发记录保留在更新记录中，不覆盖旧版附件。
+准备和发布默认均不带源码。清单额外出现源码 ZIP 或其他非允许文件时停止；源码发布模式只在显式指定 `-IncludeSource` 且准备清单一致时允许，当前流程不使用此选项。
+
+模拟发布测试覆盖五项清单、上传回读、损坏拒绝、草稿恢复、公开版本保护、无效远端目标拒绝和模式不一致拒绝，不访问真实 GitHub。参见 [QA 记录](qa-inventory.md)。
+
+## 历史开源发布记录
+
+v0.5.17 / v0.5.18 同时公开源码和程序，以下记录仅适用于当时版本。
 
 ## 0.5.17 发布结果
 

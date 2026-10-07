@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, desktopRuntime, errorMessage } from "./api";
 import { contextTokens, DEFAULT_MODEL_CONTEXT } from "./modelContext";
+import { preserveCapabilities, type CapabilityKey } from "./modelCapabilities";
 import { desktopModelAllowed } from "./useModelDiscovery";
 import { providerProtocol } from "./protocolConversion";
 import type {
@@ -232,7 +233,7 @@ export function useConnectionDiscovery(
             ]),
           ),
           models: result.models.map((m) => ({
-            ...m,
+            ...preserveCapabilities(m, previous.get(m.id)),
             contextWindow:
               target === "codex"
                 ? (previous.get(m.id)?.contextWindow ?? DEFAULT_MODEL_CONTEXT)
@@ -357,6 +358,36 @@ export function useConnectionDiscovery(
           }
         : s,
     );
+  const setCapability = (id: string, key: CapabilityKey, value: boolean) =>
+    setState((s) =>
+      s.signature === current.current.signature
+        ? {
+            ...s,
+            models: s.models.map((m) =>
+              m.id === id
+                ? {
+                    ...m,
+                    capabilityOverrides: {
+                      ...m.capabilityOverrides,
+                      [key]: value,
+                    },
+                  }
+                : m,
+            ),
+          }
+        : s,
+    );
+  const resetCapabilities = (id: string) =>
+    setState((s) =>
+      s.signature === current.current.signature
+        ? {
+            ...s,
+            models: s.models.map((m) =>
+              m.id === id ? { ...m, capabilityOverrides: {} } : m,
+            ),
+          }
+        : s,
+    );
   const invalidContexts =
     target === "codex"
       ? visible.models
@@ -376,6 +407,8 @@ export function useConnectionDiscovery(
     toggle,
     selectDefault,
     setContext,
+    setCapability,
+    resetCapabilities,
     invalidContexts,
     allowed,
     preview: !desktopRuntime,

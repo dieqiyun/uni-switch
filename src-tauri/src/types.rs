@@ -111,7 +111,7 @@ fn native_claude_protocol(protocol: &ClaudeProtocol) -> bool {
     *protocol == ClaudeProtocol::Anthropic
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderModel {
     pub id: String,
@@ -121,7 +121,25 @@ pub struct ProviderModel {
     pub reasoning_efforts: Vec<String>,
     #[serde(default = "selected_by_default")]
     pub enabled: bool,
+    #[serde(default, skip_serializing_if = "ModelCapabilities::is_empty")]
+    pub capabilities: ModelCapabilities,
+    #[serde(default, skip_serializing_if = "ModelCapabilities::is_empty")]
+    pub capability_overrides: ModelCapabilities,
 }
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelCapabilities {
+    #[serde(default)]
+    pub image_input: Option<bool>,
+    #[serde(default)]
+    pub parallel_tool_calls: Option<bool>,
+}
+impl ModelCapabilities {
+    pub fn is_empty(&self) -> bool {
+        self.image_input.is_none() && self.parallel_tool_calls.is_none()
+    }
+}
+
 fn selected_by_default() -> bool {
     true
 }
@@ -403,6 +421,7 @@ pub struct Overview {
     pub providers: Vec<Provider>,
     pub targets: Vec<TargetStatus>,
     pub data_directory: String,
+    pub repaired_model_capabilities: bool,
 }
 
 pub fn validate(input: &mut ProviderInput) -> Result<()> {
@@ -471,6 +490,7 @@ pub fn validate(input: &mut ProviderInput) -> Result<()> {
             context_window: None,
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         }];
     }
     for size in [options.context_window, options.auto_compact_token_limit]

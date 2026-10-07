@@ -27,11 +27,17 @@ export interface ProviderInput {
   reasoningEffort: string | null;
   codexOptions?: CodexOptions;
 }
+export interface ModelCapabilities {
+  imageInput?: boolean | null;
+  parallelToolCalls?: boolean | null;
+}
 export interface ProviderModel {
   id: string;
   contextWindow: number | null;
   reasoningEfforts: string[];
   enabled: boolean;
+  capabilities?: ModelCapabilities;
+  capabilityOverrides?: ModelCapabilities;
 }
 export interface BalanceQuery {
   adapter?:
@@ -195,6 +201,7 @@ export interface Overview {
   providers: Provider[];
   targets: TargetStatus[];
   dataDirectory: string;
+  repairedModelCapabilities?: boolean;
 }
 
 export const targetNames: Record<Target, string> = {

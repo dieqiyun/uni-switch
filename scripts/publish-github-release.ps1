@@ -1,6 +1,7 @@
 ﻿param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$')][string]$Repository,
     [switch]$ResumeDraft,
+    [switch]$IncludeSource,
     [string]$GhPath
 )
 $ErrorActionPreference = 'Stop'
@@ -27,8 +28,12 @@ $taskConfig = Get-Content -Raw -Encoding UTF8 (Join-Path $taskWorkspace 'release
 if ($taskManifest.repository -ne $Repository -or $taskConfig.githubRepository -ne $Repository -or $taskManifest.version -ne $taskVersion -or $taskManifest.license -ne 'AGPL-3.0-only' -or $taskManifest.sourceRevision -notmatch '^[0-9a-f]{40}$') {
     throw '发布文件尚未绑定此仓库、许可或源码提交，请先准备发布文件'
 }
-$taskAllowlist = @("uni-switch_${taskVersion}_x64-setup.exe","uni-switch_${taskVersion}_x64.exe","uni-switch_${taskVersion}_x64-portable.zip","uni-switch_${taskVersion}_source.zip",'README-zh-CN.md','SHA256SUMS.txt')
-if (@($taskManifest.assets).Count -ne $taskAllowlist.Count) { throw '发布清单必须包含程序、对应源码、说明与校验文件' }
+$taskManifestIncludesSource = @($taskManifest.assets | Where-Object { $_.name -ceq "uni-switch_${taskVersion}_source.zip" }).Count -gt 0
+if ($taskManifestIncludesSource -ne [bool]$IncludeSource) { throw '默认只发布程序；包含源码的发布必须明确传入-IncludeSource，且与准备清单一致' }
+if ($taskManifest.PSObject.Properties.Name -contains 'includeSource' -and [bool]$taskManifest.includeSource -ne [bool]$IncludeSource) { throw '清单源码发布模式不一致' }
+$taskAllowlist = @("uni-switch_${taskVersion}_x64-setup.exe","uni-switch_${taskVersion}_x64.exe","uni-switch_${taskVersion}_x64-portable.zip",'README-zh-CN.md','SHA256SUMS.txt')
+if ($IncludeSource) { $taskAllowlist += "uni-switch_${taskVersion}_source.zip" }
+if (@($taskManifest.assets).Count -ne $taskAllowlist.Count) { throw '发布清单必须且只能包含所选模式的程序、说明、校验文件及可选源码' }
 $taskAssetPaths = foreach ($taskName in $taskAllowlist) {
     $taskEntry = @($taskManifest.assets | Where-Object { $_.name -ceq $taskName })
     if ($taskEntry.Count -ne 1) { throw "缺少或重复发布资产：$taskName" }
@@ -44,6 +49,7 @@ try {
     foreach ($taskName in $taskZipNames) { if ($taskZipAllowlist -cnotcontains $taskName) { throw '便携包包含清单以外的文件，停止发布' } }
     foreach ($taskName in ($taskZipAllowlist | Where-Object { -not $_.EndsWith('/') })) { if (@($taskZipNames | Where-Object { $_ -ceq $taskName }).Count -ne 1) { throw '便携包缺少程序或许可文件' } }
 } finally { $taskPortableArchive.Dispose() }
+if ($IncludeSource) {
 $taskSourceArchive = [IO.Compression.ZipFile]::OpenRead((Join-Path $taskStage "uni-switch_${taskVersion}_source.zip"))
 try {
     $taskSourcePrefix = "uni-switch-$taskVersion/"
@@ -55,16 +61,22 @@ try {
         if (@($taskSourceNames | Where-Object { $_ -ceq ($taskSourcePrefix + $taskRequired) }).Count -ne 1) { throw "源码归档不完整：$taskRequired" }
     }
 } finally { $taskSourceArchive.Dispose() }
+}
 $taskRepo = (Invoke-Gh @('api',"repos/$Repository") | Out-String) | ConvertFrom-Json
 if ($taskRepo.full_name -and $taskRepo.full_name -ne $Repository) { throw 'GitHub仓库已经更名，请使用当前地址重新构建' }
 if ($taskRepo.private) { throw '更新检测需要公开发布仓库' }
-# The complete source must already be public, and match the exact build commit.
-$taskSource = (Invoke-Gh @('api',"repos/$Repository/commits/$($taskManifest.sourceRevision)") | Out-String) | ConvertFrom-Json
+# A binary release uses an existing public commit for its GitHub tag. It never
+# pushes local source or pretends the historical tag snapshot is this build.
 $taskHead = (Invoke-Gh @('api',"repos/$Repository/git/ref/heads/$($taskRepo.default_branch)") | Out-String) | ConvertFrom-Json
-if ($taskSource.sha -ne $taskManifest.sourceRevision -or $taskHead.object.sha -ne $taskManifest.sourceRevision) { throw '请先推送完整源码到默认分支；发布提交必须与构建提交一致' }
-$taskRemoteLicense = (Invoke-Gh @('api',"repos/$Repository/contents/LICENSE?ref=$($taskManifest.sourceRevision)") | Out-String) | ConvertFrom-Json
-$taskLicenseText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($taskRemoteLicense.content -replace '\s','')))
-if ($taskLicenseText -notmatch 'GNU AFFERO GENERAL PUBLIC LICENSE') { throw '公开源码的AGPL许可未确认' }
+$taskReleaseRevision = $taskHead.object.sha
+if ($taskReleaseRevision -notmatch '^[0-9a-f]{40}$') { throw '无法确认公开仓库现有提交' }
+if ($IncludeSource) {
+    $taskSource = (Invoke-Gh @('api',"repos/$Repository/commits/$($taskManifest.sourceRevision)") | Out-String) | ConvertFrom-Json
+    if ($taskSource.sha -ne $taskManifest.sourceRevision -or $taskReleaseRevision -ne $taskManifest.sourceRevision) { throw '请先推送完整源码到默认分支；发布提交必须与构建提交一致' }
+    $taskRemoteLicense = (Invoke-Gh @('api',"repos/$Repository/contents/LICENSE?ref=$($taskManifest.sourceRevision)") | Out-String) | ConvertFrom-Json
+    $taskLicenseText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($taskRemoteLicense.content -replace '\s','')))
+    if ($taskLicenseText -notmatch 'GNU AFFERO GENERAL PUBLIC LICENSE') { throw '公开源码的AGPL许可未确认' }
+}
 $taskTag = "v$taskVersion"
 $taskExisting = Invoke-Gh @('api',"repos/$Repository/releases?per_page=100") | Out-String | ConvertFrom-Json
 $taskMatching = @($taskExisting | Where-Object { $_.tag_name -eq $taskTag })
@@ -73,22 +85,22 @@ if ($ResumeDraft -and -not $taskMatching.Count) { throw '未找到要继续的�
 if ($taskMatching.Count -and @($taskMatching[0].assets | Where-Object { $taskAllowlist -cnotcontains $_.name }).Count) { throw '草稿包含清单以外的附件，未修改' }
 $taskRemoteTags = Invoke-Gh @('api',"repos/$Repository/tags?per_page=100") | Out-String | ConvertFrom-Json
 $taskTagMatches = @($taskRemoteTags | Where-Object { $_.name -ceq $taskTag })
-if ($taskTagMatches.Count -and ($taskTagMatches.Count -ne 1 -or $taskTagMatches[0].commit.sha -ne $taskManifest.sourceRevision)) { throw '发布标签指向其他提交，停止发布' }
+if ($taskTagMatches.Count -and ($taskTagMatches.Count -ne 1 -or $taskTagMatches[0].commit.sha -ne $taskReleaseRevision)) { throw '发布标签指向其他提交，停止发布' }
 if (-not $taskTagMatches.Count) {
     # GitHub does not create the tag while a release is still a draft.
-    # Create a lightweight source tag explicitly, never overwrite an existing tag.
-    Invoke-Gh @('api',"repos/$Repository/git/refs",'--method','POST','-f',"ref=refs/tags/$taskTag",'-f',"sha=$($taskManifest.sourceRevision)") | Out-Null
+    # Create a lightweight release tag explicitly, never overwrite an existing tag.
+    Invoke-Gh @('api',"repos/$Repository/git/refs",'--method','POST','-f',"ref=refs/tags/$taskTag",'-f',"sha=$taskReleaseRevision") | Out-Null
 }
-Write-Output "上传程序与对应源码：$Repository / $taskTag"
+Write-Output "发布：$Repository / $taskTag · 上传源码：$([bool]$IncludeSource)"
 if ($taskMatching.Count) {
-    Invoke-Gh @('release','edit',$taskTag,'--repo',$Repository,'--title',"uni-switch $taskVersion",'--notes-file',(Join-Path $taskStage 'release-notes.md'),'--target',$taskManifest.sourceRevision,'--draft=true') | Out-Null
+    Invoke-Gh @('release','edit',$taskTag,'--repo',$Repository,'--title',"uni-switch $taskVersion",'--notes-file',(Join-Path $taskStage 'release-notes.md'),'--target',$taskReleaseRevision,'--draft=true') | Out-Null
     $taskAssetsToUpload = foreach ($taskAsset in $taskManifest.assets) {
         $taskAlready = @($taskMatching[0].assets | Where-Object { $_.name -ceq $taskAsset.name -and $_.size -eq $taskAsset.size -and $_.digest -ceq ('sha256:' + $taskAsset.sha256) })
         if ($taskAlready.Count -ne 1) { Join-Path $taskStage $taskAsset.name }
     }
     if (@($taskAssetsToUpload).Count) { Invoke-Gh (@('release','upload',$taskTag,'--repo',$Repository,'--clobber') + @($taskAssetsToUpload)) | Out-Null }
 } else {
-    Invoke-Gh (@('release','create',$taskTag,'--repo',$Repository,'--target',$taskManifest.sourceRevision,'--title',"uni-switch $taskVersion",'--notes-file',(Join-Path $taskStage 'release-notes.md'),'--draft') + @($taskAssetPaths)) | Out-Null
+    Invoke-Gh (@('release','create',$taskTag,'--repo',$Repository,'--target',$taskReleaseRevision,'--title',"uni-switch $taskVersion",'--notes-file',(Join-Path $taskStage 'release-notes.md'),'--draft') + @($taskAssetPaths)) | Out-Null
 }
 $taskVerifyDir = Join-Path $taskStage ('verify-upload-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $taskVerifyDir | Out-Null
@@ -102,9 +114,9 @@ $taskDrafts = @($taskDraftList | Where-Object { $_.tag_name -eq $taskTag })
 if ($taskDrafts.Count -ne 1 -or -not $taskDrafts[0].draft -or $taskDrafts[0].prerelease -or @($taskDrafts[0].assets).Count -ne $taskAllowlist.Count) { throw '无法确认草稿或附件数量，停止发布' }
 foreach ($taskName in $taskAllowlist) { if (@($taskDrafts[0].assets | Where-Object { $_.name -ceq $taskName }).Count -ne 1) { throw 'GitHub附件名称与清单不一致，未公开' } }
 $taskFinalTag = Invoke-Gh @('api',"repos/$Repository/tags?per_page=100") | Out-String | ConvertFrom-Json
-if (@($taskFinalTag | Where-Object { $_.name -ceq $taskTag -and $_.commit.sha -eq $taskManifest.sourceRevision }).Count -ne 1) { throw '发布标签与对应源码不一致，未公开' }
+if (@($taskFinalTag | Where-Object { $_.name -ceq $taskTag -and $_.commit.sha -eq $taskReleaseRevision }).Count -ne 1) { throw '发布标签与选定公开提交不一致，未公开' }
 Invoke-Gh @('release','edit',$taskTag,'--repo',$Repository,'--draft=false','--latest') | Out-Null
 $taskLatest = Invoke-Gh @('api',"repos/$Repository/releases/latest") | Out-String | ConvertFrom-Json
 if ($taskLatest.tag_name -ne $taskTag -or $taskLatest.draft -or $taskLatest.prerelease) { throw '正式发布已提交，但latest查询尚未确认' }
 Write-Output "已发布：$($taskLatest.html_url)"
-Write-Output "对应源码：$($taskManifest.sourceRevision) · AGPL-3.0-only"
+Write-Output "本地构建提交：$($taskManifest.sourceRevision) · 上传源码：$([bool]$IncludeSource)"

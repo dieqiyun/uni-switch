@@ -247,3 +247,37 @@ describe("自动接入的模型默认选择", () => {
     ).toEqual(["new-model-a", "new-model-b"]);
   });
 });
+
+it("刷新完成前的手动图片能力保留；恢复自动立即采用最新上游值", async () => {
+  vi.useFakeTimers();
+  let finish!: (v: ModelSyncResult) => void;
+  vi.spyOn(api, "discoverConnection")
+    .mockResolvedValueOnce(response(["custom-model"]))
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+  const hook = renderHook(() => useConnectionDiscovery(input, "auto", "codex"));
+  await tick();
+  let pending!: Promise<unknown>;
+  act(() => {
+    pending = hook.result.current.refresh();
+  });
+  act(() => {
+    hook.result.current.setCapability("custom-model", "imageInput", true);
+  });
+  await act(async () => {
+    const result = response(["custom-model"]);
+    result.models[0].capabilities = { imageInput: false };
+    finish(result);
+    await pending;
+  });
+  expect(hook.result.current.models[0].capabilityOverrides?.imageInput).toBe(
+    true,
+  );
+  expect(hook.result.current.models[0].capabilities?.imageInput).toBe(false);
+  act(() => hook.result.current.resetCapabilities("custom-model"));
+  expect(hook.result.current.models[0].capabilityOverrides).toEqual({});
+});

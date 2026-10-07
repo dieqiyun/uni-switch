@@ -4,6 +4,7 @@ pub mod background;
 pub mod bridge;
 pub mod discovery;
 pub mod error;
+pub mod model_capabilities;
 pub mod project_links;
 pub mod restart;
 pub mod service_website;

@@ -81,7 +81,7 @@ const server = http.createServer(async (req, res) => {
     let raw = "";
     for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw);
-    inferenceRequests.push({ path: req.url, model: body.model });
+    inferenceRequests.push({ path: req.url, model: body.model, body });
     if (req.url.endsWith("/messages"))
       return send({
         id: "msg_qa",
@@ -388,7 +388,19 @@ try {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      input: "Hello",
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: "Hello" },
+            {
+              type: "input_image",
+              image_url:
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAF0lEQVR4nGP4z8BAEiJN9aiGUQ1DSgMAkPn/Afnh+ngAAAAASUVORK5CYII=",
+            },
+          ],
+        },
+      ],
       stream: false,
     }),
   });
@@ -396,6 +408,11 @@ try {
   assert.ok(
     JSON.stringify(await response.json()).includes("Claude converted reply"),
   );
+  assert.equal(
+    inferenceRequests.at(-1).body.messages[0].content[1].type,
+    "image",
+  );
+  checks.push("Codex的图片输入经本地转换服务成功转成Claude image内容块");
   checks.push(
     "Codex转换默认开启；关闭拒绝应用，开启不自动切换；使用后实际Responses转Messages请求成功并提示重启",
   );
@@ -457,7 +474,22 @@ try {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        messages: [{ role: "user", content: "Hello" }],
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Hello" },
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: "image/png",
+                  data: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAF0lEQVR4nGP4z8BAEiJN9aiGUQ1DSgMAkPn/Afnh+ngAAAAASUVORK5CYII=",
+                },
+              },
+            ],
+          },
+        ],
         max_tokens: 512,
         stream: false,
       }),
@@ -468,6 +500,10 @@ try {
     (await reverse.json()).content[0].text,
     "OpenAI converted reply",
   );
+  assert.ok(
+    JSON.stringify(inferenceRequests.at(-1).body.input).includes("input_image"),
+  );
+  checks.push("Claude CLI图片经本地转换服务成功转成OpenAI input_image内容块");
   await changeConversion(openai.name, false);
   const restoredCli = JSON.parse(
     await readFile(path.join(cli, "settings.json"), "utf8"),

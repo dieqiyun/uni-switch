@@ -7,7 +7,7 @@ export async function mockModelResponse(req, res, requests) {
   let body = "";
   for await (const chunk of req) body += chunk;
   const request = JSON.parse(body);
-  requests.push({ model: request.model, path: req.url });
+  requests.push({ model: request.model, path: req.url, input: request.input });
   const message = {
     id: "msg_context",
     type: "message",
@@ -73,6 +73,8 @@ export async function verifyCodexModels({
   expected,
   output,
   listOnly = false,
+  imageModels = [],
+  checkDesktopReasoning = true,
 }) {
   const binary =
     process.env.CODEX_QA_BIN ||
@@ -196,10 +198,15 @@ export async function verifyCodexModels({
           1,
         );
     }
-    const desktopReasoning = await verifyDesktopReasoning({
-      models: list.data,
-      config: config.config,
-    });
+    const desktopReasoning = checkDesktopReasoning
+      ? await verifyDesktopReasoning({
+          models: list.data,
+          config: config.config,
+        })
+      : {
+          skipped:
+            "Image acceptance checks include internal review models that are not Desktop reasoning-menu candidates; every listed model is still tested by turn/start.",
+        };
     assert.equal(config.config.model_context_window, null);
     assert.equal(config.config.model_auto_compact_token_limit, null);
     const thread = await call("thread/start", {
@@ -215,7 +222,17 @@ export async function verifyCodexModels({
       const result = await call("turn/start", {
         threadId: thread.thread.id,
         model,
-        input: [{ type: "text", text: "Reply hello. Do not use tools." }],
+        input: [
+          { type: "text", text: "Reply hello. Do not use tools." },
+          ...(imageModels.includes(model)
+            ? [
+                {
+                  type: "image",
+                  url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAF0lEQVR4nGP4z8BAEiJN9aiGUQ1DSgMAkPn/Afnh+ngAAAAASUVORK5CYII=",
+                },
+              ]
+            : []),
+        ],
       });
       const completed = await until(() =>
         notifications
@@ -258,6 +275,7 @@ export async function verifyCodexModels({
       })),
       desktopReasoning,
       windows,
+      imageModels,
       notifications,
       limitation:
         "Real Codex app-server against an isolated local mock provider; no live desktop menu or real supplier used.",

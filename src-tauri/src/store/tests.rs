@@ -25,6 +25,7 @@ fn quick_input(provider: Provider, target: Target) -> QuickModelInput {
             context_window: Some(256_000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         }],
         expected: provider,
         target,
@@ -369,6 +370,7 @@ fn automatic_reasoning_rechecks_model_context_sync_and_fast_writes_and_noop_conf
         enabled: true,
         reasoning_efforts: vec![],
         context_window: Some(256_000),
+        ..Default::default()
     }];
     let mut provider = store.commit_provider(value, Target::Codex, true).unwrap();
     for action in ["context", "default", "sync", "fast", "same"] {
@@ -398,6 +400,7 @@ fn automatic_reasoning_rechecks_model_context_sync_and_fast_writes_and_noop_conf
                         enabled: true,
                         reasoning_efforts: vec![],
                         context_window: Some(256_000),
+                        ..Default::default()
                     });
                 }
                 provider = store.quick_model_settings(request).unwrap().provider;
@@ -620,6 +623,7 @@ fn model_refresh_replaces_catalog_and_removed_client_selection_without_reintrodu
                 context_window: Some(512_000),
                 reasoning_efforts: vec![],
                 enabled: *id != "gpt-off",
+                ..Default::default()
             })
             .collect();
         let provider = store.commit_provider(value, Target::Codex, true).unwrap();
@@ -639,18 +643,21 @@ fn model_refresh_replaces_catalog_and_removed_client_selection_without_reintrodu
                 context_window: Some(512_000),
                 reasoning_efforts: vec![],
                 enabled: true,
+                ..Default::default()
             },
             ProviderModel {
                 id: "gpt-new".into(),
                 context_window: Some(256_000),
                 reasoning_efforts: vec![],
                 enabled: true,
+                ..Default::default()
             },
             ProviderModel {
                 id: "gpt-off".into(),
                 context_window: Some(512_000),
                 reasoning_efforts: vec![],
                 enabled: false,
+                ..Default::default()
             },
         ];
         request.synced_at = Some(456);
@@ -711,6 +718,7 @@ fn inline_model_settings_apply_to_each_active_client_and_preserve_other_settings
             context_window: Some(256_000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         }];
         let provider = store.commit_provider(value, target, true).unwrap();
         let before = store.status(target).unwrap().configuration_revision;
@@ -725,6 +733,7 @@ fn inline_model_settings_apply_to_each_active_client_and_preserve_other_settings
             context_window: Some(512_000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         });
         let saved = store.quick_model_settings(request).unwrap();
         assert!(saved.applied);
@@ -817,6 +826,7 @@ fn inline_context_and_repair_preserve_client_model_effort_and_fast_without_noop_
         context_window: Some(256_000),
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let provider = store.commit_provider(value, Target::Codex, true).unwrap();
     let config = temp.path().join("codex/config.toml");
@@ -961,6 +971,7 @@ fn fast_toggle_preserves_client_choices_catalog_and_restores_original() {
             context_window: Some(128_000),
             reasoning_efforts: vec!["low".into()],
             enabled: true,
+            ..Default::default()
         })
         .collect();
     let p = store.commit_provider(value, Target::Codex, true).unwrap();
@@ -1093,6 +1104,7 @@ fn fast_toggle_rejects_external_changes_without_partial_save() {
             context_window: Some(256_000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         }];
         let p = store.commit_provider(value, Target::Codex, true).unwrap();
         let config = temp.path().join("codex/config.toml");
@@ -1461,6 +1473,7 @@ fn one_shared_supplier_has_independent_client_snapshots_and_pending_edits() {
         context_window: Some(256000),
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let p = store
         .commit_provider(value.clone(), Target::Codex, true)
@@ -1548,6 +1561,7 @@ fn completed_confirm_journal_recovers_a_new_provider_only_after_all_files_exist(
         context_window: Some(256000),
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let stored = store.prepare_provider(value).unwrap();
     let files = store
@@ -1722,6 +1736,7 @@ fn bridge_routes_use_private_applied_snapshot_and_restore_transactionally() {
         context_window: Some(256_000),
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     value.auth_mode = "x-api-key".into();
     let provider = store.save(value.clone()).unwrap();
@@ -1815,6 +1830,7 @@ fn reverse_bridges_have_independent_snapshots_aliases_and_restore_cli_environmen
             context_window: Some(256000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         })
         .collect();
     let first = store.save(value.clone()).unwrap();
@@ -1904,6 +1920,7 @@ fn reasoning_repair_preserves_client_choices_and_survives_sync_and_restore() {
             context_window: Some(128000),
             reasoning_efforts: vec!["low".into()],
             enabled: true,
+            ..Default::default()
         })
         .collect();
     let p = store.save(value.clone()).unwrap();
@@ -2091,6 +2108,7 @@ fn interrupted_reasoning_repair_commits_provider_only_with_all_files() {
         context_window: None,
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let files = adapters::reasoning_repair_files(&dir, &updated).unwrap();
     assert_eq!(files.len(), 2);
@@ -2165,6 +2183,7 @@ fn desktop_display_repair_captures_original_preferences_preserves_other_settings
         context_window: None,
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let p = store.save(value).unwrap();
     store.apply(Target::Codex, &p.id).unwrap();
@@ -2262,12 +2281,14 @@ fn codex_model_refresh_writes_per_model_context_without_changing_client_choices_
             context_window: Some(256_000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         },
         ProviderModel {
             id: "second".into(),
             context_window: Some(512_000),
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         },
     ];
     let p = store.save(value).unwrap();
@@ -2291,6 +2312,7 @@ fn codex_model_refresh_writes_per_model_context_without_changing_client_choices_
         context_window: Some(1_000_000),
         reasoning_efforts: vec![],
         enabled: false,
+        ..Default::default()
     });
     let result = store
         .update_provider_models(ModelWriteInput {
@@ -2348,6 +2370,7 @@ fn automatic_model_write_rejects_other_connections_invalid_values_and_external_f
         context_window: Some(256_000),
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let p = store.save(value.clone()).unwrap();
     store.apply(Target::Codex, &p.id).unwrap();
@@ -2542,12 +2565,14 @@ fn codex_options_catalog_switch_and_restore_are_transactional() {
                 context_window: Some(128000),
                 reasoning_efforts: vec!["low".into(), "high".into()],
                 enabled: true,
+                ..Default::default()
             },
             ProviderModel {
                 id: "backup-model".into(),
                 context_window: None,
                 reasoning_efforts: vec![],
                 enabled: true,
+                ..Default::default()
             },
         ],
         ..Default::default()
@@ -2650,6 +2675,7 @@ fn modified_catalog_is_preserved_and_invalid_options_are_rejected() {
         context_window: None,
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let provider = store.save(value.clone()).unwrap();
     store.apply(Target::Codex, &provider.id).unwrap();
@@ -2685,6 +2711,7 @@ fn codex_model_menu_choices_do_not_block_switch_or_restore_but_routing_changes_d
             context_window: None,
             reasoning_efforts: vec![],
             enabled: true,
+            ..Default::default()
         })
         .collect();
     let provider = store.save(value.clone()).unwrap();
@@ -2787,6 +2814,7 @@ fn desktop_writes_profile_and_library_preserves_mcp_and_restores_new_settings() 
         enabled: *id != "ignored-model",
         context_window: None,
         reasoning_efforts: Vec::new(),
+        ..Default::default()
     })
     .collect();
     let provider = store.save(multi).unwrap();
@@ -3035,4 +3063,158 @@ fn windows_locked_file_keeps_original_contents() {
         .unwrap();
     assert!(writer::write(&path, Some("replacement")).is_err());
     assert_eq!(std::fs::read_to_string(path).unwrap(), "original");
+}
+
+#[test]
+fn model_capabilities_write_repair_and_upgrade_preserve_client_choices() {
+    let (temp, mut store) = fixture();
+    let mut value = input(Family::Codex, "Image capability regression");
+    value.model = "gpt-4o".into();
+    value.codex_options.models = vec![ProviderModel {
+        id: "gpt-4o".into(),
+        context_window: Some(256000),
+        enabled: true,
+        ..Default::default()
+    }];
+    let provider = store.save(value).unwrap();
+    store.apply(Target::Codex, &provider.id).unwrap();
+    let dir = temp.path().join("codex");
+    let catalog_path = dir.join("uni-switch-models.json");
+    assert_eq!(
+        read_json(&catalog_path)["models"][0]["input_modalities"],
+        json!(["text", "image"])
+    );
+    // Simulate exactly the byte-for-byte owned text-only catalog from 0.5.18.
+    let mut legacy = read_json(&catalog_path);
+    legacy["models"][0]["input_modalities"] = json!(["text"]);
+    legacy["models"][0]["description"] = json!("preserve this metadata");
+    put(
+        &catalog_path,
+        &serde_json::to_string_pretty(&legacy).unwrap(),
+    );
+    let (_, _, baseline) = store.target_record(Target::Codex).unwrap();
+    let mut baseline = baseline.unwrap();
+    baseline
+        .iter_mut()
+        .find(|f| f.format == "catalog")
+        .unwrap()
+        .expected = adapters::read(&catalog_path).unwrap();
+    store
+        .conn
+        .execute(
+            "UPDATE targets SET baseline=?1 WHERE id='codex'",
+            [json(&baseline).unwrap()],
+        )
+        .unwrap();
+    let config_before = adapters::read(&dir.join("config.toml")).unwrap();
+    let provider_before = json(&store.provider(&provider.id).unwrap()).unwrap();
+    let revision_before = store.status(Target::Codex).unwrap().configuration_revision;
+    let data = store.data_directory.clone();
+    drop(store);
+    let mut reopened = Store::open(data.clone()).unwrap();
+    assert!(reopened.overview().unwrap().repaired_model_capabilities);
+    assert!(
+        reopened
+            .status(Target::Codex)
+            .unwrap()
+            .configuration_revision
+            > revision_before
+    );
+    assert_eq!(
+        adapters::read(&dir.join("config.toml")).unwrap(),
+        config_before
+    );
+    assert_eq!(
+        json(&reopened.provider(&provider.id).unwrap()).unwrap(),
+        provider_before
+    );
+    let repaired = read_json(&catalog_path);
+    assert_eq!(
+        repaired["models"][0]["input_modalities"],
+        json!(["text", "image"])
+    );
+    assert_eq!(
+        repaired["models"][0]["description"],
+        "preserve this metadata"
+    );
+    // Fast and reasoning repairs must retain correct modalities and be reversible.
+    reopened.set_provider_fast_mode(&provider.id, true).unwrap();
+    reopened.repair_reasoning_levels(&provider.id).unwrap();
+    assert_eq!(
+        read_json(&catalog_path)["models"][0]["input_modalities"],
+        json!(["text", "image"])
+    );
+    let revision = reopened
+        .status(Target::Codex)
+        .unwrap()
+        .configuration_revision;
+    drop(reopened);
+    let mut final_store = Store::open(data).unwrap();
+    assert!(!final_store.overview().unwrap().repaired_model_capabilities);
+    assert_eq!(
+        final_store
+            .status(Target::Codex)
+            .unwrap()
+            .configuration_revision,
+        revision
+    );
+    final_store.restore(Target::Codex).unwrap();
+    assert!(!catalog_path.exists());
+}
+
+#[test]
+fn manual_image_capability_applies_to_unknown_models_and_survives_fast() {
+    let (temp, mut store) = fixture();
+    let mut value = input(Family::Codex, "Custom image model");
+    value.codex_options.models = vec![ProviderModel {
+        id: value.model.clone(),
+        enabled: true,
+        capability_overrides: ModelCapabilities {
+            image_input: Some(true),
+            parallel_tool_calls: Some(true),
+        },
+        ..Default::default()
+    }];
+    let provider = store.save(value).unwrap();
+    store.apply(Target::Codex, &provider.id).unwrap();
+    store.set_provider_fast_mode(&provider.id, true).unwrap();
+    let path = temp.path().join("codex/uni-switch-models.json");
+    assert_eq!(
+        read_json(&path)["models"][0]["input_modalities"],
+        json!(["text", "image"])
+    );
+    assert_eq!(
+        read_json(&path)["models"][0]["supports_parallel_tool_calls"],
+        true
+    );
+    let mut input = quick_input(store.provider(&provider.id).unwrap().summary, Target::Codex);
+    input.models[0].capability_overrides.image_input = Some(false);
+    store.quick_model_settings(input).unwrap();
+    assert_eq!(
+        read_json(&path)["models"][0]["input_modalities"],
+        json!(["text"])
+    );
+}
+
+#[test]
+fn capability_upgrade_does_not_overwrite_external_catalog_edits() {
+    let (temp, mut store) = fixture();
+    let mut value = input(Family::Codex, "Conflict safe upgrade");
+    value.model = "gpt-4o".into();
+    let provider = store.save(value).unwrap();
+    store.apply(Target::Codex, &provider.id).unwrap();
+    let path = temp.path().join("codex/uni-switch-models.json");
+    let mut catalog = read_json(&path);
+    catalog["models"][0]["input_modalities"] = json!(["text"]);
+    put(&path, &serde_json::to_string_pretty(&catalog).unwrap());
+    let before = adapters::read(&path).unwrap();
+    let data = store.data_directory.clone();
+    drop(store);
+    let reopened = Store::open(data).unwrap();
+    assert!(!reopened.overview().unwrap().repaired_model_capabilities);
+    assert_eq!(adapters::read(&path).unwrap(), before);
+    assert_eq!(
+        reopened.status(Target::Codex).unwrap().state,
+        "external_change"
+    );
 }

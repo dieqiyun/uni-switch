@@ -219,6 +219,15 @@ export default function App() {
     }
   }, [query.data]);
   useEffect(() => {
+    if (query.data?.repairedModelCapabilities) {
+      const repaired = query.data.targets.find(
+        (value) => value.target === "codex",
+      )?.configurationRevision;
+      if (repaired && repaired > (promptedRevision.current.codex ?? -1))
+        setCodexWriteRevision(repaired);
+    }
+  }, [query.data?.repairedModelCapabilities]);
+  useEffect(() => {
     if (popup || busy) return;
     // A successful Codex file write always prompts, including when process
     // inspection fails or no desktop process is visible. The overview carries

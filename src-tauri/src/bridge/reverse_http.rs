@@ -98,7 +98,7 @@ pub(super) async fn models(
 ) -> std::result::Result<Json<Value>, HttpError> {
     let provider = authorize_claude(&runtime, &headers, &target, &id)?;
     let ids = reverse::model_ids(&provider);
-    let list:Vec<_>=ids.iter().map(|id|json!({"id":if target=="claude_desktop"{reverse::model_alias(id)}else{id.clone()},"type":"model","display_name":id,"created_at":"2026-01-01T00:00:00Z"})).collect();
+    let list:Vec<_>=ids.iter().map(|id| { let fallback = crate::types::ProviderModel { id: id.clone(), ..Default::default() }; let m = provider.summary.codex_options.models.iter().find(|m| &m.id == id).unwrap_or(&fallback); let caps = crate::model_capabilities::resolve(m); json!({"id":if target=="claude_desktop"{reverse::model_alias(id)}else{id.clone()},"type":"model","display_name":id,"created_at":"2026-01-01T00:00:00Z","capabilities":{"image_input":{"supported":caps.image_input}}}) }).collect();
     Ok(Json(
         json!({"data":list,"has_more":false,"first_id":list.first().map(|v|v["id"].clone()),"last_id":list.last().map(|v|v["id"].clone())}),
     ))
@@ -136,6 +136,34 @@ pub(super) async fn messages(
         .to_owned();
     let model = reverse::resolve_model(&provider, &client_model)
         .map_err(|e| claude_error(StatusCode::BAD_REQUEST, e))?;
+    let fallback = crate::types::ProviderModel {
+        id: model.clone(),
+        ..Default::default()
+    };
+    let configured = provider
+        .summary
+        .codex_options
+        .models
+        .iter()
+        .find(|m| m.id == model)
+        .unwrap_or(&fallback);
+    let capabilities = crate::model_capabilities::resolve(configured);
+    let contains_image = body
+        .get("messages")
+        .and_then(Value::as_array)
+        .is_some_and(|messages| {
+            messages.iter().any(|m| {
+                m.get("content")
+                    .and_then(Value::as_array)
+                    .is_some_and(|parts| parts.iter().any(|p| p["type"] == "image"))
+            })
+        });
+    if capabilities.image_input == Some(false) && contains_image {
+        return Err(claude_error(
+            StatusCode::BAD_REQUEST,
+            "此模型的图片输入已关闭，请在 uni-switch 模型配置中确认图片能力",
+        ));
+    }
     let streaming = body["stream"] == true;
     let converted = reverse::request(&body, &model, streaming)
         .map_err(|e| claude_error(StatusCode::BAD_REQUEST, e))?;

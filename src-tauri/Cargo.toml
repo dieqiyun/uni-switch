@@ -1,6 +1,6 @@
 [package]
 name = "uni-switch"
-version = "0.5.18"
+version = "0.5.19"
 description = "Codex 与 Claude Code 桌面及 CLI API 配置工具"
 edition = "2021"
 rust-version = "1.89"

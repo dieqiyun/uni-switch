@@ -477,3 +477,19 @@ describe("写入后 Codex 重启提示", () => {
     ).toBeVisible();
   });
 });
+
+it("升级自动修复模型能力后首次读取即提示重启，没有运行进程也保留稍后选项", async () => {
+  data.repairedModelCapabilities = true;
+  data.targets[0].configurationRevision = 4;
+  runtime.configurationRevision = 4;
+  runtime.clientRunning = false;
+  runtime.desktopRunning = false;
+  runtime.canRestartDesktop = false;
+  mount();
+  expect(
+    await screen.findByRole("dialog", { name: "重启 Codex 使配置生效" }),
+  ).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "稍后重启" }));
+  await client.invalidateQueries({ queryKey: ["overview"] });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});

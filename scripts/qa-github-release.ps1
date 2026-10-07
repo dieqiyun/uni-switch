@@ -31,14 +31,16 @@ if ($args[0] -eq 'api') {
     }
     if ($endpoint -like '*/commits/*' -or $endpoint -like '*/git/ref/heads/*' -or $endpoint -like '*/tags?per_page*' -or $endpoint -like '*/contents/LICENSE*') {
         $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $mockRoot 'manifest.json') | ConvertFrom-Json
+        if (($endpoint -like '*/commits/*' -or $endpoint -like '*/contents/LICENSE*') -and -not $manifest.includeSource) { throw 'Binary release attempted to read unpublished source' }
+        $releaseRevision = if ($manifest.includeSource) { $manifest.sourceRevision } else { '1111111111111111111111111111111111111111' }
         if ($endpoint -like '*/commits/*') { @{sha=$manifest.sourceRevision} | ConvertTo-Json -Compress; return }
         if ($endpoint -like '*/git/ref/heads/*') {
-            $revision = if ($env:UNI_SWITCH_QA_SOURCE_MISMATCH -eq '1') { 'wrong-source' } else { $manifest.sourceRevision }
+            $revision = if ($env:UNI_SWITCH_QA_SOURCE_MISMATCH -eq '1') { 'wrong-source' } else { $releaseRevision }
             @{object=@{sha=$revision}} | ConvertTo-Json -Compress; return
         }
         if ($endpoint -like '*/tags?per_page*') {
             if (-not (Test-Path -LiteralPath (Join-Path $mockRoot 'source-tag-created.txt'))) { Write-Output '[]'; return }
-            ConvertTo-Json -InputObject @(@{name=('v'+$manifest.version);commit=@{sha=$manifest.sourceRevision}}) -Depth 4 -Compress; return }
+            ConvertTo-Json -InputObject @(@{name=('v'+$manifest.version);commit=@{sha=$releaseRevision}}) -Depth 4 -Compress; return }
         @{content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('GNU AFFERO GENERAL PUBLIC LICENSE'))} | ConvertTo-Json -Compress; return
     }
     if ($endpoint -like '*/git/trees/*') { Write-Output '{"truncated":false,"tree":[{"type":"blob","path":"README.md"}]}'; return }
@@ -75,8 +77,8 @@ if ($args[0] -eq 'api') {
     }
 }
 if ($args[0] -eq 'release' -and $args[1] -in @('create','upload')) {
-    $assets = $args[($args.Count-6)..($args.Count-1)]
     $allowed = (Get-Content -Raw -Encoding UTF8 (Join-Path $mockRoot 'manifest.json') | ConvertFrom-Json).assets.name
+    $assets = $args[($args.Count-$allowed.Count)..($args.Count-1)]
     foreach($asset in $assets) {
         if ($allowed -cnotcontains [IO.Path]::GetFileName($asset)) { throw 'Mock detected an unlisted upload' }
         Copy-Item -LiteralPath $asset -Destination (Join-Path $mockRoot 'uploads') -Force
@@ -120,9 +122,11 @@ try {
     $env:UNI_SWITCH_QA_SOURCE_MISMATCH = $null
     $env:UNI_SWITCH_QA_CORRUPT_UPLOAD = $null
     $taskPublisher = Join-Path $taskScripts 'publish-github-release.ps1'
-    & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath
+    $taskPublishOptions = @{}
+    if ($taskManifest.includeSource) { $taskPublishOptions.IncludeSource = $true }
+    & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath @taskPublishOptions
     if (-not (Test-Path -LiteralPath (Join-Path $taskMockRoot 'published.txt')) -or -not (Test-Path -LiteralPath (Join-Path $taskMockRoot 'source-tag-created.txt'))) { throw 'Mock publication did not create source tag or complete' }
-    $taskChecks += 'Local fake GitHub flow uploaded only the six allowed assets, including corresponding AGPL source, created the exact source tag, verified downloaded checksums, then published'
+    $taskChecks += "Local fake GitHub flow uploaded only the $(@($taskManifest.assets).Count) allowed assets; includeSource=$([bool]$taskManifest.includeSource), verified downloaded checksums, then published without pushing any code"
     # Use a separate mock directory for the failure scenario; no deletion needed.
     $taskFailureRoot = Join-Path $taskRunRoot 'mock-api-corrupt'
     New-Item -ItemType Directory -Path (Join-Path $taskFailureRoot 'uploads') -Force | Out-Null
@@ -130,7 +134,7 @@ try {
     $env:UNI_SWITCH_QA_PUBLISH_ROOT = $taskFailureRoot
     $env:UNI_SWITCH_QA_CORRUPT_UPLOAD = '1'
     $taskRejected = $false
-    try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath } catch { $taskRejected = $true }
+    try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath @taskPublishOptions } catch { $taskRejected = $true }
     if (-not $taskRejected -or (Test-Path -LiteralPath (Join-Path $taskFailureRoot 'published.txt'))) { throw 'Corrupted upload was not rejected' }
     $taskChecks += 'Corrupted downloaded asset stops publication and leaves the release in draft'
     $taskResumeRoot = Join-Path $taskRunRoot 'mock-api-resume'
@@ -139,16 +143,16 @@ try {
     $env:UNI_SWITCH_QA_PUBLISH_ROOT = $taskResumeRoot
     $env:UNI_SWITCH_QA_CORRUPT_UPLOAD = $null
     $env:UNI_SWITCH_QA_RESUME_DRAFT = '1'
-    & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath -ResumeDraft
+    & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath @taskPublishOptions -ResumeDraft
     if (-not (Test-Path -LiteralPath (Join-Path $taskResumeRoot 'published.txt'))) { throw 'Draft resume did not finish verification' }
-    $taskChecks += 'Draft resume uploads and verifies the current six assets before publishing'
+    $taskChecks += 'Draft resume uploads and verifies only the current allowlisted assets before publishing'
     $taskPublicRoot = Join-Path $taskRunRoot 'mock-api-public'
     New-Item -ItemType Directory -Path (Join-Path $taskPublicRoot 'uploads') -Force | Out-Null
     Copy-Item -LiteralPath $taskManifestPath -Destination (Join-Path $taskPublicRoot 'manifest.json')
     $env:UNI_SWITCH_QA_PUBLISH_ROOT = $taskPublicRoot
     $env:UNI_SWITCH_QA_PUBLIC_RELEASE = '1'
     $taskPublicRejected = $false
-    try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath -ResumeDraft } catch { $taskPublicRejected = $true }
+    try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath @taskPublishOptions -ResumeDraft } catch { $taskPublicRejected = $true }
     if (-not $taskPublicRejected -or (Test-Path -LiteralPath (Join-Path $taskPublicRoot 'uploaded.json'))) { throw 'Published release was overwritten' }
     $taskChecks += 'Draft resume refuses to overwrite an already public release'
     $taskMismatchRoot = Join-Path $taskRunRoot 'mock-api-source-mismatch'
@@ -159,9 +163,20 @@ try {
     $env:UNI_SWITCH_QA_RESUME_DRAFT = $null
     $env:UNI_SWITCH_QA_SOURCE_MISMATCH = '1'
     $taskMismatchRejected = $false
-    try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath } catch { $taskMismatchRejected = $true }
+    try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath @taskPublishOptions } catch { $taskMismatchRejected = $true }
     if (-not $taskMismatchRejected -or (Test-Path -LiteralPath (Join-Path $taskMismatchRoot 'uploaded.json'))) { throw 'Source mismatch was not rejected before upload' }
-    $taskChecks += 'Remote source mismatch prevents any upload or publication'
+    $taskChecks += 'Invalid remote tag target or source mismatch prevents any upload or publication'
+    if (-not $taskManifest.includeSource) {
+        $taskModeRoot = Join-Path $taskRunRoot 'mock-api-mode-mismatch'
+        New-Item -ItemType Directory -Path (Join-Path $taskModeRoot 'uploads') -Force | Out-Null
+        Copy-Item -LiteralPath $taskManifestPath -Destination (Join-Path $taskModeRoot 'manifest.json')
+        $env:UNI_SWITCH_QA_PUBLISH_ROOT = $taskModeRoot
+        $env:UNI_SWITCH_QA_SOURCE_MISMATCH = $null
+        $taskModeRejected = $false
+        try { & $taskPublisher -Repository 'example/uni-switch' -GhPath $taskMockPath -IncludeSource } catch { $taskModeRejected = $true }
+        if (-not $taskModeRejected -or (Test-Path -LiteralPath (Join-Path $taskModeRoot 'source-tag-created.txt'))) { throw 'Source flag mismatch was not rejected before creating a release' }
+        $taskChecks += 'Binary-only manifest rejects a mismatched source-upload option before any release mutation'
+    }
     $taskResult = @{ version=$taskVersion; root=$taskRunRoot; checks=$taskChecks; externalRequests=0 }
     [IO.File]::WriteAllText((Join-Path $taskRunRoot 'results.json'),($taskResult | ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText((Join-Path $taskWorkspace '.qa/github-release/results.json'),($taskResult | ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))

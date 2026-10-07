@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile, copyFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
@@ -9,7 +9,10 @@ import { verifyTutorial } from "./qa-tutorial.mjs";
 import { verifyWorkspaceHeader } from "./qa-workspace-header.mjs";
 import { verifyAppUpdates } from "./qa-app-update.mjs";
 import { verifyBrandRefresh } from "./qa-brand-refresh.mjs";
-import { verifyCodexModels } from "./qa-codex-model-runtime.mjs";
+import {
+  verifyCodexModels,
+  mockModelResponse,
+} from "./qa-codex-model-runtime.mjs";
 
 const version = JSON.parse(await readFile("package.json", "utf8")).version;
 const root = path.resolve(".qa/model-dialog", String(Date.now()));
@@ -49,8 +52,11 @@ const modelIds = [
 let many = false;
 let upstreamIds = null;
 let modelFailure = false;
+const inferenceRequests = [];
 const updateMock = { mode: "new", requests: [] };
 const server = http.createServer((req, res) => {
+  if (req.method === "POST" && req.url.endsWith("/responses"))
+    return void mockModelResponse(req, res, inferenceRequests);
   const send = (value, code = 200) => {
     res.writeHead(code, { "Content-Type": "application/json" });
     res.end(JSON.stringify(value));
@@ -101,7 +107,7 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}/v1`;
-let app, browser, page;
+let app, browser, page, appEnv;
 const errors = [],
   checks = [],
   audits = [];
@@ -182,7 +188,7 @@ try {
   app = spawn(executable, [], {
     windowsHide: true,
     stdio: "ignore",
-    env: {
+    env: (appEnv = {
       ...process.env,
       UNI_SWITCH_DATA_DIR: path.join(root, "data"),
       UNI_SWITCH_QA_DISCOVERY_CONTEXT: contextFile,
@@ -195,7 +201,7 @@ try {
       UNI_SWITCH_QA_UPDATE_OPEN_MARKER: path.join(root, "opened-release.txt"),
       UNI_SWITCH_QA_SERVICE_OPEN_MARKER: path.join(root, "opened-service.txt"),
       UNI_SWITCH_QA_PROJECT_OPEN_MARKER: path.join(root, "opened-project.txt"),
-    },
+    }),
   });
   await until(portOpen);
   browser = await chromium.connectOverCDP("http://127.0.0.1:9223");
@@ -263,7 +269,9 @@ try {
     1,
   );
   assert.equal(
-    await dialog().getByRole("checkbox", { checked: true }).count(),
+    await dialog()
+      .getByRole("checkbox", { name: /^启用 /, checked: true })
+      .count(),
     5,
   );
   assert.deepEqual(await snapshot(), before);
@@ -324,6 +332,28 @@ try {
   assert.deepEqual(
     catalog.models.map((m) => m.slug).sort(),
     [...modelIds].sort(),
+  );
+  for (const model of catalog.models)
+    assert.deepEqual(model.input_modalities, ["text", "image"]);
+  await verifyCodexModels({
+    codexHome: codex,
+    expected: Object.fromEntries(
+      catalog.models.map((m) => [m.slug, m.context_window]),
+    ),
+    imageModels: modelIds,
+    checkDesktopReasoning: false,
+    output: path.join(root, "codex-image-input.json"),
+  });
+  for (const id of modelIds)
+    assert.ok(
+      inferenceRequests.some(
+        (r) =>
+          r.model === id && JSON.stringify(r.input).includes("input_image"),
+      ),
+      `${id} sends images to the mock upstream`,
+    );
+  checks.push(
+    "真实 Codex app-server 对五个官方 GPT/Codex 模型逐个发送图片且完成响应，上游收到 input_image；不使用真实 API Key 或付费请求",
   );
   const appliedBefore = await snapshot();
   await openModels();
@@ -526,6 +556,74 @@ try {
   checks.push(
     "上游五个旧模型全部下架后只显示最新四个；取消不写入，保存并应用替换数据库/目录/默认模型并提示重启，真实Codex model/list仅返回最新四个",
   );
+  const beforeCapabilities = await snapshot();
+  await openModels();
+  const imageField = dialog().getByLabel(`图片输入 ${upstreamIds[0]}`, {
+    exact: true,
+  });
+  assert.equal(await imageField.isChecked(), false);
+  await imageField.check();
+  await dialog().getByRole("button", { name: "取消", exact: true }).click();
+  assert.deepEqual(await snapshot(), beforeCapabilities);
+  await openModels();
+  await dialog()
+    .getByLabel(`图片输入 ${upstreamIds[0]}`, { exact: true })
+    .check();
+  await dialog()
+    .getByRole("button", { name: "刷新模型列表", exact: true })
+    .click();
+  await dialog().getByText("已选择 4 / 4", { exact: true }).waitFor();
+  assert.equal(
+    await dialog()
+      .getByLabel(`图片输入 ${upstreamIds[0]}`, { exact: true })
+      .isChecked(),
+    true,
+  );
+  await audit("Manual unknown model capability");
+  await page.screenshot({
+    path: `docs/screenshots/model-capabilities-${version}.png`,
+  });
+  await page.setViewportSize({ width: 390, height: 620 });
+  assert.equal(
+    await dialog().evaluate((el) => el.scrollWidth > el.clientWidth),
+    false,
+  );
+  await audit("Manual capability narrow layout");
+  await page.screenshot({
+    path: `docs/screenshots/model-capabilities-narrow-${version}.png`,
+  });
+  await page.setViewportSize({ width: 1120, height: 780 });
+  await dialog()
+    .getByRole("button", { name: "保存并应用", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "重启 Codex 使配置生效", exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "稍后重启", exact: true }).click();
+  catalog = JSON.parse(
+    await readFile(path.join(codex, "uni-switch-models.json"), "utf8"),
+  );
+  assert.deepEqual(
+    catalog.models.find((m) => m.slug === upstreamIds[0]).input_modalities,
+    ["text", "image"],
+  );
+  await verifyCodexModels({
+    codexHome: codex,
+    expected: catalogExpected(catalog),
+    imageModels: [upstreamIds[0]],
+    checkDesktopReasoning: false,
+    output: path.join(root, "codex-manual-image-input.json"),
+  });
+  assert.ok(
+    inferenceRequests.some(
+      (r) =>
+        r.model === upstreamIds[0] &&
+        JSON.stringify(r.input).includes("input_image"),
+    ),
+  );
+  checks.push(
+    "未知模型默认提示待确认；手动图片能力取消不写入，刷新保留草稿，保存并提示重启；真实Codex成功发送此手动启用模型的图片",
+  );
   await openModels();
   const retainedSnapshot = await snapshot();
   modelFailure = true;
@@ -544,6 +642,69 @@ try {
   assert.deepEqual(await snapshot(), retainedSnapshot);
   checks.push(
     "模型请求失败保留已确认的最新列表，不复活下架模型，也不修改客户端文件",
+  );
+  const configBeforeUpgrade = await readFile(
+    path.join(codex, "config.toml"),
+    "utf8",
+  );
+  await browser.close();
+  browser = null;
+  await new Promise((resolve) => {
+    app.once("exit", resolve);
+    app.kill();
+  });
+  await until(async () => !(await portOpen()));
+  execFileSync(
+    "python",
+    [
+      "-X",
+      "utf8",
+      "-c",
+      String.raw`import sys,json,sqlite3,pathlib
+root=pathlib.Path(sys.argv[1]); db=sqlite3.connect(root/'data'/'uni-switch.db')
+baseline=json.loads(db.execute("SELECT baseline FROM targets WHERE id='codex'").fetchone()[0])
+file=next(f for f in baseline if f['format']=='catalog'); p=pathlib.Path(file['path'])
+cat=json.loads(p.read_text(encoding='utf-8'))
+for m in cat['models']: m['input_modalities']=['text']
+text=json.dumps(cat,ensure_ascii=False,indent=2)+'\n'; p.write_text(text,encoding='utf-8',newline=''); assert p.read_bytes().decode('utf-8')==text; file['expected']=text
+db.execute("UPDATE targets SET baseline=? WHERE id='codex'",[json.dumps(baseline,ensure_ascii=False)]); db.commit(); db.close()`,
+      root,
+    ],
+    { windowsHide: true, encoding: "utf8" },
+  );
+  app = spawn(executable, [], {
+    windowsHide: true,
+    stdio: "ignore",
+    env: appEnv,
+  });
+  await until(portOpen);
+  browser = await chromium.connectOverCDP("http://127.0.0.1:9223");
+  page = browser.contexts()[0].pages()[0];
+  page.setDefaultTimeout(15000);
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1120, height: 780 });
+  await page
+    .getByRole("dialog", { name: "重启 Codex 使配置生效", exact: true })
+    .waitFor();
+  assert.equal((await overview()).repairedModelCapabilities, true);
+  assert.equal(
+    await readFile(path.join(codex, "config.toml"), "utf8"),
+    configBeforeUpgrade,
+  );
+  catalog = JSON.parse(
+    await readFile(path.join(codex, "uni-switch-models.json"), "utf8"),
+  );
+  assert.deepEqual(
+    catalog.models.find((m) => m.slug === upstreamIds[0]).input_modalities,
+    ["text", "image"],
+  );
+  await audit("Automatic old catalog repair restart dialog");
+  await page.screenshot({
+    path: `docs/screenshots/model-capability-upgrade-${version}.png`,
+  });
+  await page.getByRole("button", { name: "稍后重启", exact: true }).click();
+  checks.push(
+    "原生客户端重新启动时自动修复旧版受管的text-only目录；配置与密钥不变且自动弹出Codex重启提醒",
   );
   assert.deepEqual(errors, []);
   const result = { version, root, checks, audits, pageErrors: errors };
@@ -570,5 +731,6 @@ try {
       app.kill();
     });
   }
+  server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 }

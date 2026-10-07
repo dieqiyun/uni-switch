@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { RefreshCw, Search, Check, X } from "lucide-react";
 import type { Target } from "../types";
+import { capabilityFields, modelCapability } from "../lib/modelCapabilities";
 import type { useConnectionDiscovery } from "../lib/useConnectionDiscovery";
 
 export function ModelPicker({
@@ -236,6 +237,69 @@ export function ModelPicker({
                   </button>
                 )}
               </div>
+              <div
+                className="model-capabilities"
+                role="group"
+                aria-label={`模型能力 ${m.id}`}
+              >
+                {capabilityFields
+                  .filter(
+                    (field) => target === "codex" || field.key === "imageInput",
+                  )
+                  .map((field) => {
+                    const capability = modelCapability(m, field.key);
+                    const sourceLabel = {
+                      manual: "手动",
+                      upstream: "上游返回",
+                      official: "自动匹配",
+                      unknown: "待确认",
+                    }[capability.source];
+                    return (
+                      <label
+                        key={field.key}
+                        className="model-capability"
+                        title={field.help}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={capability.value}
+                          disabled={!discovery.allowed(m.id)}
+                          aria-label={`${field.label} ${m.id}`}
+                          onChange={(e) =>
+                            discovery.setCapability(
+                              m.id,
+                              field.key,
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        <span>{field.label}</span>
+                        <span
+                          className={`capability-source ${capability.source === "unknown" ? "is-unknown" : ""}`}
+                        >
+                          {sourceLabel}
+                        </span>
+                      </label>
+                    );
+                  })}
+                {Object.values(m.capabilityOverrides ?? {}).some(
+                  (v) => typeof v === "boolean",
+                ) && (
+                  <button
+                    type="button"
+                    className="text-button capability-reset"
+                    aria-label={`恢复自动能力 ${m.id}`}
+                    onClick={() => discovery.resetCapabilities(m.id)}
+                  >
+                    恢复自动
+                  </button>
+                )}
+                {modelCapability(m, "imageInput").source === "unknown" && (
+                  <span className="capability-unknown-hint">
+                    未识别图片能力，请按上游说明勾选。
+                  </span>
+                )}
+              </div>
               {discovery.invalidContexts.includes(m.id) && (
                 <p
                   className="field-error model-context-error"
@@ -282,6 +346,13 @@ export function ModelPicker({
             显示更多模型
           </button>
         </div>
+      )}
+      {!!discovery.models.length && (
+        <p className="model-selection-footnote">
+          能力优先采用手动设置，其次为上游返回，再按官方资料匹配。刷新会保留手动设置。图片输入指识图，不是生成图片。
+          {target !== "codex" &&
+            "图片能力会在协议转换服务中生效；Claude 原生模型菜单由客户端管理。"}
+        </p>
       )}
       {target === "codex" && !!discovery.models.length && (
         <p

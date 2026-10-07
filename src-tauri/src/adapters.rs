@@ -521,6 +521,7 @@ pub fn model_catalog(provider: &StoredProvider) -> Value {
         context_window: None,
         reasoning_efforts: vec![],
         enabled: true,
+        ..Default::default()
     }];
     let source = if provider.summary.codex_options.models.is_empty() {
         fallback.as_slice()
@@ -529,6 +530,7 @@ pub fn model_catalog(provider: &StoredProvider) -> Value {
     };
     let models: Vec<Value> = source.iter().filter(|m| m.enabled).enumerate().map(|(index, model)| {
         let efforts: Vec<_> = model.reasoning_efforts.iter().map(|effort| json!({"effort": effort, "description": effort})).collect();
+        let capabilities = crate::model_capabilities::resolve(model);
         json!({
             "slug": model.id, "display_name": model.id,
             "description": "供应商模型 · uni-switch", "visibility": "list", "supported_in_api": true,
@@ -542,8 +544,8 @@ pub fn model_catalog(provider: &StoredProvider) -> Value {
             "max_context_window": model.context_window.or(provider.summary.codex_options.context_window).unwrap_or(256_000),
             "auto_compact_token_limit": model.context_window.or(provider.summary.codex_options.context_window).unwrap_or(256_000),
             "truncation_policy": {"mode": "tokens", "limit": 10000},
-            "experimental_supported_tools": [], "input_modalities": if provider.summary.codex_options.protocol == crate::types::CodexProtocol::Anthropic {vec!["text", "image"]} else {vec!["text"]},
-            "supports_parallel_tool_calls": false,
+            "experimental_supported_tools": [], "input_modalities": if capabilities.image_input == Some(true) {vec!["text", "image"]} else {vec!["text"]},
+            "supports_parallel_tool_calls": capabilities.parallel_tool_calls.unwrap_or(false),
             "additional_speed_tiers": if provider.summary.codex_options.fast_mode == Some(true) { vec!["fast"] } else { vec![] },
             "service_tiers": if provider.summary.codex_options.fast_mode == Some(true) { vec![json!({"id":"priority", "name":"Fast", "description":"供应商优先服务档位"})] } else { vec![] }
         })
@@ -602,6 +604,7 @@ pub fn fast_mode_files(
                     &parse_json(Some(expected), &file.path)?,
                 );
             }
+            crate::model_capabilities::repair_catalog(&mut catalog, provider);
             repair_reasoning_catalog(&mut catalog)?;
             let models = catalog
                 .get_mut("models")
@@ -656,6 +659,7 @@ pub fn fast_mode_files(
             Some(text) => parse_json(Some(text), &path)?,
             None => model_catalog(provider),
         };
+        crate::model_capabilities::repair_catalog(&mut catalog, provider);
         repair_reasoning_catalog(&mut catalog)?;
         for model in catalog["models"].as_array_mut().unwrap() {
             model["additional_speed_tiers"] = if enabled { json!(["fast"]) } else { json!([]) };
@@ -826,6 +830,7 @@ pub fn reasoning_repair_files(
         Some(text) => parse_json(Some(text), &catalog_path)?,
         None => model_catalog(provider),
     };
+    crate::model_capabilities::repair_catalog(&mut catalog, provider);
     repair_reasoning_catalog(&mut catalog)?;
     let config_before = read(&config_path)?;
     let mut config = parse_toml(config_before.as_deref(), &config_path)?;
@@ -1261,6 +1266,9 @@ pub(crate) fn read_model_preferences(
                 if let Some(catalog) = read(&catalog_path)? {
                     codex_options.models =
                         crate::supplier::parse_models(&parse_json(Some(&catalog), &catalog_path)?)?;
+                    for model in &mut codex_options.models {
+                        model.capabilities = Default::default();
+                    }
                 }
             }
             (
@@ -1281,6 +1289,7 @@ pub(crate) fn read_model_preferences(
                         enabled: true,
                         context_window: None,
                         reasoning_efforts: Vec::new(),
+                        ..Default::default()
                     })
                     .collect();
             }

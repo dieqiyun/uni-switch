@@ -175,7 +175,9 @@ pub fn parse_models(value: &Value) -> Result<Vec<ProviderModel>> {
             id: id.to_owned(),
             context_window,
             reasoning_efforts,
+            capabilities: crate::model_capabilities::from_upstream(item),
             enabled: true,
+            ..Default::default()
         });
     }
     if models.is_empty() {

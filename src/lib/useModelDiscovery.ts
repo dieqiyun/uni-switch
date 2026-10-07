@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, desktopRuntime, errorMessage } from "./api";
 import { contextTokens, DEFAULT_MODEL_CONTEXT } from "./modelContext";
+import { preserveCapabilities, type CapabilityKey } from "./modelCapabilities";
 import type {
   ConnectionInput,
   Provider,
@@ -131,7 +132,7 @@ export function useModelDiscovery(
             ]),
           ),
           models: result.models.map((m) => ({
-            ...m,
+            ...preserveCapabilities(m, previous.get(m.id)),
             contextWindow:
               target === "codex"
                 ? previous.has(m.id)
@@ -213,6 +214,36 @@ export function useModelDiscovery(
           }
         : s,
     );
+  const setCapability = (id: string, key: CapabilityKey, value: boolean) =>
+    setState((s) =>
+      s.signature === current.current.signature
+        ? {
+            ...s,
+            models: s.models.map((m) =>
+              m.id === id
+                ? {
+                    ...m,
+                    capabilityOverrides: {
+                      ...m.capabilityOverrides,
+                      [key]: value,
+                    },
+                  }
+                : m,
+            ),
+          }
+        : s,
+    );
+  const resetCapabilities = (id: string) =>
+    setState((s) =>
+      s.signature === current.current.signature
+        ? {
+            ...s,
+            models: s.models.map((m) =>
+              m.id === id ? { ...m, capabilityOverrides: {} } : m,
+            ),
+          }
+        : s,
+    );
   const invalidContexts =
     target === "codex"
       ? visible.models
@@ -228,6 +259,8 @@ export function useModelDiscovery(
     toggle,
     selectDefault,
     setContext,
+    setCapability,
+    resetCapabilities,
     invalidContexts,
     allowed,
     preview: !desktopRuntime,

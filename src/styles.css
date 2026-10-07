@@ -1947,3 +1947,51 @@ summary {
   color: #656565;
   line-height: 1.7;
 }
+
+/* Model capabilities share the flat model row; they never create nested cards. */
+.model-capabilities {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  flex-basis: 100%;
+  margin-left: 26px;
+  order: 2;
+  font-size: 11px;
+}
+.model-capability {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  min-height: 24px;
+}
+.model-capability input {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: #202020;
+}
+.capability-source {
+  color: #707070;
+  font-size: 10px;
+}
+.capability-source.is-unknown {
+  color: #855609;
+}
+.capability-reset {
+  font-size: 11px;
+}
+.capability-unknown-hint {
+  color: #855609;
+  flex-basis: 100%;
+}
+@media (max-width: 560px) {
+  .model-capabilities {
+    order: 3;
+    gap: 4px 12px;
+  }
+  .model-context-error {
+    order: 4;
+  }
+}

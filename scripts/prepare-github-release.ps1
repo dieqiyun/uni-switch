@@ -1,5 +1,6 @@
 ﻿param(
-    [ValidatePattern('^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100})?$')][string]$Repository
+    [ValidatePattern('^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100})?$')][string]$Repository,
+    [switch]$IncludeSource
 )
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
@@ -63,8 +64,11 @@ foreach ($taskNotice in @('LICENSE','NOTICE','THIRD_PARTY_NOTICES.md')) {
 Copy-Item -LiteralPath (Join-Path $taskWorkspace 'third-party/codex/LICENSE') -Destination (Join-Path $taskLicenses 'codex-LICENSE')
 Copy-Item -LiteralPath (Join-Path $taskWorkspace 'third-party/dependency-licenses.txt') -Destination (Join-Path $taskLicenses 'dependency-licenses.txt')
 Compress-Archive -Path (Join-Path $taskPortable '*') -DestinationPath (Join-Path $taskStage $taskZipName) -Force
-Invoke-Git @('archive','--format=zip',"--prefix=uni-switch-$taskVersion/",'-o',(Join-Path $taskStage $taskSourceName),$taskRevision) | Out-Null
-$taskAssetNames = @($taskSetupName,$taskExeName,$taskZipName,$taskSourceName,'README-zh-CN.md','SHA256SUMS.txt')
+if ($IncludeSource) {
+    Invoke-Git @('archive','--format=zip',"--prefix=uni-switch-$taskVersion/",'-o',(Join-Path $taskStage $taskSourceName),$taskRevision) | Out-Null
+}
+$taskAssetNames = @($taskSetupName,$taskExeName,$taskZipName,'README-zh-CN.md','SHA256SUMS.txt')
+if ($IncludeSource) { $taskAssetNames += $taskSourceName }
 $taskHashLines = foreach ($taskAsset in ($taskAssetNames | Where-Object { $_ -ne 'SHA256SUMS.txt' })) {
     $taskHash = (Get-FileHash -LiteralPath (Join-Path $taskStage $taskAsset) -Algorithm SHA256).Hash.ToLowerInvariant()
     "$taskHash  $taskAsset"
@@ -74,7 +78,7 @@ $taskManifestAssets = foreach ($taskAsset in $taskAssetNames) {
     $taskAssetPath = Join-Path $taskStage $taskAsset
     [PSCustomObject]@{ name = $taskAsset; sha256 = (Get-FileHash -LiteralPath $taskAssetPath -Algorithm SHA256).Hash.ToLowerInvariant(); size = (Get-Item -LiteralPath $taskAssetPath).Length }
 }
-$taskManifest = @{ version = $taskVersion; repository = $Repository; sourceRevision = $taskRevision; license = 'AGPL-3.0-only'; assets = @($taskManifestAssets) }
+$taskManifest = @{ version = $taskVersion; repository = $Repository; sourceRevision = $taskRevision; includeSource = [bool]$IncludeSource; license = 'AGPL-3.0-only'; assets = @($taskManifestAssets) }
 Write-Utf8 (Join-Path $taskStage 'manifest.json') (($taskManifest | ConvertTo-Json -Depth 5) + "`n")
 $taskNotesSource = Join-Path $taskWorkspace "release/notes/$taskVersion.md"
 if (-not (Test-Path -LiteralPath $taskNotesSource)) { throw '缺少当前版本更新说明' }
@@ -82,5 +86,5 @@ Write-Utf8 (Join-Path $taskStage 'release-notes.md') ((Get-Content -Raw -Encodin
 New-Item -ItemType Directory -Path $taskReleaseRoot -Force | Out-Null
 foreach ($taskAsset in $taskAssetNames) { Copy-Item -LiteralPath (Join-Path $taskStage $taskAsset) -Destination (Join-Path $taskReleaseRoot $taskAsset) -Force }
 Write-Output "发布文件已准备：$taskStage"
-Write-Output "对应源码提交：$taskRevision"
+Write-Output "本地构建提交：$taskRevision · 上传源码：$([bool]$IncludeSource)"
 $taskManifestAssets | Format-Table name,size -AutoSize

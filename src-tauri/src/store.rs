@@ -12,6 +12,7 @@ pub struct Store {
     pub data_directory: PathBuf,
     _lock: std::fs::File,
     bridge_route: Option<crate::bridge::Route>,
+    repaired_model_capabilities: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -131,6 +132,7 @@ impl Store {
             data_directory: directory,
             _lock: lock,
             bridge_route: None,
+            repaired_model_capabilities: false,
         };
         let has_applied_at = store
             .conn
@@ -158,7 +160,80 @@ impl Store {
             }
         }
         store.recover()?;
+        store.migrate_model_capabilities()?;
         Ok(store)
+    }
+
+    fn migrate_model_capabilities(&mut self) -> Result<()> {
+        let target = Target::Codex;
+        let (_, active, baseline) = self.target_record(target)?;
+        let (Some(id), Some(mut baseline)) = (active, baseline) else {
+            return Ok(());
+        };
+        let provider = self.provider(&id)?;
+        let summary: Option<String> = self.conn.query_row(
+            "SELECT applied_summary FROM targets WHERE id=?1",
+            [target.id()],
+            |r| r.get(0),
+        )?;
+        let mut applied = Self::for_target(&provider, target);
+        if let Some(ref summary) = summary {
+            applied.summary = decode(summary)?;
+        }
+        // Check our normal compatibility rules too, including credentials and profiles.
+        for file in &baseline {
+            if !matches!(
+                adapters::changed_for_provider(file, Some(&applied)),
+                Ok(false)
+            ) {
+                return Ok(());
+            }
+        }
+        let Some(file) = baseline.iter_mut().find(|f| f.format == "catalog") else {
+            return Ok(());
+        };
+        let before = adapters::read(&file.path)?;
+        if before != file.expected {
+            return Ok(());
+        }
+        let Some(ref text) = before else {
+            return Ok(());
+        };
+        let Ok(mut catalog) = serde_json::from_str::<serde_json::Value>(text) else {
+            return Ok(());
+        };
+        let original_catalog = catalog.clone();
+        crate::model_capabilities::repair_catalog(&mut catalog, &applied);
+        if catalog == original_catalog {
+            return Ok(());
+        }
+        let after = Some(
+            serde_json::to_string_pretty(&catalog)
+                .map_err(|_| AppError::new("serialization", "无法修复模型能力"))?
+                + "\n",
+        );
+        let change = Change {
+            path: file.path.clone(),
+            before,
+            after: after.clone(),
+        };
+        file.expected = after;
+        let accepted_source = self.conn.query_row(
+            "SELECT accepted_source FROM targets WHERE id=?1",
+            [target.id()],
+            |r| r.get(0),
+        )?;
+        self.execute(Pending {
+            target,
+            changes: vec![change],
+            baseline: Some(baseline),
+            active: Some(id),
+            provider_update: None,
+            applied_summary: summary.map(|s| decode(&s)).transpose()?,
+            accepted_source,
+        })?;
+        self.repaired_model_capabilities = true;
+        Ok(())
     }
 
     pub fn set_bridge_route(&mut self, route: crate::bridge::Route) {
@@ -658,6 +733,7 @@ impl Store {
                 context_window: Some(256_000),
                 reasoning_efforts: vec![],
                 enabled: true,
+                ..Default::default()
             });
         }
         projected
@@ -731,6 +807,18 @@ impl Store {
                         summary.codex_options.auto_compact_token_limit =
                             preferences.codex_options.auto_compact_token_limit;
                         summary.codex_options.models = preferences.codex_options.models;
+                        for model in &mut summary.codex_options.models {
+                            if let Some(saved) = newest
+                                .summary
+                                .codex_options
+                                .models
+                                .iter()
+                                .find(|m| m.id == model.id)
+                            {
+                                model.capabilities = saved.capabilities.clone();
+                                model.capability_overrides = saved.capability_overrides.clone();
+                            }
+                        }
                         summary.codex_options.repair_reasoning_levels =
                             baseline.as_ref().is_some_and(|files| {
                                 files.iter().any(|f| {
@@ -903,6 +991,7 @@ impl Store {
                 .map(|t| self.status(t))
                 .collect::<Result<_>>()?,
             data_directory: self.data_directory.to_string_lossy().into_owned(),
+            repaired_model_capabilities: self.repaired_model_capabilities,
         })
     }
 
@@ -1562,6 +1651,7 @@ impl Store {
                 context_window: None,
                 reasoning_efforts: vec![],
                 enabled: true,
+                ..Default::default()
             }];
         }
         let (directory, active, baseline) = self.target_record(Target::Codex)?;

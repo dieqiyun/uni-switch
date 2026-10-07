@@ -2,11 +2,13 @@
 
 简洁的 Codex / Claude Code API 配置工具。填写 **API 地址、API Key**，点击 **添加并使用**；日常切换只需一次点击。
 
-**当前版本：0.5.18 · Windows x64 · AGPL-3.0-only**
+**当前版本：0.5.19 · Windows x64 · AGPL-3.0-only**
 
 [下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [开源许可](LICENSE)
 
 ![uni-switch 模型配置](docs/screenshots/model-catalog-pruned-local.png)
+
+本版修复支持图片的 GPT 在 Codex 中被误判为仅文本的问题。模型配置支持按模型自动匹配图片能力和手动覆盖，旧版受管配置会自动检查修复并提示重启。详见 [模型能力说明](docs/model-capabilities.md)。
 
 ## 供应商赞助名单
 
@@ -59,13 +61,12 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| `uni-switch_0.5.18_x64-setup.exe` | Windows 安装包，推荐普通用户使用 |
-| `uni-switch_0.5.18_x64-portable.zip` | 便携程序、说明和许可证，解压后运行 |
-| `uni-switch_0.5.18_x64.exe` | 独立程序，需要系统已有 WebView2 |
-| `uni-switch_0.5.18_source.zip` | 与本版本程序对应的完整源码和构建文件 |
+| `uni-switch_0.5.19_x64-setup.exe` | Windows 安装包，推荐普通用户使用 |
+| `uni-switch_0.5.19_x64-portable.zip` | 便携程序、说明和许可证，解压后运行 |
+| `uni-switch_0.5.19_x64.exe` | 独立程序，需要系统已有 WebView2 |
 | `SHA256SUMS.txt` | 发布附件校验值 |
 
-软件检测更新后打开发布页供用户下载，目前不自动替换正在运行的程序。
+软件检测更新后打开发布页供用户下载，目前不自动替换正在运行的程序。v0.5.19 仅发布程序、使用说明和校验文件，本次源码保留在本地；仓库仍保留之前公开的源码。
 
 ## 从源码构建
 
