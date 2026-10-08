@@ -6,7 +6,7 @@
 
 更新 package.json、Cargo.toml、Cargo.lock、tauri.conf.json 和 CHANGELOG 的版本。教程更新后运行 docs:generate / docs:check。公开文件经 audit-source.py 审核，禁止带入 API Key、真实客户端配置、数据库、缓存或构建目录。
 
-完整源码提交并推送 GitHub main 后，运行 `.github/workflows/build-desktop.yml`（手动触发或新版本标签）。工作流使用 Windows、Ubuntu 22.04、macOS 15 原生 runner；macOS 编译 aarch64 与 x86_64 后合为 universal。固定 action 提交、冻结 pnpm / Cargo 锁文件；工作流只有只读仓库权限，不自行公开 Release。
+完整源码提交并推送 GitHub main 后，运行 `.github/workflows/build-desktop.yml`（手动触发或新版本标签）。工作流使用 Windows、Ubuntu 22.04、macOS 15 Intel 原生 runner（`macos-15-intel`）；macOS 编译 aarch64 与 x86_64 后合为 universal，隔离启动在 Intel 主机执行。固定 action 提交、冻结 pnpm / Cargo 锁文件；工作流只有只读仓库权限，不自行公开 Release。
 
 每个平台执行 Rust 测试、Clippy、正式构建和隔离启动检查；Linux 还执行前端测试。macOS 核对 lipo 双架构与 codesign 签名，Linux 在 Xvfb 桌面环境验证启动，Windows 验证独立数据目录启动。不会测试或改变用户真实客户端。
 

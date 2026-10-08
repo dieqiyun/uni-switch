@@ -52,7 +52,7 @@ jobs:
           - platform: Windows
             runner: windows-2022
           - platform: macOS
-            runner: macos-15
+            runner: macos-15-intel
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
