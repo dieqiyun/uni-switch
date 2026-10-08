@@ -2,6 +2,7 @@ pub mod adapters;
 #[cfg(feature = "desktop")]
 pub mod background;
 pub mod bridge;
+mod browser;
 pub mod discovery;
 pub mod error;
 pub mod model_capabilities;

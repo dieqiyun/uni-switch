@@ -2,7 +2,7 @@
 
 简洁的 Codex / Claude Code API 配置工具。填写 **API 地址、API Key**，点击 **添加并使用**；日常切换只需一次点击。
 
-**当前版本：0.5.19 · Windows x64 · AGPL-3.0-only**
+**当前版本：0.5.20 · Windows / Linux / macOS · AGPL-3.0-only**
 
 [下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [开源许可](LICENSE)
 
@@ -57,22 +57,31 @@
 
 ## 下载与更新
 
-从 [GitHub Releases](https://github.com/dieqiyun/uni-switch/releases/latest) 下载：
+从 [GitHub Releases](https://github.com/dieqiyun/uni-switch/releases/latest) 下载对应系统的程序：
 
-| 文件 | 用途 |
+| 系统 / 文件 | 用途 |
 | --- | --- |
-| `uni-switch_0.5.19_x64-setup.exe` | Windows 安装包，推荐普通用户使用 |
-| `uni-switch_0.5.19_x64-portable.zip` | 便携程序、说明和许可证，解压后运行 |
-| `uni-switch_0.5.19_x64.exe` | 独立程序，需要系统已有 WebView2 |
-| `SHA256SUMS.txt` | 发布附件校验值 |
+| Windows x64：`uni-switch_0.5.20_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
+| Windows x64：`uni-switch_0.5.20_x64-portable.zip` | 便携程序、说明和许可证 |
+| Windows x64：`uni-switch_0.5.20_x64.exe` | 独立程序，需要系统已有 WebView2 |
+| Linux x64：`uni-switch_0.5.20_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
+| Linux x64：`uni-switch_0.5.20_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
+| macOS：`uni-switch_0.5.20_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
+| macOS：`uni-switch_0.5.20_universal.app.tar.gz` | 通用 app 归档 |
+| `uni-switch_0.5.20_source.zip` | 与三平台程序对应的完整源码和构建文件 |
+| `README-zh-CN.md` / `SHA256SUMS.txt` | 完整教程 / 附件校验值 |
 
-软件检测更新后打开发布页供用户下载，目前不自动替换正在运行的程序。v0.5.19 仅发布程序、使用说明和校验文件，本次源码保留在本地；仓库仍保留之前公开的源码。
+本版恢复完整开源与源码归档，许可保持 AGPL-3.0-only。v0.5.19 历史附件保留。更新检测按当前系统选择下载地址，不自动替换运行中的程序。
+
+macOS 包使用 ad-hoc 签名，尚未经过 Apple Developer ID 签名与公证；首次打开如被阻止，请先核对发布来源和校验值，再到「系统设置 → 隐私与安全性」允许打开。Linux AppImage 如缺少 FUSE，可使用 `--appimage-extract-and-run`；DEB 通过包管理器安装依赖。
+
+三平台均支持配置读写与协议转换。Windows 提供运行客户端检测、自动重启和登录启动；macOS / Linux 当前请手动重启对应客户端并自行设置登录启动。Claude 桌面第三方模型配置仍取决于实际客户端对 Gateway 的支持，构建启动成功不等于所有客户端版本均经过实机验证。
 
 ## 从源码构建
 
 架构：**Tauri 2 + Rust + React + TypeScript + Vite + SQLite**，技术选型参考 [cc-switch](https://github.com/farion1231/cc-switch)。
 
-Windows 构建环境：Node.js 20 或更新版本、Corepack / pnpm 10.12.3、Rust 1.89 或更新版本、Visual Studio C++ Build Tools（含 Windows SDK）及 WebView2。
+通用构建环境：Node.js 20 或更新版本、Corepack / pnpm 10.12.3、Rust 1.89 或更新版本、Visual Studio C++ Build Tools（含 Windows SDK）及 WebView2（Windows）。Linux 安装 Tauri 的 WebKitGTK 4.1 / GTK 依赖，macOS 安装 Xcode Command Line Tools。
 
 ```powershell
 corepack enable
@@ -85,7 +94,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-msvc.ps1 -Actio
 
 安装包输出到 `src-tauri/target/release/bundle/nsis/`，主程序在 `src-tauri/target/release/uni-switch.exe`。预编译图标、模型基础指令和资源已包含在仓库中，常规构建无需图像生成服务或私有凭据。
 
-开发桌面应用使用 `corepack pnpm dev`；仅预览界面使用 `corepack pnpm dev:web`。浏览器预览不写入真实客户端配置。配置实现、协议兼容范围及隔离测试说明见 [docs](docs/qa-inventory.md)。正式发布流程见 [发布说明](docs/github-release.md)。
+开发桌面应用使用 `corepack pnpm dev`；仅预览界面使用 `corepack pnpm dev:web`。浏览器预览不写入真实客户端配置。配置实现、协议兼容范围及隔离测试说明见 [docs](docs/qa-inventory.md)。三平台原生构建工作流见 [.github/workflows/build-desktop.yml](.github/workflows/build-desktop.yml)，正式发布流程见 [发布说明](docs/github-release.md)。
 
 ## 数据与兼容性
 

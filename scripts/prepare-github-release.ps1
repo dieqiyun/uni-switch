@@ -1,6 +1,6 @@
 ﻿param(
     [ValidatePattern('^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100})?$')][string]$Repository,
-    [switch]$IncludeSource
+    [switch]$IncludeSource = $true
 )
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)

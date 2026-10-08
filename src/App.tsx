@@ -1548,7 +1548,7 @@ export default function App() {
           title="设置配置位置"
           description={
             target === "claude_desktop"
-              ? "填写包含 Claude 和 Claude-3p 文件夹的父目录。Windows 通常为 LocalAppData。"
+              ? "填写包含 Claude 和 Claude-3p 的父目录：Windows 通常是 LocalAppData；macOS 是 ~/Library/Application Support；Linux 是 ~/.config。"
               : "填写客户端实际使用的配置目录。使用默认目录时，无需修改。"
           }
           onClose={() => {

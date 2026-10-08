@@ -1,0 +1,90 @@
+name: Build desktop releases
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            runner: windows-2022
+            targets: x86_64-pc-windows-msvc
+            build_args: --bundles nsis
+          - platform: linux-x64
+            runner: ubuntu-22.04
+            targets: x86_64-unknown-linux-gnu
+            build_args: --bundles deb,appimage
+          - platform: macos-universal
+            runner: macos-15
+            targets: aarch64-apple-darwin,x86_64-apple-darwin
+            build_args: --target universal-apple-darwin --bundles app,dmg
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      CARGO_TERM_COLOR: always
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          targets: ${{ matrix.targets }}
+          components: clippy
+      - name: Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev xdg-utils xvfb
+      - name: Dependencies
+        run: |
+          corepack enable
+          corepack pnpm install --frozen-lockfile
+      - name: Verify source and documentation
+        run: |
+          python scripts/audit-source.py
+          corepack pnpm docs:check
+          corepack pnpm typecheck
+      - name: Frontend tests
+        if: runner.os == 'Linux'
+        run: corepack pnpm test
+      - name: Rust tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - name: Build native packages
+        run: corepack pnpm tauri build ${{ matrix.build_args }}
+      - name: Linux isolated launch
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python scripts/smoke-platform.py linux-x64
+      - name: macOS isolated launch and universal signature
+        if: runner.os == 'macOS'
+        run: python scripts/smoke-platform.py macos-universal
+      - name: Windows isolated launch
+        if: runner.os == 'Windows'
+        run: python scripts/smoke-platform.py windows-x64
+      - name: Collect versioned artifacts
+        run: python scripts/collect-platform-assets.py ${{ matrix.platform }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: uni-switch-${{ matrix.platform }}
+          path: release/ci/${{ matrix.platform }}/*
+          if-no-files-found: error
+          retention-days: 14

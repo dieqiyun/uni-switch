@@ -17,7 +17,7 @@ PATTERNS = {
     "private_key": rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
     "credential_url": rb"https?://[^\s/@:]+:[^\s/@]+@[^\s\"'`]+",
 }
-PRIVATE_PATH = r"(^|/)(\.git|\.qa|\.tools|node_modules|target|release|output|\.codex|\.claude)(/|$)|(^|/)\.env|\.(exe|db|sqlite3?|pem|pfx|p12)$"
+PRIVATE_PATH = r"(^|/)(\.git|\.qa|\.tools|node_modules|target|release|output|__pycache__|\.codex|\.claude)(/|$)|(^|/)\.env|\.(exe|db|sqlite3?|pem|pfx|p12|pyc)$"
 
 
 def audit():

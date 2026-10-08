@@ -2,17 +2,17 @@
 
 ## Release policy
 
-The maintainer explicitly requested binary-only releases starting with v0.5.19.
-Keep source changes and commits local. Do not push source commits or upload a
-source archive to GitHub unless the human maintainer explicitly changes this
-policy. Do not remove already published historical source or releases.
+The maintainer explicitly restored open-source, multi-platform publication
+starting with v0.5.20. Publish the complete reviewed source to GitHub under
+AGPL-3.0-only and provide Windows, Linux and macOS build artifacts plus an exact
+corresponding source archive, usage guide and checksums. Do not remove or replace
+historical releases. Release tags must identify the source used for the build.
 
-The prepare/publish scripts default to compiled Windows programs, usage guide
-and checksums. Do not pass `-IncludeSource` for the normal release workflow.
-A binary-only GitHub release tag reuses an existing public commit; the automatic
-GitHub Source code downloads are historical snapshots, not this binary's source.
-Preserve that distinction in release notes. Verify the remote main revision is
-unchanged after publication.
+Use `.github/workflows/build-desktop.yml` for native multi-platform builds.
+Only publish after all platform jobs and artifact checks succeed. Source audits
+must exclude private client data, API keys, caches and generated build output.
+The older Windows-only scripts default to source-inclusive releases; never
+silently substitute a historical public commit for a newer binary's source tag.
 
 ## Windows text handling
 

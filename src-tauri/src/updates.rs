@@ -138,6 +138,34 @@ fn trusted_url(value: &str, expected: &str) -> bool {
 }
 
 fn parse_release(body: &[u8], repository: &str, current: &str) -> Result<UpdateCheck> {
+    parse_release_for_platform(
+        body,
+        repository,
+        current,
+        std::env::consts::OS,
+        std::env::consts::ARCH,
+    )
+}
+
+fn installer_names(version: &str, os: &str, arch: &str) -> Vec<String> {
+    match (os, arch) {
+        ("windows", "x86_64") => vec![format!("uni-switch_{version}_x64-setup.exe")],
+        ("macos", "aarch64" | "x86_64") => vec![format!("uni-switch_{version}_universal.dmg")],
+        ("linux", "x86_64") => vec![
+            format!("uni-switch_{version}_amd64.deb"),
+            format!("uni-switch_{version}_x86_64.AppImage"),
+        ],
+        _ => vec![],
+    }
+}
+
+fn parse_release_for_platform(
+    body: &[u8],
+    repository: &str,
+    current: &str,
+    os: &str,
+    arch: &str,
+) -> Result<UpdateCheck> {
     let release: Release = serde_json::from_slice(body).map_err(|_| {
         AppError::new(
             "update_response",
@@ -162,15 +190,18 @@ fn parse_release(body: &[u8], repository: &str, current: &str) -> Result<UpdateC
             "发布页地址与更新仓库不一致，未打开下载地址",
         ));
     }
-    let installer = format!("uni-switch_{latest_version}_x64-setup.exe");
-    let download_url = release.assets.iter().find_map(|asset| {
-        let expected = format!(
-            "https://github.com/{repository}/releases/download/{}/{installer}",
-            release.tag_name
-        );
-        (asset.name == installer && trusted_url(&asset.browser_download_url, &expected))
-            .then(|| asset.browser_download_url.clone())
-    });
+    let download_url = installer_names(latest_version, os, arch)
+        .iter()
+        .find_map(|installer| {
+            release.assets.iter().find_map(|asset| {
+                let expected = format!(
+                    "https://github.com/{repository}/releases/download/{}/{installer}",
+                    release.tag_name
+                );
+                (asset.name == *installer && trusted_url(&asset.browser_download_url, &expected))
+                    .then(|| asset.browser_download_url.clone())
+            })
+        });
     Ok(UpdateCheck {
         current_version: current.into(),
         latest_version: latest_version.into(),
@@ -293,34 +324,11 @@ pub fn open_release(value: &str) -> Result<()> {
             .map_err(|_| AppError::new("update_open", "隔离测试的发布页记录未完成"))?;
         return Ok(());
     }
-    #[cfg(windows)]
-    {
-        use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
-        let operation: Vec<u16> = "open\0".encode_utf16().collect();
-        let target: Vec<u16> = value.encode_utf16().chain(Some(0)).collect();
-        let result = unsafe {
-            ShellExecuteW(
-                std::ptr::null_mut(),
-                operation.as_ptr(),
-                target.as_ptr(),
-                std::ptr::null(),
-                std::ptr::null(),
-                SW_SHOWNORMAL,
-            )
-        };
-        if result as isize <= 32 {
-            return Err(AppError::new(
-                "update_open",
-                "未能打开浏览器，请复制发布页地址后手动打开",
-            ));
-        }
-        Ok(())
-    }
-    #[cfg(not(windows))]
-    Err(AppError::new(
+    crate::browser::open(
+        value,
         "update_open",
-        "请复制发布页地址后在浏览器打开",
-    ))
+        "未能打开浏览器，请复制发布页地址后手动打开",
+    )
 }
 
 #[cfg(test)]

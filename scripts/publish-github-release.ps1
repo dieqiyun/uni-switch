@@ -1,7 +1,7 @@
 ﻿param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$')][string]$Repository,
     [switch]$ResumeDraft,
-    [switch]$IncludeSource,
+    [switch]$IncludeSource = $true,
     [string]$GhPath
 )
 $ErrorActionPreference = 'Stop'
@@ -29,7 +29,7 @@ if ($taskManifest.repository -ne $Repository -or $taskConfig.githubRepository -n
     throw '发布文件尚未绑定此仓库、许可或源码提交，请先准备发布文件'
 }
 $taskManifestIncludesSource = @($taskManifest.assets | Where-Object { $_.name -ceq "uni-switch_${taskVersion}_source.zip" }).Count -gt 0
-if ($taskManifestIncludesSource -ne [bool]$IncludeSource) { throw '默认只发布程序；包含源码的发布必须明确传入-IncludeSource，且与准备清单一致' }
+if ($taskManifestIncludesSource -ne [bool]$IncludeSource) { throw '发布模式与准备清单不一致，当前默认包含对应源码' }
 if ($taskManifest.PSObject.Properties.Name -contains 'includeSource' -and [bool]$taskManifest.includeSource -ne [bool]$IncludeSource) { throw '清单源码发布模式不一致' }
 $taskAllowlist = @("uni-switch_${taskVersion}_x64-setup.exe","uni-switch_${taskVersion}_x64.exe","uni-switch_${taskVersion}_x64-portable.zip",'README-zh-CN.md','SHA256SUMS.txt')
 if ($IncludeSource) { $taskAllowlist += "uni-switch_${taskVersion}_source.zip" }

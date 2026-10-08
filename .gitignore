@@ -22,3 +22,7 @@
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Python build/release helper caches
+__pycache__/
+*.py[cod]

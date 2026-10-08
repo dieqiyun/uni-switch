@@ -5,8 +5,7 @@ fn release(tag: &str) -> Vec<u8> {
     serde_json::to_vec(&json!({
         "tag_name":tag,"html_url":format!("https://github.com/example/uni-switch/releases/tag/{tag}"),
         "draft":false,"prerelease":false,"body":"更新说明","published_at":"2026-10-07T00:00:00Z",
-        "assets":[{"name":"uni-switch_0.5.17_x64-setup.exe",
-          "browser_download_url":format!("https://github.com/example/uni-switch/releases/download/{tag}/uni-switch_0.5.17_x64-setup.exe")}]
+        "assets": (["uni-switch_0.5.17_x64-setup.exe", "uni-switch_0.5.17_universal.dmg", "uni-switch_0.5.17_amd64.deb", "uni-switch_0.5.17_x86_64.AppImage"].iter().map(|name| json!({"name":name,"browser_download_url":format!("https://github.com/example/uni-switch/releases/download/{tag}/{name}")})).collect::<Vec<_>>())
     })).unwrap()
 }
 
@@ -91,10 +90,12 @@ fn download_matches_version_and_notes_are_bounded() {
     let mut value: serde_json::Value = serde_json::from_slice(&release("v0.5.17")).unwrap();
     value["assets"][0]["browser_download_url"] = json!("https://evil.test/installer.exe");
     value["body"] = json!("中".repeat(7000));
-    let result = parse_release(
+    let result = parse_release_for_platform(
         &serde_json::to_vec(&value).unwrap(),
         "example/uni-switch",
         "0.5.16",
+        "windows",
+        "x86_64",
     )
     .unwrap();
     assert!(result.download_url.is_none());
@@ -146,4 +147,50 @@ async fn request_has_no_supplier_auth_and_reports_github_errors() {
         "update_rate_limit"
     );
     task.abort();
+}
+
+#[test]
+fn installers_match_the_running_platform_and_architecture() {
+    for (os, arch, suffix) in [
+        ("windows", "x86_64", "x64-setup.exe"),
+        ("macos", "x86_64", "universal.dmg"),
+        ("macos", "aarch64", "universal.dmg"),
+        ("linux", "x86_64", "amd64.deb"),
+    ] {
+        let result = parse_release_for_platform(
+            &release("v0.5.17"),
+            "example/uni-switch",
+            "0.5.16",
+            os,
+            arch,
+        )
+        .unwrap();
+        assert!(result.download_url.unwrap().ends_with(suffix));
+    }
+    assert!(parse_release_for_platform(
+        &release("v0.5.17"),
+        "example/uni-switch",
+        "0.5.16",
+        "linux",
+        "aarch64"
+    )
+    .unwrap()
+    .download_url
+    .is_none());
+    let mut value: serde_json::Value = serde_json::from_slice(&release("v0.5.17")).unwrap();
+    value["assets"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|a| !a["name"].as_str().unwrap().ends_with(".deb"));
+    assert!(parse_release_for_platform(
+        &serde_json::to_vec(&value).unwrap(),
+        "example/uni-switch",
+        "0.5.16",
+        "linux",
+        "x86_64"
+    )
+    .unwrap()
+    .download_url
+    .unwrap()
+    .ends_with(".AppImage"));
 }
