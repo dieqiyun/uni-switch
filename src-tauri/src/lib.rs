@@ -6,6 +6,8 @@ mod browser;
 pub mod discovery;
 pub mod error;
 pub mod model_capabilities;
+pub mod model_registry;
+pub mod model_verification;
 pub mod project_links;
 pub mod restart;
 pub mod service_website;
@@ -208,6 +210,39 @@ mod desktop {
     ) -> Result<ModelSyncResult> {
         let (base_url, key) = locked(&state)?.connection(input)?;
         crate::supplier::discover_connection(&base_url, &key, protocol, auth_mode.as_deref()).await
+    }
+    #[tauri::command]
+    fn get_model_registry(state: State<AppState>) -> Result<crate::model_registry::Status> {
+        Ok(crate::model_registry::status(
+            &locked(&state)?.data_directory,
+        ))
+    }
+    #[tauri::command]
+    async fn update_model_registry(
+        state: State<'_, AppState>,
+    ) -> Result<crate::model_registry::Status> {
+        let directory = locked(&state)?.data_directory.clone();
+        crate::model_registry::update(&directory).await
+    }
+    #[tauri::command]
+    async fn verify_model_connection(
+        state: State<'_, AppState>,
+        input: ConnectionInput,
+        model: String,
+        auth_mode: String,
+        endpoint: crate::model_verification::Endpoint,
+        feature: crate::model_verification::Feature,
+        consent: bool,
+    ) -> Result<crate::model_verification::Observation> {
+        crate::model_verification::require_consent(consent)?;
+        let (base, key) = locked(&state)?.connection(input)?;
+        let directory = locked(&state)?.data_directory.clone();
+        let result = crate::model_verification::verify(
+            &base, &key, &auth_mode, &model, endpoint, feature, consent,
+        )
+        .await?;
+        crate::model_verification::save(&directory, &base, &result)?;
+        Ok(result)
     }
     #[tauri::command]
     fn delete_provider(state: State<AppState>, provider_id: String) -> Result<()> {
@@ -442,7 +477,9 @@ mod desktop {
                     Some(directory) => std::path::PathBuf::from(directory),
                     None => app.path().app_local_data_dir()?,
                 };
+                crate::model_registry::initialize(&directory);
                 let mut store = Store::open(directory.clone())?;
+                tauri::async_runtime::spawn(crate::model_registry::auto_update(directory.clone()));
                 let (route, listener) = crate::bridge::Route::start(&directory)?;
                 store.set_bridge_route(route.clone());
                 let state = Arc::new(Mutex::new(store));
@@ -529,6 +566,9 @@ mod desktop {
                 save_provider,
                 commit_provider,
                 discover_provider_connection,
+                get_model_registry,
+                update_model_registry,
+                verify_model_connection,
                 delete_provider,
                 apply_provider,
                 prepare_apply_overwrite,

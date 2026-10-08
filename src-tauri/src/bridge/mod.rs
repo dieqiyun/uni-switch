@@ -309,8 +309,19 @@ async fn responses(
     let provider = authorize(&runtime, &headers, &id)?;
     validate_model(&provider, &body)?;
     let streaming = body["stream"] == true;
-    let converted =
-        convert::request(&body, streaming).map_err(|e| error(StatusCode::BAD_REQUEST, e))?;
+    let configured = provider
+        .summary
+        .codex_options
+        .models
+        .iter()
+        .find(|m| Some(m.id.as_str()) == body["model"].as_str())
+        .cloned()
+        .unwrap_or_else(|| crate::types::ProviderModel {
+            id: body["model"].as_str().unwrap_or("").into(),
+            ..Default::default()
+        });
+    let converted = convert::request_with_model(&body, streaming, &configured)
+        .map_err(|e| error(StatusCode::BAD_REQUEST, e))?;
     let response = upstream(&runtime, &provider, &converted.body).await?;
     if !streaming {
         let data = read_json(response).await?;

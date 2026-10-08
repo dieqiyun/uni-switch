@@ -1,6 +1,62 @@
 use super::*;
 
 #[test]
+fn deepseek_chat_maps_effort_and_replays_reasoning_on_tool_turns() {
+    let model = crate::types::ProviderModel {
+        id: "deepseek-flash".into(),
+        ..Default::default()
+    };
+    let reply = response(&json!({"choices":[{"message":{"reasoning_content":"Plan","tool_calls":[{"id":"call1","function":{"name":"Read","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}), "deepseek-flash", true).unwrap();
+    let source = json!({"messages":[{"role":"assistant","content":reply["content"]},{"role":"user","content":[{"type":"tool_result","tool_use_id":"call1","content":"Done"}]}],"thinking":{"type":"adaptive"},"output_config":{"effort":"medium"},"max_tokens":256,"temperature":0.8});
+    let converted = request_with_model(&source, "deepseek-flash", false, &model).unwrap();
+    assert_eq!(converted["reasoning"], json!({"effort":"high"}));
+    assert!(converted.get("include").is_none());
+    assert!(converted.get("temperature").is_none());
+    let chat = chat_request_with_model(&converted, &model).unwrap();
+    assert_eq!(chat["thinking"]["type"], "enabled");
+    assert_eq!(chat["reasoning_effort"], "high");
+    assert_eq!(chat["messages"][0]["reasoning_content"], "Plan");
+    assert_eq!(chat["messages"][0]["tool_calls"][0]["id"], "call1");
+    let disabled = request_with_model(
+        &json!({"messages":[{"role":"user","content":"Hi"}],"max_tokens":256}),
+        "deepseek-flash",
+        false,
+        &model,
+    )
+    .unwrap();
+    let disabled = chat_request_with_model(&disabled, &model).unwrap();
+    assert_eq!(disabled["thinking"]["type"], "disabled");
+    assert!(disabled.get("reasoning_effort").is_none());
+    let mut explicit = model;
+    explicit.profile_overrides.reasoning_efforts = Some(vec!["max".into()]);
+    let request = request_with_model(&source, "deepseek-flash", false, &explicit).unwrap();
+    assert_eq!(request["reasoning"]["effort"], "max");
+}
+
+#[test]
+fn chat_thinking_stream_emits_replayable_signature() {
+    let mut translator = Translator::new("deepseek-flash");
+    translator
+        .accept_chat(
+            json!({"choices":[{"delta":{"reasoning_content":"Plan"},"finish_reason":"stop"}]}),
+        )
+        .unwrap();
+    let events = translator.finish_chat().unwrap();
+    let signed = events
+        .iter()
+        .find(|event| event["delta"]["type"] == "signature_delta")
+        .unwrap();
+    assert!(signed["delta"]["signature"]
+        .as_str()
+        .unwrap()
+        .starts_with(REASONING_PREFIX));
+    assert_eq!(
+        translator.content[0]["signature"],
+        signed["delta"]["signature"]
+    );
+}
+
+#[test]
 fn converts_system_images_tools_errors_and_signed_reasoning() {
     let reasoning = json!({"type":"reasoning","id":"rs_qa","summary":[{"type":"summary_text","text":"Plan"}],"encrypted_content":"encrypted_qa"});
     let source = json!({"model":"gpt-5.4","system":[{"type":"text","text":"Code carefully"}],"thinking":{"type":"adaptive"},"output_config":{"effort":"max"},"max_tokens":32000,

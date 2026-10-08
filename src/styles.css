@@ -1959,6 +1959,36 @@ summary {
   order: 2;
   font-size: 11px;
 }
+.model-profile-details {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.model-profile-details summary {
+  cursor: pointer;
+}
+.model-profile-content {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+}
+.model-profile-content p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.model-profile-content select {
+  max-width: 100%;
+  padding: 6px;
+}
+.model-profile-content fieldset {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 10px;
+}
+.model-profile-content fieldset .button {
+  justify-self: start;
+}
 .model-capability {
   display: inline-flex;
   align-items: center;

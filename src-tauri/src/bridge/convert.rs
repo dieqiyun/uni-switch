@@ -148,6 +148,22 @@ fn tools(request: &Value) -> ConversionResult<(Vec<Value>, Vec<Tool>)> {
 }
 
 pub fn request(request: &Value, stream: bool) -> ConversionResult<Converted> {
+    let model = crate::types::ProviderModel {
+        id: request["model"].as_str().unwrap_or("").into(),
+        ..Default::default()
+    };
+    request_with_model(request, stream, &model)
+}
+
+pub fn request_with_model(
+    request: &Value,
+    stream: bool,
+    configured: &crate::types::ProviderModel,
+) -> ConversionResult<Converted> {
+    let profile = crate::model_capabilities::profile(configured);
+    if profile.endpoints.messages == Some(false) {
+        return Err("当前模型未提供 Claude Messages 接口，请检查模型接口声明".into());
+    }
     if request
         .get("previous_response_id")
         .is_some_and(|v| !v.is_null())
@@ -250,11 +266,14 @@ pub fn request(request: &Value, stream: bool) -> ConversionResult<Converted> {
     let max_tokens = request["max_output_tokens"]
         .as_u64()
         .unwrap_or(8192)
-        .clamp(1, 128_000);
+        .clamp(1, profile.max_output_tokens.unwrap_or(128_000) as u64);
     let mut body =
         json!({"model":model,"messages":messages,"max_tokens":max_tokens,"stream":stream});
     if !system.is_empty() {
         body["system"] = json!(system);
+    }
+    if !schemas.is_empty() && profile.tool_calls == Some(false) {
+        return Err("当前接入路径明确不支持工具调用".into());
     }
     if !schemas.is_empty() {
         body["tools"] = json!(schemas);
@@ -283,6 +302,13 @@ pub fn request(request: &Value, stream: bool) -> ConversionResult<Converted> {
         }
         body["tool_choice"]["disable_parallel_tool_use"] = json!(true);
     }
+    if profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek)
+        && request
+            .pointer("/reasoning/effort")
+            .is_some_and(|effort| effort == "none")
+    {
+        body["thinking"] = json!({"type":"disabled"});
+    }
     if let Some(effort) = request
         .pointer("/reasoning/effort")
         .and_then(Value::as_str)
@@ -290,21 +316,26 @@ pub fn request(request: &Value, stream: bool) -> ConversionResult<Converted> {
     {
         // Forced tool selection and extended thinking cannot be combined in Messages.
         let forced = matches!(body["tool_choice"]["type"].as_str(), Some("tool" | "any"));
-        if !forced && max_tokens > 1024 {
-            let adaptive = model.contains("4-6")
-                || model.contains("4.6")
-                || model.contains("4-7")
-                || model.contains("4.7");
-            if adaptive {
+        if !forced
+            && (max_tokens > 1024
+                || matches!(
+                    profile.thinking_format,
+                    Some(
+                        crate::types::ThinkingFormat::Adaptive
+                            | crate::types::ThinkingFormat::Deepseek
+                    )
+                ))
+        {
+            let format = profile.thinking_format;
+            if format == Some(crate::types::ThinkingFormat::Adaptive) {
                 body["thinking"] = json!({"type":"adaptive"});
-                let effort = match effort {
-                    "minimal" | "low" => "low",
-                    "medium" => "medium",
-                    "max" | "ultra" if model.contains("opus") => "max",
-                    _ => "high",
-                };
+                let effort = crate::model_capabilities::mapped_effort(&profile, effort)?;
                 body["output_config"] = json!({"effort":effort});
-            } else {
+            } else if format == Some(crate::types::ThinkingFormat::Deepseek) {
+                body["thinking"] = json!({"type":"enabled"});
+                body["output_config"] =
+                    json!({"effort":crate::model_capabilities::mapped_effort(&profile, effort)?});
+            } else if format == Some(crate::types::ThinkingFormat::Budget) {
                 let budget = match effort {
                     "minimal" | "low" => 1024,
                     "medium" => 2048,
@@ -313,10 +344,14 @@ pub fn request(request: &Value, stream: bool) -> ConversionResult<Converted> {
                 };
                 body["thinking"] =
                     json!({"type":"enabled","budget_tokens":budget.min(max_tokens - 1)});
+            } else if format != Some(crate::types::ThinkingFormat::None) {
+                return Err(
+                    "未确认此模型的 Claude 思考参数，请同步元数据或在模型配置中指定思考模式".into(),
+                );
             }
         }
     }
-    if body.get("thinking").is_none() {
+    if body.get("thinking").is_none() && profile.sampling_parameters != Some(false) {
         if let Some(value) = request.get("temperature") {
             body["temperature"] = value.clone();
         }

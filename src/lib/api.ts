@@ -24,9 +24,13 @@ import type {
   UpdateInstallResult,
   ProtocolConversionResult,
   ApplyOverwriteConfirmation,
+  ModelRegistryStatus,
+  ModelRegistry,
+  ModelVerification,
 } from "../types";
 import { APP_VERSION } from "./appVersion";
 import releaseConfig from "../../release-config.json";
+import registry from "../content/model-capabilities.json";
 import {
   needsProtocolConversion,
   protocolConversionEnabled,
@@ -74,6 +78,39 @@ export function errorMessage(error: unknown): string {
 }
 
 export const api = {
+  modelRegistry: async (): Promise<ModelRegistryStatus> =>
+    desktopRuntime
+      ? invoke("get_model_registry")
+      : {
+          registry: registry as ModelRegistry,
+          checkedAt: null,
+          updated: false,
+          updateAvailable: false,
+          message: "浏览器预览使用内置资料",
+        },
+  updateModelRegistry: async (): Promise<ModelRegistryStatus> => {
+    if (!desktopRuntime) throw new Error("请在桌面应用中更新模型资料。");
+    return invoke("update_model_registry");
+  },
+  verifyModel: async (
+    input: ConnectionInput,
+    model: string,
+    authMode: Provider["authMode"],
+    endpoint: ModelVerification["endpoint"],
+    feature: ModelVerification["feature"],
+    consent: boolean,
+  ): Promise<ModelVerification> => {
+    if (!desktopRuntime) throw new Error("浏览器预览不发送推理验证请求。");
+    if (!consent) throw new Error("请先确认验证可能计费。");
+    return invoke("verify_model_connection", {
+      input,
+      model,
+      authMode,
+      endpoint,
+      feature,
+      consent,
+    });
+  },
   openProjectPage: async (
     page: "source" | "license" | "tutorial",
   ): Promise<void> => {

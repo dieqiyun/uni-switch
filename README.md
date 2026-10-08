@@ -2,13 +2,13 @@
 
 简洁的 Codex / Claude Code API 配置工具。填写 **API 地址、API Key**，点击 **添加并使用**；日常切换只需一次点击。
 
-**当前版本：0.5.21 · Windows / Linux / macOS · AGPL-3.0-only**
+**当前版本：0.5.22 · Windows / Linux / macOS · AGPL-3.0-only**
 
 [下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [参与开发](CONTRIBUTING.md) · [开源许可](LICENSE)
 
 ![uni-switch 模型配置](docs/screenshots/model-catalog-pruned-local.png)
 
-本版新增每次选择 GitHub 手动下载或远程更新，并在切换后明确提醒新开对话；修复重新应用供应商导致有效思考强度丢失和默认模型状态误导的问题。外部配置冲突时可确认后备份并覆盖。详见 [更新记录](CHANGELOG.md)、[远程更新说明](docs/remote-update.md) 和 [模型请求排查](docs/model-routing-diagnosis.md)。
+本版修复 Claude 原生接入地址重复 `/v1` 导致模型不可用的问题，改进模型目录的协议识别，并增加新模型资料、思考参数适配和需确认的能力验证。已使用旧地址的 Claude 配置请点击「更新配置」后重启客户端并新开对话。详见 [更新记录](CHANGELOG.md)、[Claude 接入地址排查](docs/claude-native-base-url.md) 和 [模型能力说明](docs/model-capabilities.md)。
 
 ## 供应商赞助名单
 
@@ -33,6 +33,7 @@
 
 - 管理 Codex 桌面端 / CLI、Claude Code 桌面端及 Claude CLI 的 API 配置，同一供应商可在客户端之间复用。
 - 自动检测协议、认证方式、上游模型和余额，无需选择站点类型或手填模型 ID。
+- 模型详情展示上游、内置和手动能力资料，可调整思考模式；仅在明确确认后发送受限合成请求验证能力。签名资料更新基础设施已加入，当前生产签名源尚未配置。
 - 默认启用全部适用模型。每个模型可设置上下文长度，默认 256k。
 - 同步成功后移除上游已下架的模型，并为失效默认模型选择有效替代项；同步失败保留原列表。
 - 双向协议转换：Codex 使用 Claude Messages 模型；Claude Code 使用 OpenAI 模型。
@@ -61,14 +62,14 @@
 
 | 系统 / 文件 | 用途 |
 | --- | --- |
-| Windows x64：`uni-switch_0.5.21_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
-| Windows x64：`uni-switch_0.5.21_x64-portable.zip` | 便携程序、说明和许可证 |
-| Windows x64：`uni-switch_0.5.21_x64.exe` | 独立程序，需要系统已有 WebView2 |
-| Linux x64：`uni-switch_0.5.21_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
-| Linux x64：`uni-switch_0.5.21_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
-| macOS：`uni-switch_0.5.21_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
-| macOS：`uni-switch_0.5.21_universal.app.tar.gz` | 通用 app 归档 |
-| `uni-switch_0.5.21_source.zip` | 与三平台程序对应的完整源码和构建文件 |
+| Windows x64：`uni-switch_0.5.22_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
+| Windows x64：`uni-switch_0.5.22_x64-portable.zip` | 便携程序、说明和许可证 |
+| Windows x64：`uni-switch_0.5.22_x64.exe` | 独立程序，需要系统已有 WebView2 |
+| Linux x64：`uni-switch_0.5.22_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
+| Linux x64：`uni-switch_0.5.22_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
+| macOS：`uni-switch_0.5.22_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
+| macOS：`uni-switch_0.5.22_universal.app.tar.gz` | 通用 app 归档 |
+| `uni-switch_0.5.22_source.zip` | 与三平台程序对应的完整源码和构建文件 |
 | `README-zh-CN.md` / `SHA256SUMS.txt` | 完整教程 / 附件校验值 |
 
 继续提供完整源码及三平台程序，许可保持 AGPL-3.0-only，历史版本全部保留。每次更新选择「GitHub 手动下载」或「远程更新」，检测不会自动下载安装。远程更新下载并校验本系统安装包，仍需点击「安装更新」：Windows 启动向导并退出应用，macOS 打开 DMG 后拖入安装，Linux 使用系统安装程序或替换 AppImage。详情见 [远程更新说明](docs/remote-update.md)。

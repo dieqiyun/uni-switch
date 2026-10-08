@@ -137,9 +137,23 @@ pub struct ProviderModel {
     pub capabilities: ModelCapabilities,
     #[serde(default, skip_serializing_if = "ModelCapabilities::is_empty")]
     pub capability_overrides: ModelCapabilities,
+    #[serde(default, skip_serializing_if = "ModelProfile::is_empty")]
+    pub profile: ModelProfile,
+    #[serde(default, skip_serializing_if = "ModelProfile::is_empty")]
+    pub profile_overrides: ModelProfile,
+    #[serde(default, skip_serializing_if = "ModelProfile::is_empty")]
+    pub official_profile: ModelProfile,
+    #[serde(default, skip_serializing_if = "ModelCapabilities::is_empty")]
+    pub official_capabilities: ModelCapabilities,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub official_source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata_updated_at: Option<u64>,
 }
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ModelCapabilities {
     #[serde(default)]
     pub image_input: Option<bool>,
@@ -150,6 +164,44 @@ impl ModelCapabilities {
     pub fn is_empty(&self) -> bool {
         self.image_input.is_none() && self.parallel_tool_calls.is_none()
     }
+}
+
+/// Observations are kept separately from user choices and official fallback.
+/// Missing fields mean unknown; empty reasoning levels explicitly mean none.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+pub struct ModelProfile {
+    pub context_window: Option<i64>,
+    pub max_input_tokens: Option<i64>,
+    pub max_output_tokens: Option<i64>,
+    pub reasoning_efforts: Option<Vec<String>>,
+    pub default_effort: Option<String>,
+    pub thinking_format: Option<ThinkingFormat>,
+    pub sampling_parameters: Option<bool>,
+    pub tool_calls: Option<bool>,
+    pub structured_output: Option<bool>,
+    pub endpoints: EndpointSupport,
+}
+impl ModelProfile {
+    pub fn is_empty(&self) -> bool {
+        self == &Self::default()
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ThinkingFormat {
+    Adaptive,
+    Budget,
+    Deepseek,
+    Openai,
+    None,
+}
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+pub struct EndpointSupport {
+    pub messages: Option<bool>,
+    pub chat_completions: Option<bool>,
+    pub responses: Option<bool>,
 }
 
 fn selected_by_default() -> bool {
@@ -537,6 +589,9 @@ pub fn validate(input: &mut ProviderInput) -> Result<()> {
     }
     let mut ids = std::collections::HashSet::new();
     for model in &mut options.models {
+        crate::model_registry::validate_profile(&model.profile)?;
+        crate::model_registry::validate_profile(&model.profile_overrides)?;
+        crate::model_registry::validate_profile(&model.official_profile)?;
         model.id = model.id.trim().to_owned();
         if model.id.is_empty()
             || model.id.len() > 256

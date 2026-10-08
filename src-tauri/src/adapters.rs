@@ -436,7 +436,7 @@ pub fn plan(
                     set_json(
                         &mut doc,
                         "env.ANTHROPIC_BASE_URL",
-                        Some(json!(provider.summary.base_url)),
+                        Some(json!(claude_client_base_url(&provider.summary.base_url))),
                     )?;
                     let auth = if provider.summary.auth_mode == "x-api-key" {
                         "env.ANTHROPIC_API_KEY"
@@ -496,7 +496,8 @@ pub fn plan(
                         remove_json(&mut doc, key)?;
                     }
                     doc["inferenceProvider"] = json!("gateway");
-                    doc["inferenceGatewayBaseUrl"] = json!(provider.summary.base_url);
+                    doc["inferenceGatewayBaseUrl"] =
+                        json!(claude_client_base_url(&provider.summary.base_url));
                     doc["inferenceGatewayApiKey"] = json!(provider.api_key);
                     doc["inferenceGatewayAuthScheme"] = json!(provider.summary.auth_mode);
                     doc["inferenceCredentialKind"] = json!("static");
@@ -863,6 +864,29 @@ pub fn reasoning_repair_files(
         });
     }
     Ok(files)
+}
+
+fn claude_client_base_url(base_url: &str) -> &str {
+    let base = base_url.trim_end_matches('/');
+    base.strip_suffix("/v1").unwrap_or(base)
+}
+
+pub fn claude_client_base_needs_update(files: &[ManagedFile]) -> Result<bool> {
+    for file in files {
+        let key = ["env.ANTHROPIC_BASE_URL", "inferenceGatewayBaseUrl"]
+            .into_iter()
+            .find(|key| file.keys.iter().any(|managed| managed == key));
+        if let Some(key) = key {
+            let doc = parse_json(file.expected.as_deref(), &file.path)?;
+            if get_json(&doc, key)
+                .and_then(Value::as_str)
+                .is_some_and(|base| claude_client_base_url(base) != base)
+            {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn desktop_model_valid(model: &str) -> bool {

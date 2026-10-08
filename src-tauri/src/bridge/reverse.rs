@@ -78,6 +78,24 @@ fn text_blocks(value: &Value, assistant: bool) -> ConversionResult<Vec<Value>> {
 }
 
 pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<Value> {
+    request_with_model(
+        body,
+        model,
+        streaming,
+        &crate::types::ProviderModel {
+            id: model.into(),
+            ..Default::default()
+        },
+    )
+}
+
+pub fn request_with_model(
+    body: &Value,
+    model: &str,
+    streaming: bool,
+    configured: &crate::types::ProviderModel,
+) -> ConversionResult<Value> {
+    let profile = crate::model_capabilities::profile(configured);
     let mut input = Vec::new();
     let mut system = Vec::new();
     if let Some(value) = body.get("system") {
@@ -147,8 +165,9 @@ pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<V
         return Err("请求没有可发送的消息".into());
     }
     let max_tokens = body["max_tokens"].as_u64().unwrap_or(8192);
-    if max_tokens == 0 || max_tokens > 128_000 {
-        return Err("max_tokens 必须在 1–128000 之间".into());
+    let maximum = profile.max_output_tokens.unwrap_or(128_000) as u64;
+    if max_tokens == 0 || max_tokens > maximum {
+        return Err(format!("max_tokens 必须在 1–{maximum} 之间"));
     }
     let mut result = json!({"model":model,"input":input,"max_output_tokens":max_tokens,"stream":streaming,"store":false,"parallel_tool_calls":false});
     if !system.is_empty() {
@@ -171,6 +190,9 @@ pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<V
         }
     }
     if !tools.is_empty() {
+        if profile.tool_calls == Some(false) {
+            return Err("当前接入路径明确不支持工具调用".into());
+        }
         result["tools"] = json!(tools);
     }
     if let Some(choice) = body.get("tool_choice") {
@@ -189,7 +211,14 @@ pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<V
         body["thinking"]["type"].as_str(),
         Some("enabled" | "adaptive")
     );
-    if thinking && reasoning_model(model) {
+    if thinking
+        && profile.thinking_format != Some(crate::types::ThinkingFormat::None)
+        && (reasoning_model(model)
+            || matches!(
+                profile.thinking_format,
+                Some(crate::types::ThinkingFormat::Openai | crate::types::ThinkingFormat::Deepseek)
+            ))
+    {
         let effort = body
             .pointer("/output_config/effort")
             .and_then(Value::as_str)
@@ -200,14 +229,30 @@ pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<V
                     _ => "high",
                 },
             );
-        let effort = match effort {
-            "low" | "medium" => effort,
-            _ => "high",
+        let effort = if profile.reasoning_efforts.is_none()
+            && profile.thinking_format != Some(crate::types::ThinkingFormat::Deepseek)
+        {
+            match effort {
+                "minimal" | "low" => "low".into(),
+                "medium" => "medium".into(),
+                _ => "high".into(),
+            }
+        } else {
+            crate::model_capabilities::mapped_effort(&profile, effort)?
         };
-        result["reasoning"] = json!({"effort":effort,"summary":"auto"});
-        result["include"] = json!(["reasoning.encrypted_content"]);
+        if profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek) {
+            result["reasoning"] = json!({"effort":effort});
+        } else {
+            result["reasoning"] = json!({"effort":effort,"summary":"auto"});
+            result["include"] = json!(["reasoning.encrypted_content"]);
+        }
+    } else if profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek) {
+        result["reasoning"] = json!({"effort":"none"});
     }
-    if !reasoning_model(model) {
+    if !reasoning_model(model)
+        && profile.sampling_parameters != Some(false)
+        && !(thinking && profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek))
+    {
         for field in ["temperature", "top_p"] {
             if let Some(value) = body.get(field) {
                 result[field] = value.clone();
@@ -218,13 +263,31 @@ pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<V
         .pointer("/output_config/format")
         .filter(|f| f["type"] == "json_schema")
     {
+        if profile.structured_output == Some(false) {
+            return Err("当前接入路径明确不支持结构化输出".into());
+        }
         result["text"] = json!({"format":{"type":"json_schema","name":"claude_output","schema":schema["schema"],"strict":true}});
     }
     Ok(result)
 }
 
 pub fn chat_request(responses: &Value) -> ConversionResult<Value> {
+    chat_request_with_model(
+        responses,
+        &crate::types::ProviderModel {
+            id: responses["model"].as_str().unwrap_or("").into(),
+            ..Default::default()
+        },
+    )
+}
+pub fn chat_request_with_model(
+    responses: &Value,
+    configured: &crate::types::ProviderModel,
+) -> ConversionResult<Value> {
+    let profile = crate::model_capabilities::profile(configured);
+    let deepseek = profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek);
     let mut messages = Vec::new();
+    let mut pending_reasoning = String::new();
     if let Some(s) = responses["instructions"].as_str() {
         messages.push(json!({"role":"system","content":s}));
     }
@@ -246,7 +309,11 @@ pub fn chat_request(responses: &Value) -> ConversionResult<Value> {
                         _ => return Err("Chat Completions 不支持此消息内容".into()),
                     }
                 }
-                messages.push(json!({"role":item["role"],"content":parts}));
+                let mut message = json!({"role":item["role"],"content":parts});
+                if deepseek && item["role"] == "assistant" && !pending_reasoning.is_empty() {
+                    message["reasoning_content"] = json!(std::mem::take(&mut pending_reasoning));
+                }
+                messages.push(message);
             }
             "function_call" => {
                 let tool = json!({"id":item["call_id"],"type":"function","function":{"name":item["name"],"arguments":item["arguments"]}});
@@ -254,9 +321,18 @@ pub fn chat_request(responses: &Value) -> ConversionResult<Value> {
                     .last_mut()
                     .filter(|m| m["role"] == "assistant" && m.get("tool_calls").is_some())
                 {
+                    if deepseek && !pending_reasoning.is_empty() {
+                        last["reasoning_content"] = json!(std::mem::take(&mut pending_reasoning));
+                    }
                     last["tool_calls"].as_array_mut().unwrap().push(tool);
                 } else {
-                    messages.push(json!({"role":"assistant","content":null,"tool_calls":[tool]}));
+                    let mut message =
+                        json!({"role":"assistant","content":null,"tool_calls":[tool]});
+                    if deepseek && !pending_reasoning.is_empty() {
+                        message["reasoning_content"] =
+                            json!(std::mem::take(&mut pending_reasoning));
+                    }
+                    messages.push(message);
                 }
             }
             "function_call_output" => {
@@ -270,6 +346,15 @@ pub fn chat_request(responses: &Value) -> ConversionResult<Value> {
                 }
                 messages
                     .push(json!({"role":"tool","tool_call_id":item["call_id"],"content":parts}));
+            }
+            "reasoning" if deepseek => {
+                if let Some(parts) = item["summary"].as_array() {
+                    for part in parts {
+                        if let Some(text) = part["text"].as_str() {
+                            pending_reasoning.push_str(text);
+                        }
+                    }
+                }
             }
             "reasoning" => {}
             _ => return Err("Chat Completions 暂不支持此 input 类型".into()),
@@ -298,7 +383,12 @@ pub fn chat_request(responses: &Value) -> ConversionResult<Value> {
         };
     }
     if let Some(effort) = responses.pointer("/reasoning/effort") {
-        result["reasoning_effort"] = effort.clone();
+        if !deepseek || effort != "none" {
+            result["reasoning_effort"] = effort.clone();
+        }
+    }
+    if deepseek {
+        result["thinking"] = json!({"type":if responses.pointer("/reasoning/effort").is_some_and(|effort| effort != "none") {"enabled"} else {"disabled"}});
     }
     for field in ["temperature", "top_p"] {
         if let Some(v) = responses.get(field) {
@@ -352,7 +442,7 @@ pub fn response(body: &Value, model: &str, chat: bool) -> ConversionResult<Value
             .as_str()
             .filter(|s| !s.is_empty())
         {
-            content.push(json!({"type":"thinking","thinking":t,"signature":""}));
+            content.push(json!({"type":"thinking","thinking":t,"signature":signature(&json!({"type":"reasoning","summary":[{"type":"summary_text","text":t}]}))}));
         }
         if let Some(t) = message["content"].as_str().filter(|s| !s.is_empty()) {
             content.push(json!({"type":"text","text":t}));
@@ -533,7 +623,15 @@ impl Translator {
                         .map_err(|_| "OpenAI 返回了无效工具 JSON")?
                 }
                 Some("text") => block.content["text"] = json!(block.raw),
-                Some("thinking") => block.content["thinking"] = json!(block.raw),
+                Some("thinking") => {
+                    block.content["thinking"] = json!(block.raw);
+                    if key == "chat:thinking" {
+                        block.content["signature"] = json!(signature(
+                            &json!({"type":"reasoning","summary":[{"type":"summary_text","text":block.raw}]})
+                        ));
+                        events.push(json!({"type":"content_block_delta","index":block.index,"delta":{"type":"signature_delta","signature":block.content["signature"]}}));
+                    }
+                }
                 _ => {}
             }
             block.closed = true;

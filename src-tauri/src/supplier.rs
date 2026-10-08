@@ -171,14 +171,18 @@ pub fn parse_models(value: &Value) -> Result<Vec<ProviderModel>> {
                     .collect()
             })
             .unwrap_or_default();
-        models.push(ProviderModel {
+        let mut model = ProviderModel {
             id: id.to_owned(),
             context_window,
             reasoning_efforts,
             capabilities: crate::model_capabilities::from_upstream(item),
             enabled: true,
+            profile: crate::model_capabilities::profile_from_upstream(item),
+            metadata_updated_at: Some(now()),
             ..Default::default()
-        });
+        };
+        crate::model_capabilities::enrich(&mut model);
+        models.push(model);
     }
     if models.is_empty() {
         return Err(AppError::new(
@@ -267,12 +271,13 @@ async fn sync_models_detect(
     let mut last_error = AppError::new("no_models", "未找到可用的模型接口");
     for mut url in urls {
         let mut collected = Vec::new();
+        let mut protocol_models = Vec::new();
         for _ in 0..10 {
             let timeout = deadline.saturating_duration_since(std::time::Instant::now());
             if timeout.is_zero() {
                 return Err(AppError::new("network", "模型同步超时，请稍后重试"));
             }
-            let value = match read_json_with_auth(
+            let mut value = match read_json_with_auth(
                 &client,
                 url.clone(),
                 Some(key),
@@ -301,6 +306,13 @@ async fn sync_models_detect(
                 }
                 Err(e) => return Err(e),
             };
+            if let Some(items) = value
+                .get("data")
+                .or_else(|| value.get("models"))
+                .and_then(Value::as_array)
+            {
+                protocol_models.extend(items.iter().cloned());
+            }
             for model in models {
                 if !collected.iter().any(|m: &ProviderModel| m.id == model.id) {
                     collected.push(model);
@@ -314,6 +326,9 @@ async fn sync_models_detect(
             }
             if value.get("has_more").and_then(Value::as_bool) != Some(true) {
                 collected.sort_by(|a, b| a.id.cmp(&b.id));
+                // Endpoint declarations must cover the complete catalog, not
+                // just its final page, before selecting a shared protocol.
+                value["data"] = Value::Array(protocol_models);
                 let protocol = forced.unwrap_or_else(|| model_protocol(&value));
                 let mut resolved = url.clone();
                 resolved.set_query(None);
@@ -351,8 +366,32 @@ async fn sync_models_detect(
 
 fn model_protocol(value: &Value) -> crate::types::CodexProtocol {
     use crate::types::CodexProtocol;
-    let items = value.get("data").and_then(Value::as_array);
-    // OpenAI gateways also paginate. Explicit schema markers take precedence.
+    let items = value
+        .get("data")
+        .or_else(|| value.get("models"))
+        .and_then(Value::as_array);
+    // An OpenAI-shaped model list does not establish Responses support.
+    // Gateways can expose Messages and Chat Completions for every model while
+    // returning "not implemented" for Responses. Prefer their common native
+    // Messages interface only when every model explicitly declares it and
+    // none declares Responses. Missing/mixed metadata retains schema fallback.
+    if items.is_some_and(|items| {
+        !items.is_empty()
+            && items.iter().all(|model| {
+                model
+                    .get("supported_endpoint_types")
+                    .and_then(Value::as_array)
+                    .is_some_and(|endpoints| {
+                        endpoints.iter().any(|e| e.as_str() == Some("anthropic"))
+                            && !endpoints
+                                .iter()
+                                .any(|e| e.as_str() == Some("openai-response"))
+                    })
+            })
+    }) {
+        return CodexProtocol::Anthropic;
+    }
+    // OpenAI gateways also paginate. Schema markers remain the fallback.
     if value.get("object").and_then(Value::as_str) == Some("list")
         || items.is_some_and(|items| {
             items
@@ -449,6 +488,106 @@ mod tests {
             Openai
         );
     }
+    #[test]
+    fn messages_endpoint_declarations_override_openai_catalog_shape() {
+        use crate::types::CodexProtocol::*;
+        let messages = json!({"object":"list","data":[
+            {"id":"claude-fable-5","object":"model","supported_endpoint_types":["anthropic","openai"]},
+            {"id":"claude-sonnet-4-6","object":"model","supported_endpoint_types":["anthropic","openai"]}
+        ]});
+        assert_eq!(model_protocol(&messages), Anthropic);
+        // Endpoint support, rather than the model's name, selects the format.
+        assert_eq!(
+            model_protocol(&json!({"object":"list","models":[
+                {"id":"custom-model","supported_endpoint_types":["anthropic"]}
+            ]})),
+            Anthropic
+        );
+        for metadata in [
+            json!(["anthropic", "openai", "openai-response"]),
+            json!(["openai"]),
+            json!([]),
+            Value::Null,
+        ] {
+            let mut mixed = messages.clone();
+            mixed["data"][0]["supported_endpoint_types"] = metadata;
+            assert_eq!(model_protocol(&mixed), Openai);
+        }
+        let mut missing = messages;
+        missing["data"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("supported_endpoint_types");
+        assert_eq!(model_protocol(&missing), Openai);
+        assert_eq!(model_protocol(&json!({"object":"list","data":[]})), Openai);
+    }
+
+    #[tokio::test]
+    async fn messages_catalog_discovery_uses_metadata_without_inference_and_honors_override() {
+        let body = r#"{"object":"list","data":[{"id":"claude-fable-5","object":"model","supported_endpoint_types":["anthropic","openai"]}]}"#;
+        for (forced, expected) in [
+            (None, crate::types::CodexProtocol::Anthropic),
+            (
+                Some(crate::types::CodexProtocol::Openai),
+                crate::types::CodexProtocol::Openai,
+            ),
+        ] {
+            let (url, worker) = server(body, "200 OK");
+            let result =
+                discover_connection(&format!("{url}/v1"), "synthetic-endpoint-key", forced, None)
+                    .await
+                    .unwrap();
+            assert_eq!(result.protocol, expected);
+            assert_eq!(result.base_url, format!("{url}/v1"));
+            assert_eq!(result.auth_mode, "bearer");
+            assert_eq!(result.models[0].id, "claude-fable-5");
+            assert!(worker.join().unwrap().starts_with("GET /v1/models "));
+        }
+    }
+
+    #[tokio::test]
+    async fn paginated_protocol_detection_requires_common_messages_support_on_every_page() {
+        for (first_endpoints, expected) in [
+            (
+                "[\"anthropic\",\"openai\"]",
+                crate::types::CodexProtocol::Anthropic,
+            ),
+            (
+                "[\"openai\",\"openai-response\"]",
+                crate::types::CodexProtocol::Openai,
+            ),
+        ] {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let base = format!("http://{}/v1", listener.local_addr().unwrap());
+            let first = format!(
+                r#"{{"object":"list","has_more":true,"last_id":"first-model","data":[{{"id":"first-model","object":"model","supported_endpoint_types":{first_endpoints}}}]}}"#
+            );
+            let worker = std::thread::spawn(move || {
+                let mut requests = Vec::new();
+                for body in [
+                    first,
+                    r#"{"object":"list","has_more":false,"data":[{"id":"last-model","object":"model","supported_endpoint_types":["anthropic","openai"]}]}"#.into(),
+                ] {
+                    let (mut stream, _) = listener.accept().unwrap();
+                    stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+                    let mut buf = [0; 8192];
+                    let n = stream.read(&mut buf).unwrap();
+                    requests.push(String::from_utf8_lossy(&buf[..n]).into_owned());
+                    write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
+                }
+                requests
+            });
+            let result = discover_connection(&base, "synthetic-paging-key", None, None)
+                .await
+                .unwrap();
+            assert_eq!(result.protocol, expected);
+            assert_eq!(result.models.len(), 2);
+            let requests = worker.join().unwrap();
+            assert!(requests[0].starts_with("GET /v1/models "));
+            assert!(requests[1].starts_with("GET /v1/models?after_id=first-model "));
+        }
+    }
+
     #[tokio::test]
     async fn automatic_discovery_falls_back_only_on_auth_failures_and_honors_override() {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();

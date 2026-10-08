@@ -8,6 +8,7 @@ import type {
   ConnectionInput,
   Provider,
   ProviderModel,
+  ModelProfile,
   Target,
 } from "../types";
 type Protocol = "openai" | "anthropic";
@@ -383,7 +384,9 @@ export function useConnectionDiscovery(
         ? {
             ...s,
             models: s.models.map((m) =>
-              m.id === id ? { ...m, capabilityOverrides: {} } : m,
+              m.id === id
+                ? { ...m, capabilityOverrides: {}, profileOverrides: {} }
+                : m,
             ),
           }
         : s,
@@ -409,6 +412,26 @@ export function useConnectionDiscovery(
     setContext,
     setCapability,
     resetCapabilities,
+    connection: input,
+    setThinkingFormat: (id: string, format: ModelProfile["thinkingFormat"]) =>
+      setState((s) =>
+        s.signature === current.current.signature
+          ? {
+              ...s,
+              models: s.models.map((m) =>
+                m.id === id
+                  ? {
+                      ...m,
+                      profileOverrides: {
+                        ...m.profileOverrides,
+                        thinkingFormat: format,
+                      },
+                    }
+                  : m,
+              ),
+            }
+          : s,
+      ),
     invalidContexts,
     allowed,
     preview: !desktopRuntime,
