@@ -2,6 +2,9 @@
 
 # 配置与界面验证清单
 
+2026-10-08，v0.5.20 本地回归：140项前端测试、126项Rust测试（1项Windows环境辅助ignored）、TypeScript/Vite、Clippy及教程一致性通过。原生模型/能力/更新/教程19组、38处Axe，协议8组、8处Axe通过，pageErrors均为0；真实隔离Codex图片请求和两方向图片转换继续成功。三平台更新包选择新增不同系统/架构与Linux AppImage回退测试。GitHub原生三平台构建与启动检查另行记录，未操作真实客户端。
+
+
 2026-10-07，v0.5.19 已正式发布并标记 Latest：上传五项程序/说明/校验附件，下载回读 SHA256、公开 digest 与 size 均一致。GitHub main 发布前后都为 6404646f5eea9d87b96217e5f51d00d64953d0e4，未推送本次源码、未上传 source.zip；Release 标签复用该历史公开提交，不能作为本次程序源码。程序本地构建提交为 eb85cd55d3214a71a921a0635684ef1897aedd3c。仅程序发布模拟6组通过。新版0.5.19真实GitHub检查显示当前版本，旧版0.5.18检测到0.5.19并在左下角明确提醒，安装包地址正确；两次隔离配置不变，pageErrors为0。正式单实例运行烟测因用户旧版正在运行而跳过，未关闭该进程。结果：.qa/published-0.5.19.json、.qa/github-live/results.json、.qa/github-upgrade-live/results.json、.qa/production-0.5.19.json。
 
 

@@ -150,16 +150,17 @@ impl Context {
                 });
             }
         }
+        #[cfg(windows)]
         #[allow(unused_mut)] // Windows QA excludes native process inspection.
         let mut notes = Vec::new();
+        #[cfg(not(windows))]
+        let notes = vec!["当前平台使用环境变量与文件线索；尚未读取客户端进程的配置位置".into()];
         #[cfg(all(windows, not(feature = "qa-webview")))]
         {
             let (found, warnings) = windows::hints();
             hints.extend(found);
             notes.extend(warnings);
         }
-        #[cfg(not(windows))]
-        notes.push("当前平台使用环境变量与文件线索；尚未读取客户端进程的配置位置".into());
         let mut roots = vec![home.clone()];
         #[cfg(target_os = "macos")]
         roots.push(home.join("Library/Application Support"));
