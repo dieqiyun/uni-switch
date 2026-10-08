@@ -389,9 +389,10 @@ mod desktop {
         let result = builder
             .plugin(tauri_plugin_dialog::init())
             .setup(|app| {
-                let directory = std::env::var_os("UNI_SWITCH_DATA_DIR")
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or(app.path().app_local_data_dir()?);
+                let directory = match std::env::var_os("UNI_SWITCH_DATA_DIR") {
+                    Some(directory) => std::path::PathBuf::from(directory),
+                    None => app.path().app_local_data_dir()?,
+                };
                 let mut store = Store::open(directory.clone())?;
                 let (route, listener) = crate::bridge::Route::start(&directory)?;
                 store.set_bridge_route(route.clone());

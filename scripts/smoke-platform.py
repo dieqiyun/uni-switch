@@ -20,7 +20,7 @@ def smoke(platform):
     else:
         binary = base / "release" / ("uni-switch.exe" if platform == "windows-x64" else "uni-switch")
         arches = ["x86_64"]
-    with tempfile.TemporaryDirectory(prefix="uni-switch-smoke-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="uni-switch-smoke-", ignore_cleanup_errors=True) as temporary:
         run = Path(temporary)
         home = run / "home"
         for name in ["home", "data", "local", "roaming", "webview", "home/.codex", "home/.claude", "home/.config"]:
