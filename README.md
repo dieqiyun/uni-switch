@@ -4,7 +4,7 @@
 
 **当前版本：0.5.21 · Windows / Linux / macOS · AGPL-3.0-only**
 
-[下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [开源许可](LICENSE)
+[下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [参与开发](CONTRIBUTING.md) · [开源许可](LICENSE)
 
 ![uni-switch 模型配置](docs/screenshots/model-catalog-pruned-local.png)
 
@@ -95,6 +95,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-msvc.ps1 -Actio
 安装包输出到 `src-tauri/target/release/bundle/nsis/`，主程序在 `src-tauri/target/release/uni-switch.exe`。预编译图标、模型基础指令和资源已包含在仓库中，常规构建无需图像生成服务或私有凭据。
 
 开发桌面应用使用 `corepack pnpm dev`；仅预览界面使用 `corepack pnpm dev:web`。浏览器预览不写入真实客户端配置。配置实现、协议兼容范围及隔离测试说明见 [docs](docs/qa-inventory.md)。三平台原生构建工作流见 [.github/workflows/build-desktop.yml](.github/workflows/build-desktop.yml)，正式发布流程见 [发布说明](docs/github-release.md)。
+
+## 参与开发
+
+欢迎通过 Fork + Pull Request 参与开发，最终由 @dieqiyun 审核并决定合并。请先阅读 [贡献指南](CONTRIBUTING.md)；PR 会自动运行前端检查和三平台 Rust 测试 / Clippy，检查成功后不会自动合并。主分支的审核和保护设置见 [维护者操作指南](docs/maintainer-workflow.md)。
 
 ## 数据与兼容性
 
