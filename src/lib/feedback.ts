@@ -43,7 +43,7 @@ export function explainError(error: unknown) {
   if (code === "external_change")
     return {
       message:
-        "其他软件修改了 API 配置，本次没有覆盖。请撤回相应修改后重试，处理方法见使用说明。",
+        "其他软件修改了 API 配置，本次没有覆盖。点击「使用」可确认覆盖，也可先查看配置。",
       action: "查看配置",
       field: null,
     };

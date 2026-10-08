@@ -46,7 +46,7 @@ export async function verifyTutorial({ page, snapshot, root, checks, audit }) {
     await audit(`Offline tutorial ${topic.id}`);
   }
   assert.equal(
-    await article.getByText(/存在冲突时不会强制覆盖文件/).count(),
+    await article.getByText(/只有点击「强制覆盖并使用」确认后才会执行/).count(),
     1,
   );
   await page.screenshot({

@@ -62,6 +62,84 @@ function mount() {
   );
 }
 describe("供应商列表的下一步操作", () => {
+  it("Codex文件选择不同于供应商默认时显示差异，重新应用无需重新添加供应商", async () => {
+    data.providers = [{ ...provider, model: "gpt-6.1-sol" }];
+    data.targets = [
+      {
+        ...status,
+        state: "applied",
+        activeProviderId: provider.id,
+        appliedModel: "gpt-6.1-sol",
+        configuredModel: "gpt-5.6-terra",
+        configuredReasoningEffort: "medium",
+        canRestore: true,
+      },
+    ];
+    vi.mocked(api.apply).mockImplementation(async () => {
+      data = {
+        ...data,
+        targets: [{ ...data.targets[0], configuredModel: "gpt-6.1-sol" }],
+      };
+      return data.targets[0];
+    });
+    mount();
+    const reapply = await screen.findByRole("button", { name: "重新应用" });
+    expect(reapply).toBeEnabled();
+    expect(screen.getByText(/Codex 配置当前选择/)).toHaveTextContent(
+      "gpt-5.6-terra",
+    );
+    expect(screen.getByText(/Codex 配置当前选择/)).toHaveTextContent("medium");
+    expect(screen.getByText(/Codex 配置当前选择/)).toHaveTextContent(
+      "已有会话请在 Codex 内确认",
+    );
+    await userEvent.click(reapply);
+    expect(api.apply).toHaveBeenCalledExactlyOnceWith("codex", provider.id);
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "重新应用" })).toBeNull(),
+    );
+    expect(screen.queryByText(/Codex 配置当前选择/)).toBeNull();
+  });
+  it("模型相同但供应商明确思考强度与Codex配置不同，也提供重新应用并说明覆盖值", async () => {
+    data.providers = [{ ...provider, reasoningEffort: "xhigh" }];
+    data.targets = [
+      {
+        ...status,
+        state: "applied",
+        activeProviderId: provider.id,
+        appliedModel: provider.model,
+        configuredModel: provider.model,
+        configuredReasoningEffort: "medium",
+      },
+    ];
+    mount();
+    expect(
+      await screen.findByRole("button", { name: "重新应用" }),
+    ).toBeEnabled();
+    expect(screen.getByText(/Codex 配置当前选择/)).toHaveTextContent(
+      "思考强度使用供应商设置 xhigh",
+    );
+    expect(api.apply).not.toHaveBeenCalled();
+  });
+  it.each([undefined, "gpt-5.4"])(
+    "没有配置回读差异（%s）时不提示冲突或诱导重新应用",
+    async (configuredModel) => {
+      data.targets = [
+        {
+          ...status,
+          state: "applied",
+          activeProviderId: provider.id,
+          appliedModel: provider.model,
+          configuredModel,
+        },
+      ];
+      mount();
+      await screen.findByRole("button", { name: "配置 测试供应商 的模型" });
+      expect(screen.queryByText(/Codex 配置当前选择/)).toBeNull();
+      expect(screen.queryByRole("button", { name: "重新应用" })).toBeNull();
+      expect(api.apply).not.toHaveBeenCalled();
+    },
+  );
+
   it("列表与后台 API 不再提供导入功能，教程可从侧栏打开", async () => {
     mount();
     await screen.findByRole("button", { name: "使用" });

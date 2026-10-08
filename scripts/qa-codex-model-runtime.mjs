@@ -7,7 +7,12 @@ export async function mockModelResponse(req, res, requests) {
   let body = "";
   for await (const chunk of req) body += chunk;
   const request = JSON.parse(body);
-  requests.push({ model: request.model, path: req.url, input: request.input });
+  requests.push({
+    model: request.model,
+    path: req.url,
+    input: request.input,
+    reasoning: request.reasoning ?? null,
+  });
   const message = {
     id: "msg_context",
     type: "message",

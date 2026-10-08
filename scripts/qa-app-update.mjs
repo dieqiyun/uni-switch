@@ -57,7 +57,7 @@ export async function verifyAppUpdates({
   await page.screenshot({
     path: `docs/screenshots/github-update-${version}.png`,
   });
-  await dialog.getByRole("button", { name: "前往下载", exact: true }).click();
+  await dialog.getByRole("button", { name: "GitHub 手动下载", exact: true }).click();
   assert.equal(
     await readFile(path.join(root, "opened-release.txt"), "utf8"),
     "https://github.com/example/uni-switch/releases/tag/v9.0.0",

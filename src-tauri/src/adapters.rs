@@ -357,9 +357,15 @@ pub fn plan(
             doc["model_provider"] = toml_edit::value("uni_switch");
             if let Some(effort) = &provider.summary.reasoning_effort {
                 doc["model_reasoning_effort"] = toml_edit::value(effort);
-            } else {
+            } else if doc
+                .get("model_reasoning_effort")
+                .is_some_and(|value| !value.as_str().is_some_and(crate::types::valid_effort))
+            {
                 doc.as_table_mut().remove("model_reasoning_effort");
             }
+            // No supplier override means the user chooses effort in Codex.
+            // Reapplying or editing the supplier must not reset a valid choice
+            // such as xhigh to the model's implicit default.
             let options = &provider.summary.codex_options;
             if options.protocol == crate::types::CodexProtocol::Anthropic {
                 doc["web_search"] = toml_edit::value("disabled");
@@ -1208,6 +1214,39 @@ pub fn restore(file: &ManagedFile) -> Result<Change> {
         before: current,
         after,
     })
+}
+
+/// Read the model choices in the managed global config, not an active thread
+/// or upstream routing result. Never return credentials or inspect sessions.
+pub(crate) struct CodexModelSelection {
+    pub model: String,
+    pub reasoning_effort: Option<String>,
+}
+
+pub(crate) fn codex_model_selection(directory: &Path) -> Result<Option<CodexModelSelection>> {
+    let path = directory.join("config.toml");
+    let Some(text) = read(&path)? else {
+        return Ok(None);
+    };
+    let doc = parse_toml(Some(&text), &path)?;
+    if doc.get("model_provider").and_then(Item::as_str) != Some("uni_switch") {
+        return Ok(None);
+    }
+    let Some(model) = doc
+        .get("model")
+        .and_then(Item::as_str)
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(None);
+    };
+    Ok(Some(CodexModelSelection {
+        model: model.into(),
+        reasoning_effort: doc
+            .get("model_reasoning_effort")
+            .and_then(Item::as_str)
+            .filter(|value| crate::types::valid_effort(value))
+            .map(str::to_owned),
+    }))
 }
 
 /// Read only model choices for upgrading an existing managed snapshot.

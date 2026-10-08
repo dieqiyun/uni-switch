@@ -28,6 +28,9 @@ describe("Codex 重启选择", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "稍后重启" })).toHaveFocus();
+    expect(screen.getByText("切换后请新开对话")).toBeVisible();
+    expect(screen.getByText(/即使重启 Codex 或恢复旧会话/)).toBeVisible();
+    expect(screen.getByText(/供应商使用记录反映实际请求/)).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "稍后重启" }));
     expect(later).toHaveBeenCalledOnce();
     await userEvent.keyboard("{Escape}");

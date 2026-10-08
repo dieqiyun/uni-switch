@@ -131,6 +131,13 @@ export interface BalanceResult {
     resetAt: string | null;
   }[];
 }
+export interface ApplyOverwriteConfirmation {
+  token: string;
+  target: Target;
+  providerId: string;
+  directory: string;
+  files: string[];
+}
 export interface TargetStatus {
   target: Target;
   directory: string;
@@ -145,6 +152,9 @@ export interface TargetStatus {
   canRestore: boolean;
   message: string;
   appliedModel?: string | null;
+  /** Read-back global config, not live-session or upstream usage. */
+  configuredModel?: string | null;
+  configuredReasoningEffort?: string | null;
   configurationRevision?: number;
 }
 export interface RuntimeStatus {
@@ -181,9 +191,32 @@ export interface UpdateCheck {
   repository: string;
   releaseUrl: string;
   downloadUrl: string | null;
+  remoteUpdateAvailable?: boolean;
+  installerSize?: number | null;
+  installInstructions?: string;
   notes: string;
   publishedAt: string | null;
   checkedAt: number;
+}
+export interface UpdateDownloadStatus {
+  id: string;
+  version: string;
+  phase:
+    | "checking"
+    | "downloading"
+    | "verifying"
+    | "ready"
+    | "installing"
+    | "completed"
+    | "cancelled"
+    | "failed";
+  downloaded: number;
+  total: number;
+  message: string;
+}
+export interface UpdateInstallResult {
+  exitRequired: boolean;
+  message: string;
 }
 export interface SyncTargetResult {
   target: Target;

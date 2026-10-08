@@ -13,6 +13,24 @@ pub struct Store {
     _lock: std::fs::File,
     bridge_route: Option<crate::bridge::Route>,
     repaired_model_capabilities: bool,
+    overwrite_approval: Option<OverwriteApproval>,
+}
+
+struct OverwriteApproval {
+    token: String,
+    target: Target,
+    provider_id: String,
+    provider: String,
+    target_state: String,
+    files: Vec<(PathBuf, Option<String>)>,
+    created_at: std::time::Instant,
+}
+
+fn overwrite_changed() -> AppError {
+    AppError::new(
+        "overwrite_confirmation_changed",
+        "配置或供应商在确认期间发生变化，或确认已过期。此次没有写入，请重新确认覆盖。",
+    )
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -133,6 +151,7 @@ impl Store {
             _lock: lock,
             bridge_route: None,
             repaired_model_capabilities: false,
+            overwrite_approval: None,
         };
         let has_applied_at = store
             .conn
@@ -843,7 +862,7 @@ impl Store {
                 .conversion_disabled_targets
                 .clone();
         }
-        self.apply_stored_from_source(target, merged, None, true, Some(signature))
+        self.apply_stored_from_source(target, merged, None, true, Some(signature), None)
     }
 
     pub fn delete(&mut self, id: &str) -> Result<()> {
@@ -918,7 +937,7 @@ impl Store {
                     Ok(true) => {
                         state = "external_change".into();
                         message =
-                            "API 字段已被其他工具修改。请先撤回其他工具的修改，再重试；现有文件未被覆盖。"
+                            "API 配置已被其他工具修改。点击「使用」可确认覆盖；确认前不会修改现有文件。"
                                 .into();
                         break;
                     }
@@ -967,6 +986,11 @@ impl Store {
                 }
             }
         }
+        let configured = if target == Target::Codex && active.is_some() && state == "applied" {
+            adapters::codex_model_selection(&directory).ok().flatten()
+        } else {
+            None
+        };
         Ok(TargetStatus {
             target,
             directory: directory.to_string_lossy().into_owned(),
@@ -979,6 +1003,8 @@ impl Store {
             can_restore: baseline.is_some(),
             message,
             applied_model,
+            configured_model: configured.as_ref().map(|value| value.model.clone()),
+            configured_reasoning_effort: configured.and_then(|value| value.reasoning_effort),
             configuration_revision,
         })
     }
@@ -1071,6 +1097,92 @@ impl Store {
         self.apply_stored(target, provider, None, false)
     }
 
+    fn apply_confirmation_state(&self, target: Target) -> Result<String> {
+        let record = self.target_record(target)?;
+        let metadata: (u64, Option<String>, Option<String>) = self.conn.query_row(
+            "SELECT applied_at_ms,applied_summary,accepted_source FROM targets WHERE id=?1",
+            [target.id()],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )?;
+        json(&(record, metadata))
+    }
+
+    pub fn prepare_apply_overwrite(
+        &mut self,
+        target: Target,
+        provider_id: &str,
+    ) -> Result<ApplyOverwriteConfirmation> {
+        self.overwrite_approval = None;
+        self.recover()?;
+        let provider = self.provider(provider_id)?;
+        let (directory, _, baseline) = self.target_record(target)?;
+        if baseline.is_none() {
+            return Err(overwrite_changed());
+        }
+        let planned = self.plan(target, &directory, &Self::for_target(&provider, target))?;
+        let token = uuid::Uuid::new_v4().to_string();
+        let files = planned
+            .iter()
+            .filter(|file| file.path != self.bridge_path(target))
+            .filter(|file| file.original != file.expected)
+            .map(|file| file.path.to_string_lossy().into_owned())
+            .collect();
+        let result = ApplyOverwriteConfirmation {
+            token: token.clone(),
+            target,
+            provider_id: provider_id.into(),
+            directory: directory.to_string_lossy().into_owned(),
+            files,
+        };
+        self.overwrite_approval = Some(OverwriteApproval {
+            token,
+            target,
+            provider_id: provider_id.into(),
+            provider: json(&provider)?,
+            target_state: self.apply_confirmation_state(target)?,
+            files: planned
+                .into_iter()
+                .map(|file| (file.path, file.original))
+                .collect(),
+            created_at: std::time::Instant::now(),
+        });
+        Ok(result)
+    }
+
+    pub fn apply_overwrite(
+        &mut self,
+        target: Target,
+        provider_id: &str,
+        token: &str,
+    ) -> Result<TargetStatus> {
+        self.recover()?;
+        // Consume every attempted approval. No flag can bypass the normal
+        // conflict checks; used or stale confirmations cannot be reused.
+        let approval = self
+            .overwrite_approval
+            .take()
+            .ok_or_else(overwrite_changed)?;
+        if approval.token != token
+            || approval.target != target
+            || approval.provider_id != provider_id
+            || approval.created_at.elapsed() > std::time::Duration::from_secs(300)
+        {
+            return Err(overwrite_changed());
+        }
+        let provider = self.provider(provider_id)?;
+        if json(&provider)? != approval.provider
+            || self.apply_confirmation_state(target)? != approval.target_state
+        {
+            return Err(overwrite_changed());
+        }
+        for (path, contents) in &approval.files {
+            if adapters::read(path)? != *contents {
+                return Err(overwrite_changed());
+            }
+        }
+        self.apply_stored_from_source(target, provider, None, false, None, Some(approval))
+    }
+
     fn apply_stored(
         &mut self,
         target: Target,
@@ -1078,7 +1190,14 @@ impl Store {
         provider_update: Option<StoredProvider>,
         preserve_choices: bool,
     ) -> Result<TargetStatus> {
-        self.apply_stored_from_source(target, provider, provider_update, preserve_choices, None)
+        self.apply_stored_from_source(
+            target,
+            provider,
+            provider_update,
+            preserve_choices,
+            None,
+            None,
+        )
     }
     fn apply_stored_from_source(
         &mut self,
@@ -1087,6 +1206,7 @@ impl Store {
         provider_update: Option<StoredProvider>,
         preserve_choices: bool,
         source: Option<String>,
+        approval: Option<OverwriteApproval>,
     ) -> Result<TargetStatus> {
         let accepted_source = Some(source.unwrap_or(Self::source_signature(&provider)?));
         let provider = Self::for_target(&provider, target);
@@ -1098,6 +1218,15 @@ impl Store {
             .transpose()?
             .map(|p| Self::for_target(&p, target));
         let mut files = self.plan(target, &directory, &provider)?;
+        if let Some(approval) = &approval {
+            let planned: Vec<_> = files
+                .iter()
+                .map(|file| (file.path.clone(), file.original.clone()))
+                .collect();
+            if planned != approval.files {
+                return Err(overwrite_changed());
+            }
+        }
         if let Some(baseline) = &baseline {
             for file in &mut files {
                 if let Some(previous) = baseline.iter().find(|old| old.path == file.path) {
@@ -1117,8 +1246,10 @@ impl Store {
                     {
                         file.keys.push(adapters::REASONING_DISPLAY_KEY.into());
                     }
-                    if adapters::changed_for_provider(previous, active_provider.as_ref())? {
-                        return Err(AppError::new("external_change", "当前 API 字段已被其他工具修改。请先撤回其他工具对 API 字段的修改，再重试应用或恢复；为保护现有文件，此次没有写入"));
+                    if approval.is_none()
+                        && adapters::changed_for_provider(previous, active_provider.as_ref())?
+                    {
+                        return Err(AppError::new("external_change", "当前 API 配置已被其他工具修改。请点击「使用」确认是否覆盖；确认前不会修改现有文件。"));
                     }
                 }
             }

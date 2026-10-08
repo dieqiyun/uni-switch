@@ -10,7 +10,7 @@ vi.mock("../lib/api", async (original) => ({
 }));
 afterEach(() => vi.restoreAllMocks());
 describe("离线使用教程", () => {
-  it("八个分类切换可读，常见问题说明冲突不能强制覆盖", async () => {
+  it("八个分类切换可读，常见问题说明确认覆盖与取消行为", async () => {
     render(<TutorialDialog onClose={vi.fn()} />);
     const nav = screen.getByRole("navigation", { name: "教程目录" });
     for (const topic of tutorial.topics) {
@@ -23,7 +23,10 @@ describe("离线使用教程", () => {
         }),
       ).toBeVisible();
     }
-    expect(screen.getByText(/存在冲突时不会强制覆盖文件/)).toBeVisible();
+    expect(
+      screen.getByText(/只有点击「强制覆盖并使用」确认后才会执行/),
+    ).toBeVisible();
+    expect(screen.getByText(/点击取消不会修改文件/)).toBeVisible();
   });
   it("打开固定 GitHub 教程，不发送供应商资料，失败给出可复制地址", async () => {
     const open = vi

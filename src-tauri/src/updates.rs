@@ -18,7 +18,7 @@ pub struct UpdateSource {
     pub repository: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCheck {
     pub current_version: String,
@@ -30,12 +30,22 @@ pub struct UpdateCheck {
     pub notes: String,
     pub published_at: Option<String>,
     pub checked_at: u64,
+    pub remote_update_available: bool,
+    pub installer_size: Option<u64>,
+    pub install_instructions: String,
+    #[serde(skip)]
+    asset: Option<ReleaseAsset>,
+    #[serde(skip)]
+    checksum_url: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct ReleaseAsset {
     name: String,
     browser_download_url: String,
+    #[serde(default)]
+    size: u64,
+    digest: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -190,7 +200,7 @@ fn parse_release_for_platform(
             "发布页地址与更新仓库不一致，未打开下载地址",
         ));
     }
-    let download_url = installer_names(latest_version, os, arch)
+    let asset = installer_names(latest_version, os, arch)
         .iter()
         .find_map(|installer| {
             release.assets.iter().find_map(|asset| {
@@ -199,16 +209,45 @@ fn parse_release_for_platform(
                     release.tag_name
                 );
                 (asset.name == *installer && trusted_url(&asset.browser_download_url, &expected))
-                    .then(|| asset.browser_download_url.clone())
+                    .then(|| asset.clone())
             })
         });
+    let checksum_url = release.assets.iter().find_map(|asset| {
+        let expected = format!(
+            "https://github.com/{repository}/releases/download/{}/SHA256SUMS.txt",
+            release.tag_name
+        );
+        (asset.name == "SHA256SUMS.txt" && trusted_url(&asset.browser_download_url, &expected))
+            .then(|| asset.browser_download_url.clone())
+    });
+    let remote_update_available = asset.as_ref().is_some_and(|a| {
+        a.size > 0
+            && a.size <= download::MAX_INSTALLER_BYTES
+            && (download::asset_digest(a.digest.as_deref()).is_some() || checksum_url.is_some())
+    });
     Ok(UpdateCheck {
         current_version: current.into(),
         latest_version: latest_version.into(),
         available: latest > installed,
         repository: repository.into(),
         release_url,
-        download_url,
+        download_url: asset.as_ref().map(|a| a.browser_download_url.clone()),
+        installer_size: asset.as_ref().map(|a| a.size),
+        remote_update_available,
+        install_instructions: match os {
+            "windows" => "点击安装后，uni-switch 会退出并启动安装向导；完成安装后重新打开软件。",
+            "macos" => "点击安装后打开 DMG。请退出旧版，再将新版拖入 Applications 完成替换。",
+            "linux" if asset.as_ref().is_some_and(|a| a.name.ends_with(".deb")) => {
+                "点击安装后请求打开系统安装程序。退出旧版并完成 DEB 安装后，重新启动软件。"
+            }
+            "linux" => {
+                "点击安装后打开下载目录。退出旧版，使用新版 AppImage 替换旧文件并授予执行权限。"
+            }
+            _ => "请按系统安装提示完成更新。",
+        }
+        .into(),
+        asset,
+        checksum_url,
         notes: release
             .body
             .unwrap_or_default()
@@ -333,3 +372,6 @@ pub fn open_release(value: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests;
+
+mod download;
+pub use download::{DownloadStatus, InstallResult, UpdateManager};

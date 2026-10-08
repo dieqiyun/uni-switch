@@ -48,6 +48,41 @@ mod desktop {
         crate::updates::check().await
     }
     #[tauri::command]
+    async fn start_app_update_download(
+        version: String,
+        state: State<'_, crate::updates::UpdateManager>,
+    ) -> Result<crate::updates::DownloadStatus> {
+        state.start(&version)
+    }
+    #[tauri::command]
+    fn get_app_update_download(
+        state: State<'_, crate::updates::UpdateManager>,
+    ) -> Result<Option<crate::updates::DownloadStatus>> {
+        state.status()
+    }
+    #[tauri::command]
+    fn cancel_app_update_download(
+        id: String,
+        state: State<'_, crate::updates::UpdateManager>,
+    ) -> Result<()> {
+        state.cancel(&id)
+    }
+    #[tauri::command]
+    async fn install_app_update(
+        id: String,
+        app: tauri::AppHandle,
+        state: State<'_, crate::updates::UpdateManager>,
+    ) -> Result<crate::updates::InstallResult> {
+        let result = state.install(&id)?;
+        if result.exit_required {
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                app.exit(0);
+            });
+        }
+        Ok(result)
+    }
+    #[tauri::command]
     fn open_app_release(url: String) -> Result<()> {
         crate::updates::open_release(&url)
     }
@@ -179,10 +214,20 @@ mod desktop {
         locked(&state)?.delete(&provider_id)
     }
     #[tauri::command]
+    fn prepare_apply_overwrite(
+        state: State<AppState>,
+        target: Target,
+        provider_id: String,
+    ) -> Result<ApplyOverwriteConfirmation> {
+        locked(&state)?.prepare_apply_overwrite(target, &provider_id)
+    }
+
+    #[tauri::command]
     async fn apply_provider(
         state: State<'_, AppState>,
         target: Target,
         provider_id: String,
+        confirmation_token: Option<String>,
     ) -> Result<TargetStatus> {
         let (required, route) = {
             let store = locked(&state)?;
@@ -202,7 +247,11 @@ mod desktop {
                 "兼容服务正在自动恢复，请稍后重试",
             ));
         }
-        locked(&state)?.apply(target, &provider_id)
+        let mut store = locked(&state)?;
+        match confirmation_token {
+            Some(token) => store.apply_overwrite(target, &provider_id, &token),
+            None => store.apply(target, &provider_id),
+        }
     }
     #[tauri::command]
     async fn sync_provider_targets(
@@ -398,6 +447,7 @@ mod desktop {
                 store.set_bridge_route(route.clone());
                 let state = Arc::new(Mutex::new(store));
                 app.manage(state.clone());
+                app.manage(crate::updates::UpdateManager::default());
                 tauri::async_runtime::spawn(async move {
                     crate::bridge::maintain(listener, route, state).await;
                 });
@@ -463,6 +513,10 @@ mod desktop {
                 get_overview,
                 get_update_source,
                 check_app_update,
+                start_app_update_download,
+                get_app_update_download,
+                cancel_app_update_download,
+                install_app_update,
                 open_app_release,
                 open_service_website,
                 open_project_page,
@@ -477,6 +531,7 @@ mod desktop {
                 discover_provider_connection,
                 delete_provider,
                 apply_provider,
+                prepare_apply_overwrite,
                 set_provider_fast_mode,
                 repair_reasoning_levels,
                 update_provider_models,

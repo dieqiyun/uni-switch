@@ -1928,7 +1928,10 @@ fn reasoning_repair_preserves_client_choices_and_survives_sync_and_restore() {
     let text = std::fs::read_to_string(&config)
         .unwrap()
         .replace("model = \"test-model\"", "model = \"other-model\"");
-    let text = format!("model_reasoning_effort = \"max\"\nservice_tier = \"priority\"\n{text}\n[extra]\nkeep = true\n");
+    let mut edited = text.parse::<toml_edit::DocumentMut>().unwrap();
+    edited["model_reasoning_effort"] = toml_edit::value("max");
+    edited["service_tier"] = toml_edit::value("priority");
+    let text = format!("{edited}\n[extra]\nkeep = true\n");
     put(&config, &text);
     let result = store.repair_reasoning_levels(&p.id).unwrap();
     assert!(result.applied);
@@ -3217,4 +3220,474 @@ fn capability_upgrade_does_not_overwrite_external_catalog_edits() {
         reopened.status(Target::Codex).unwrap().state,
         "external_change"
     );
+}
+
+#[test]
+fn confirmed_overwrite_applies_all_targets_and_backs_up_external_files() {
+    for target in [Target::Codex, Target::ClaudeDesktop, Target::ClaudeCli] {
+        let (temp, mut store) = fixture();
+        let dir = temp.path().join(target.id());
+        let path = match target {
+            Target::Codex => dir.join("config.toml"),
+            Target::ClaudeCli => dir.join("settings.json"),
+            Target::ClaudeDesktop => dir.join(format!(
+                "Claude-3p/configLibrary/{}.json",
+                adapters::PROFILE_UUID
+            )),
+        };
+        let original = if target == Target::Codex {
+            "# original before takeover\nmodel = 'original-model'\nuser_setting = 'original'\n"
+        } else {
+            r#"{"userSetting":"original"}"#
+        };
+        put(&path, original);
+        let a = store.save(input(target.family(), "A")).unwrap();
+        let mut b_input = input(target.family(), "B");
+        b_input.base_url = "https://new-supplier.example.test/v1".into();
+        b_input.api_key = Some("test-overwrite-new-key".into());
+        let b = store.save(b_input).unwrap();
+        store.apply(target, &a.id).unwrap();
+        let old_revision = store.status(target).unwrap().configuration_revision;
+        let changed = if target == Target::Codex {
+            let mut doc = std::fs::read_to_string(&path)
+                .unwrap()
+                .parse::<toml_edit::DocumentMut>()
+                .unwrap();
+            doc["model_providers"]["uni_switch"]["base_url"] =
+                toml_edit::value("https://outside.example.test/v1");
+            doc["model_providers"]["uni_switch"]["experimental_bearer_token"] =
+                toml_edit::value("test-external-key");
+            doc["user_setting"] = toml_edit::value("outside-kept");
+            doc.to_string()
+        } else {
+            let mut doc = read_json(&path);
+            if target == Target::ClaudeCli {
+                doc["env"]["ANTHROPIC_BASE_URL"] = json!("https://outside.example.test/v1");
+            } else {
+                doc["inferenceGatewayBaseUrl"] = json!("https://outside.example.test/v1");
+            }
+            doc["userSetting"] = json!("outside-kept");
+            doc.to_string()
+        };
+        put(&path, &changed);
+        assert_eq!(
+            store.apply(target, &b.id).unwrap_err().code,
+            "external_change"
+        );
+        let confirmation = store.prepare_apply_overwrite(target, &b.id).unwrap();
+        assert_eq!(
+            adapters::read(&path).unwrap().as_deref(),
+            Some(changed.as_str()),
+            "asking/cancelling does not write"
+        );
+        assert!(confirmation
+            .files
+            .iter()
+            .any(|file| Path::new(file) == path));
+        assert!(!json(&confirmation)
+            .unwrap()
+            .contains("test-overwrite-new-key"));
+        assert!(!json(&confirmation).unwrap().contains("test-external-key"));
+        assert_eq!(
+            store.status(target).unwrap().active_provider_id.as_deref(),
+            Some(a.id.as_str())
+        );
+        let result = store
+            .apply_overwrite(target, &b.id, &confirmation.token)
+            .unwrap();
+        assert_eq!(result.state, "applied");
+        assert_eq!(result.active_provider_id.as_deref(), Some(b.id.as_str()));
+        assert!(result.configuration_revision > old_revision);
+        for other in [Target::Codex, Target::ClaudeDesktop, Target::ClaudeCli]
+            .into_iter()
+            .filter(|other| *other != target)
+        {
+            assert_eq!(store.status(other).unwrap().state, "unmanaged");
+        }
+        let backup = std::fs::read_dir(store.data_directory.join("backups"))
+            .unwrap()
+            .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
+            .map(|text| decode::<Pending>(&text).unwrap())
+            .find(|pending| pending.active.as_deref() == Some(b.id.as_str()))
+            .unwrap();
+        assert_eq!(
+            backup
+                .changes
+                .iter()
+                .find(|change| change.path == path)
+                .unwrap()
+                .before
+                .as_deref(),
+            Some(changed.as_str())
+        );
+        if target == Target::Codex {
+            let doc = std::fs::read_to_string(&path)
+                .unwrap()
+                .parse::<toml_edit::DocumentMut>()
+                .unwrap();
+            assert_eq!(doc["user_setting"].as_str(), Some("outside-kept"));
+            assert_eq!(
+                doc["model_providers"]["uni_switch"]["base_url"].as_str(),
+                Some("https://new-supplier.example.test/v1")
+            );
+            assert_eq!(
+                doc["model_providers"]["uni_switch"]["experimental_bearer_token"].as_str(),
+                Some("test-overwrite-new-key")
+            );
+        } else {
+            assert_eq!(read_json(&path)["userSetting"], "outside-kept");
+        }
+        assert_eq!(
+            store
+                .apply_overwrite(target, &b.id, &confirmation.token)
+                .unwrap_err()
+                .code,
+            "overwrite_confirmation_changed"
+        );
+        store.restore(target).unwrap();
+        if target == Target::Codex {
+            let doc = std::fs::read_to_string(&path)
+                .unwrap()
+                .parse::<toml_edit::DocumentMut>()
+                .unwrap();
+            assert_eq!(doc["model"].as_str(), Some("original-model"));
+            assert_eq!(doc["user_setting"].as_str(), Some("outside-kept"));
+            assert!(doc.get("model_providers").is_none());
+        } else {
+            assert_eq!(read_json(&path)["userSetting"], "outside-kept");
+            assert!(read_json(&path).get("inferenceGatewayBaseUrl").is_none());
+        }
+    }
+}
+
+#[test]
+fn confirmed_overwrite_rejects_modified_files_provider_target_or_expired_approval() {
+    for change in [
+        "file",
+        "provider",
+        "target",
+        "wrong_target",
+        "wrong_provider",
+        "invalid_token",
+        "expired",
+    ] {
+        let (temp, mut store) = fixture();
+        let provider = store.save(input(Family::Codex, "A")).unwrap();
+        store.apply(Target::Codex, &provider.id).unwrap();
+        let path = temp.path().join("codex/config.toml");
+        let outside = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("gateway.example.test", "outside.example.test");
+        put(&path, &outside);
+        let confirmation = store
+            .prepare_apply_overwrite(Target::Codex, &provider.id)
+            .unwrap();
+        let other = store.save(input(Family::Codex, "B")).unwrap();
+        match change {
+            "file" => put(&path, &format!("# changed during confirmation\n{outside}")),
+            "provider" => {
+                let mut edit = input(Family::Codex, "Edited");
+                edit.id = Some(provider.id.clone());
+                edit.api_key = Some("test-key-during-confirmation".into());
+                store.save(edit).unwrap();
+            }
+            "target" => {
+                store
+                    .conn
+                    .execute(
+                        "UPDATE targets SET applied_at_ms=applied_at_ms+1 WHERE id='codex'",
+                        [],
+                    )
+                    .unwrap();
+            }
+            "expired" => {
+                store.overwrite_approval.as_mut().unwrap().created_at =
+                    std::time::Instant::now() - std::time::Duration::from_secs(301)
+            }
+            _ => {}
+        }
+        let before = adapters::read(&path).unwrap();
+        let result = store.apply_overwrite(
+            if change == "wrong_target" {
+                Target::ClaudeCli
+            } else {
+                Target::Codex
+            },
+            if change == "wrong_provider" {
+                &other.id
+            } else {
+                &provider.id
+            },
+            if change == "invalid_token" {
+                "invalid-approval"
+            } else {
+                &confirmation.token
+            },
+        );
+        assert_eq!(
+            result.unwrap_err().code,
+            "overwrite_confirmation_changed",
+            "{change}"
+        );
+        assert_eq!(adapters::read(&path).unwrap(), before);
+        assert_eq!(
+            store
+                .status(Target::Codex)
+                .unwrap()
+                .active_provider_id
+                .as_deref(),
+            Some(provider.id.as_str())
+        );
+        assert!(store.overwrite_approval.is_none());
+    }
+}
+
+#[test]
+fn confirmed_overwrite_of_same_provider_catalog_repairs_without_disabling_other_conflicts() {
+    let (temp, mut store) = fixture();
+    let provider = store.save(input(Family::Codex, "A")).unwrap();
+    store.apply(Target::Codex, &provider.id).unwrap();
+    let catalog = temp.path().join("codex/uni-switch-models.json");
+    let mut doc = read_json(&catalog);
+    doc["models"][0]["description"] = json!("externally modified catalog");
+    put(&catalog, &doc.to_string());
+    assert_eq!(
+        store.apply(Target::Codex, &provider.id).unwrap_err().code,
+        "external_change"
+    );
+    let approval = store
+        .prepare_apply_overwrite(Target::Codex, &provider.id)
+        .unwrap();
+    assert_eq!(
+        store
+            .set_provider_fast_mode(&provider.id, true)
+            .unwrap_err()
+            .code,
+        "external_change"
+    );
+    assert_eq!(
+        store.restore(Target::Codex).unwrap_err().code,
+        "external_change"
+    );
+    store
+        .apply_overwrite(Target::Codex, &provider.id, &approval.token)
+        .unwrap();
+    assert_eq!(store.status(Target::Codex).unwrap().state, "applied");
+    assert_ne!(
+        read_json(&catalog)["models"][0]["description"],
+        doc["models"][0]["description"]
+    );
+}
+
+#[test]
+fn confirmed_overwrite_requires_valid_configuration_and_one_time_preparation() {
+    let (temp, mut store) = fixture();
+    let provider = store.save(input(Family::Claude, "A")).unwrap();
+    assert_eq!(
+        store
+            .apply_overwrite(Target::ClaudeCli, &provider.id, "anything")
+            .unwrap_err()
+            .code,
+        "overwrite_confirmation_changed"
+    );
+    assert_eq!(
+        store
+            .prepare_apply_overwrite(Target::ClaudeCli, &provider.id)
+            .unwrap_err()
+            .code,
+        "overwrite_confirmation_changed"
+    );
+    store.apply(Target::ClaudeCli, &provider.id).unwrap();
+    let path = temp.path().join("claude_cli/settings.json");
+    put(&path, "{ invalid json");
+    assert_eq!(
+        store
+            .prepare_apply_overwrite(Target::ClaudeCli, &provider.id)
+            .unwrap_err()
+            .code,
+        "invalid_json"
+    );
+    assert!(store.overwrite_approval.is_none());
+    assert_eq!(
+        adapters::read(&path).unwrap().as_deref(),
+        Some("{ invalid json")
+    );
+}
+
+#[test]
+fn codex_reapply_without_reasoning_override_keeps_client_effort() {
+    let (temp, mut store) = fixture();
+    let mut value = input(Family::Codex, "Model routing regression");
+    value.model = "gpt-6.1-sol".into();
+    value.codex_options.models = ["gpt-6.1-sol", "gpt-5.6-terra"]
+        .into_iter()
+        .map(|id| ProviderModel {
+            id: id.into(),
+            enabled: true,
+            ..Default::default()
+        })
+        .collect();
+    let provider = store.commit_provider(value, Target::Codex, true).unwrap();
+    let config_path = temp.path().join("codex/config.toml");
+    let mut config = adapters::read(&config_path)
+        .unwrap()
+        .unwrap()
+        .parse::<toml_edit::DocumentMut>()
+        .unwrap();
+    config["model"] = toml_edit::value("gpt-5.6-terra");
+    config["model_reasoning_effort"] = toml_edit::value("xhigh");
+    put(&config_path, &config.to_string());
+    assert_eq!(store.status(Target::Codex).unwrap().state, "applied");
+    store.apply(Target::Codex, &provider.id).unwrap();
+    let applied = adapters::read(&config_path)
+        .unwrap()
+        .unwrap()
+        .parse::<toml_edit::DocumentMut>()
+        .unwrap();
+    assert_eq!(applied["model"].as_str(), Some("gpt-6.1-sol"));
+    assert_eq!(
+        applied
+            .get("model_reasoning_effort")
+            .and_then(toml_edit::Item::as_str),
+        Some("xhigh"),
+        "Applying a supplier without an effort override must not reset the Codex user's effort"
+    );
+}
+
+#[test]
+fn codex_status_reports_file_selection_separately_from_applied_default_without_adopting_it() {
+    let (temp, mut store) = fixture();
+    let mut value = input(Family::Codex, "Independent file selection");
+    value.model = "gpt-6.1-sol".into();
+    value.codex_options.models = ["gpt-6.1-sol", "gpt-5.6-terra"]
+        .into_iter()
+        .map(|id| ProviderModel {
+            id: id.into(),
+            enabled: true,
+            ..Default::default()
+        })
+        .collect();
+    let provider = store.commit_provider(value, Target::Codex, true).unwrap();
+    let path = temp.path().join("codex/config.toml");
+    let mut config = adapters::read(&path)
+        .unwrap()
+        .unwrap()
+        .parse::<toml_edit::DocumentMut>()
+        .unwrap();
+    config["model"] = toml_edit::value("gpt-5.6-terra");
+    config["model_reasoning_effort"] = toml_edit::value("medium");
+    put(&path, &config.to_string());
+    let before = std::fs::read(&path).unwrap();
+    let status = store.status(Target::Codex).unwrap();
+    assert_eq!(status.state, "applied");
+    assert_eq!(status.applied_model.as_deref(), Some("gpt-6.1-sol"));
+    assert_eq!(status.configured_model.as_deref(), Some("gpt-5.6-terra"));
+    assert_eq!(
+        status.configured_reasoning_effort.as_deref(),
+        Some("medium")
+    );
+    assert_eq!(
+        store.provider(&provider.id).unwrap().summary.model,
+        "gpt-6.1-sol"
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    for target in [Target::ClaudeDesktop, Target::ClaudeCli] {
+        let status = store.status(target).unwrap();
+        assert!(status.configured_model.is_none());
+        assert!(status.configured_reasoning_effort.is_none());
+    }
+    config["model_providers"]["uni_switch"]["base_url"] =
+        toml_edit::value("https://external.example.test/v1");
+    put(&path, &config.to_string());
+    let conflict = store.status(Target::Codex).unwrap();
+    assert_eq!(conflict.state, "external_change");
+    assert!(conflict.configured_model.is_none());
+    assert!(conflict.configured_reasoning_effort.is_none());
+}
+
+#[test]
+fn codex_effort_is_kept_on_edit_switch_and_confirmed_overwrite_but_explicit_override_wins() {
+    for method in ["edit", "switch", "overwrite", "explicit"] {
+        let (temp, mut store) = fixture();
+        let config_path = temp.path().join("codex/config.toml");
+        put(
+            &config_path,
+            "model='original'\nmodel_reasoning_effort='medium'\n",
+        );
+        let mut value = input(Family::Codex, "Effort ownership");
+        value.model = "gpt-6.1-sol".into();
+        value.codex_options.models = ["gpt-6.1-sol", "gpt-5.6-terra"]
+            .into_iter()
+            .map(|id| ProviderModel {
+                id: id.into(),
+                enabled: true,
+                ..Default::default()
+            })
+            .collect();
+        let provider = store
+            .commit_provider(value.clone(), Target::Codex, true)
+            .unwrap();
+        let mut config = adapters::read(&config_path)
+            .unwrap()
+            .unwrap()
+            .parse::<toml_edit::DocumentMut>()
+            .unwrap();
+        config["model_reasoning_effort"] = toml_edit::value("xhigh");
+        put(&config_path, &config.to_string());
+        match method {
+            "edit" => {
+                value.id = Some(provider.id.clone());
+                value.name = "Renamed supplier".into();
+                store.commit_provider(value, Target::Codex, true).unwrap();
+            }
+            "switch" => {
+                value.name = "New supplier".into();
+                value.api_key = Some("another-synthetic-key".into());
+                let other = store.save(value).unwrap();
+                store.apply(Target::Codex, &other.id).unwrap();
+            }
+            "overwrite" => {
+                config["model_providers"]["uni_switch"]["base_url"] =
+                    toml_edit::value("https://external.example.test/v1");
+                put(&config_path, &config.to_string());
+                let confirmation = store
+                    .prepare_apply_overwrite(Target::Codex, &provider.id)
+                    .unwrap();
+                store
+                    .apply_overwrite(Target::Codex, &provider.id, &confirmation.token)
+                    .unwrap();
+            }
+            "explicit" => {
+                value.id = Some(provider.id.clone());
+                value.reasoning_effort = Some("high".into());
+                store.commit_provider(value, Target::Codex, true).unwrap();
+            }
+            _ => unreachable!(),
+        }
+        let applied = adapters::read(&config_path)
+            .unwrap()
+            .unwrap()
+            .parse::<toml_edit::DocumentMut>()
+            .unwrap();
+        assert_eq!(
+            applied["model_reasoning_effort"].as_str(),
+            Some(if method == "explicit" {
+                "high"
+            } else {
+                "xhigh"
+            }),
+            "{method}"
+        );
+        store.restore(Target::Codex).unwrap();
+        let restored = adapters::read(&config_path)
+            .unwrap()
+            .unwrap()
+            .parse::<toml_edit::DocumentMut>()
+            .unwrap();
+        assert_eq!(
+            restored["model_reasoning_effort"].as_str(),
+            Some("medium"),
+            "{method} restores the pre-ownership preference"
+        );
+    }
 }

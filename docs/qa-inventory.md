@@ -2,6 +2,12 @@
 
 # 配置与界面验证清单
 
+2026-10-08，切换提示与远程更新（0.5.20 本地待发布）：157项前端、139项Rust测试（另1项环境辅助ignored）、TypeScript/Vite、Clippy、教程一致性、Windows/NSIS构建通过。新原生 `scripts/qa-app-update-remote.mjs` 覆盖切换新对话与使用记录说明、每次手动/远程选择、不自动下载、真实字节进度、取消、损坏附件拒绝、版本变化拒绝、确认后安装和390px窄窗，6组检查和5处Axe无违规。安装被QA构建强制截获，仅记录已校验路径，不执行安装、不重启真实客户端；远程请求不带供应商认证，客户端配置不变。原生模型/顶部/更新/品牌/教程回归另19组、38处Axe全部通过，真实隔离Codex图片请求继续成功，pageErrors均为0。合计25组原生检查、43处Axe。证据 `.qa/remote-update/results.json`、`.qa/model-dialog/results.json`，本地包 `release/local-preview/remote-update-0.5.20/`。macOS/Linux增加安装包选择及格式单测与对应提示，未在本机验证这两个系统的原生安装。尚未提交、推送或发布GitHub新版本。说明：[远程更新](remote-update.md)。
+
+2026-10-08，Codex模型/思考强度不一致排查与本地修复：152项前端、133项Rust测试（另1项Windows环境辅助ignored）、TypeScript/Vite、Clippy、教程一致性及Windows/NSIS构建通过。`scripts/qa-model-routing.mjs` 使用真实Codex0.160.0与隔离mock记录model/effort：供应商默认6.1-sol但文件/旧会话为5.6-terra/medium时实际请求仍旧；修复前重新应用删除xhigh、导致新会话不发送effort，修复后新会话发出6.1-sol/xhigh。恢复旧会话仍旧，显式切换同一会话后准确发送新参数。修复保留有效强度、状态回读独立于应用快照、模型或明确强度不同可重新应用；回读不含密钥且不宣称实时会话。模型差异4处Axe无违规；配置确认覆盖原生回归5组、7处Axe继续通过，pageErrors均为0。说明：[模型请求排查](model-routing-diagnosis.md)；证据：`.qa/model-routing/results-before-fix.json`、`.qa/model-routing/results.json`、`.qa/config-overwrite/results.json`；安装包：`release/local-preview/model-routing-0.5.20/`。尚未发布新GitHub版本，未操作真实客户端；不能据此确认用户单笔请求的全部原因。
+
+2026-10-08，配置冲突确认覆盖（0.5.20 本地待发布修复）：148项前端测试、130项Rust测试（另1项Windows环境辅助ignored）、TypeScript/Vite、Clippy、教程一致性及Windows/NSIS构建通过。新增 `scripts/qa-config-overwrite.mjs`，通过三端点击使用、取消/Escape/遮罩不写入、确认后完整文件备份与无关项保留、其他端不变、确认期间再次修改后重新确认，以及1120/560/390px布局；7处Axe均无违规，pageErrors为0。Codex覆盖成功后提示重启；运行中Claude两端的确认覆盖后重启提示由前端回归验证，原生隔离Claude未启动。一次性确认同时校验供应商、目标记录、文件快照及五分钟有效期；旧确认、篡改或损坏配置拒绝写入，恢复仍保留首次接管快照。软件内教程与GitHub教程来源已同步。结果：`.qa/config-overwrite/results.json`；本地安装包：`release/local-preview/confirmed-overwrite-0.5.20/`。未发布新GitHub版本，未操作真实客户端。
+
 2026-10-08，v0.5.20 已正式发布并标记 Latest：[三平台原生构建 37713701338](https://github.com/dieqiyun/uni-switch/actions/runs/37713701338) 的 Windows x64、Linux x64、macOS universal 全部成功，隔离启动、数据库初始化及测试配置不变均通过；macOS 核对 Intel / Apple Silicon 双架构及 ad-hoc 签名。发布标签对应 16706033016959d149f6a4b8361a19fe73640354，十项附件下载回读 SHA256 与公开 digest / size 全部一致，源码归档包含全部 424 个 Git 文件（PowerShell 文件遵循声明的 CRLF 规则）。新版 0.5.20 的真实 GitHub 检查显示当前版本；旧版 0.5.19 检测到 0.5.20，并在左下角显示更新提醒，安装包链接正确；两次隔离客户端配置不变，pageErrors 均为 0。Windows 的显式数据目录启动已修复默认路径提前求值，Linux CI 补齐独立 D-Bus 会话。发布后 main 仅补充发布脚本的草稿按 ID 查询修订及验证记录，未移动发布标签、未替换程序；该修订另通过 3 项无外部请求的回归（草稿标签 404、草稿歧义拒绝、源码标签变更拒绝）。证据：.qa/multiplatform-ci-0.5.20.json、.qa/platform-artifact-preflight-0.5.20.json、.qa/published-0.5.20.json、.qa/github-live/results.json、.qa/github-upgrade-live/results.json、.qa/publish-draft-regression.json。
 
 
@@ -42,7 +48,7 @@
 | 恢复              | 还原 API 字段，保留新增无关项            | 恢复弹窗、未接管状态     |
 | 导入              | 读取各客户端已有配置、不支持认证报错     | 成功与失败提示           |
 | 修改目录          | 绝对路径、自定义目录、接管期间禁止变更   | 长路径截断与文件详情     |
-| 外部修改          | 报告差异、阻止静默覆盖、导入后可重新应用 | 错误状态                 |
+| 外部修改          | 报告差异、点击使用确认覆盖、取消不写入 | 错误状态                 |
 | 文件失败 / 中断   | 无效 JSON 不写任何文件，部分写入恢复     | 可理解的错误提示         |
 | 键盘              | Tab、Escape、焦点恢复                    | 可见焦点与弹窗完整布局   |
 | 窗口尺寸          | 1120×780、760×600、390×844 无横向溢出    | 截图审查                 |

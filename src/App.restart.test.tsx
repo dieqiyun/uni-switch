@@ -493,3 +493,44 @@ it("升级自动修复模型能力后首次读取即提示重启，没有运行�
   await client.invalidateQueries({ queryKey: ["overview"] });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });
+
+it.each(["claude_desktop", "claude_cli"] as const)(
+  "%s 未运行但实际写入后也提醒新开对话，不重复提示历史版本",
+  async (target) => {
+    localStorage.setItem(
+      "uni-switch-ui-target-v1",
+      JSON.stringify({ family: "claude", claudeTarget: target }),
+    );
+    const status = data.targets.find((s) => s.target === target)!;
+    status.configurationRevision = 1;
+    status.state = "saved_changes";
+    vi.spyOn(api, "apply").mockImplementation(async () => {
+      status.configurationRevision = 2;
+      status.state = "applied";
+      claudeRuntimes[target] = {
+        target,
+        clientRunning: false,
+        restartRequired: false,
+        bridgeRequired: false,
+        bridgeHealthy: true,
+        configurationRevision: 2,
+        canRestartClient: false,
+      };
+      return { ...status };
+    });
+    const restart = vi.spyOn(api, "restartClient");
+    mount();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "更新配置" }),
+    );
+    expect(await screen.findByText("切换后请新开对话")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "立即重启" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "知道了，去新开对话" }),
+    );
+    await client.invalidateQueries({ queryKey: ["overview"] });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(restart).not.toHaveBeenCalled();
+  },
+);

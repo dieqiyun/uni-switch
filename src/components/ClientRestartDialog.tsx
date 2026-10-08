@@ -30,26 +30,46 @@ export function ClientRestartDialog({
   const [failure, setFailure] = useState("");
   const name = restartNames[runtime.target];
   const cli = runtime.target === "claude_cli";
+  const savedOnly =
+    runtime.target !== "codex" &&
+    !runtime.clientRunning &&
+    !runtime.desktopRunning;
   const canRestart = runtime.canRestartClient ?? runtime.canRestartDesktop;
   return (
     <Modal
-      title={`重启 ${name} 使配置生效`}
+      title={savedOnly ? `${name} 配置已更新` : `重启 ${name} 使配置生效`}
       description={
-        runtime.target === "codex"
-          ? "Codex 配置已更新。请重启已打开的 Codex，使本次修改生效。"
-          : `新配置已保存。检测到 ${name} 仍在使用修改前的配置，重启后即可加载。`
+        savedOnly
+          ? "配置已保存。下次启动会读取新配置；如客户端仍打开，请先退出并重新启动。"
+          : runtime.target === "codex"
+            ? "Codex 配置已更新。请重启已打开的 Codex，使本次修改生效。"
+            : `新配置已保存。检测到 ${name} 仍在使用修改前的配置，重启后即可加载。`
       }
       onClose={onLater}
       busy={restarting}
       dismissOnOutside={false}
       initialFocusId="client-restart-later"
     >
-      <p className="scope-hint">
-        {cli
-          ? "立即重启会打开一个接续终端。请在原 Claude CLI 输入 /exit，旧会话退出后会在原工作目录恢复会话并加载新配置。"
-          : `立即重启会关闭并重新打开 ${name}，正在进行的任务会中断。也可以稍后自行重启。`}
-      </p>
-      {cli && (
+      <div className="session-switch-notice" role="note">
+        <strong>切换后请新开对话</strong>
+        <p>
+          {runtime.target === "codex"
+            ? "旧会话可能继续使用原来的模型和思考强度；即使重启 Codex 或恢复旧会话，也不保证改用新配置。请新开对话，并确认模型和思考强度后再发送请求。"
+            : "新配置用于后续请求。继续或恢复旧会话时，请先在客户端确认模型选择；建议新开对话验证，避免沿用旧会话设置。"}
+        </p>
+        <p>
+          供应商使用记录反映实际请求。uni-switch
+          显示的是已写入的配置，不能代表旧会话正在使用的模型或思考强度，也不会修改历史使用记录。
+        </p>
+      </div>
+      {!savedOnly && (
+        <p className="scope-hint">
+          {cli
+            ? "立即重启会打开一个接续终端。请在原 Claude CLI 输入 /exit，旧会话退出后会在原工作目录恢复会话并加载新配置。"
+            : `立即重启会关闭并重新打开 ${name}，正在进行的任务会中断。也可以稍后自行重启。`}
+        </p>
+      )}
+      {cli && !savedOnly && (
         <p className="scope-hint">
           也可以稍后在原终端输入 <code>/exit</code>，再运行{" "}
           <code>claude --continue</code> 恢复最近会话，或运行{" "}
@@ -67,7 +87,7 @@ export function ClientRestartDialog({
           接续终端已打开，正在等待原 Claude CLI 退出。
         </p>
       )}
-      {canRestart === false && (
+      {!savedOnly && canRestart === false && (
         <p className="scope-hint">
           {runtime.restartReason ||
             (runtime.target === "codex" && !runtime.desktopRunning
@@ -93,34 +113,36 @@ export function ClientRestartDialog({
           disabled={restarting}
           onClick={onLater}
         >
-          稍后重启
+          {savedOnly ? "知道了，去新开对话" : "稍后重启"}
         </button>
-        <button
-          type="button"
-          className="button primary"
-          disabled={restarting || canRestart === false}
-          onClick={async () => {
-            setRestarting(true);
-            setFailure("");
-            try {
-              const result =
-                runtime.target === "codex"
-                  ? await api.restartCodex(runtime.configurationRevision || 0)
-                  : await api.restartClient(
-                      runtime.target,
-                      runtime.configurationRevision || 0,
-                    );
-              onRestarted(result.message);
-            } catch (error) {
-              setFailure(errorMessage(error));
-            } finally {
-              setRestarting(false);
-            }
-          }}
-        >
-          <RotateCcw size={16} aria-hidden />
-          {restarting ? "正在重启…" : "立即重启"}
-        </button>
+        {!savedOnly && (
+          <button
+            type="button"
+            className="button primary"
+            disabled={restarting || canRestart === false}
+            onClick={async () => {
+              setRestarting(true);
+              setFailure("");
+              try {
+                const result =
+                  runtime.target === "codex"
+                    ? await api.restartCodex(runtime.configurationRevision || 0)
+                    : await api.restartClient(
+                        runtime.target,
+                        runtime.configurationRevision || 0,
+                      );
+                onRestarted(result.message);
+              } catch (error) {
+                setFailure(errorMessage(error));
+              } finally {
+                setRestarting(false);
+              }
+            }}
+          >
+            <RotateCcw size={16} aria-hidden />
+            {restarting ? "正在重启…" : "立即重启"}
+          </button>
+        )}
       </div>
     </Modal>
   );

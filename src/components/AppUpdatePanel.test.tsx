@@ -18,7 +18,9 @@ const release: UpdateCheck = {
   available: true,
   repository: "example/uni-switch",
   releaseUrl: "https://github.com/example/uni-switch/releases/tag/v99.0.0",
-  downloadUrl: null,
+  downloadUrl:
+    "https://github.com/example/uni-switch/releases/download/v99.0.0/installer.exe",
+  remoteUpdateAvailable: true,
   notes: "模型配置优化\n<img src=x onerror=alert(1)>",
   publishedAt: null,
   checkedAt: 1791360000,
@@ -32,6 +34,20 @@ beforeEach(() => {
   });
   vi.spyOn(api, "checkUpdate").mockResolvedValue(release);
   vi.spyOn(api, "openRelease").mockResolvedValue();
+  vi.spyOn(api, "updateDownloadStatus").mockResolvedValue(null);
+  vi.spyOn(api, "startUpdateDownload").mockResolvedValue({
+    id: "job",
+    version: "99.0.0",
+    phase: "downloading",
+    downloaded: 100,
+    total: 1000,
+    message: "正在下载",
+  });
+  vi.spyOn(api, "cancelUpdateDownload").mockResolvedValue();
+  vi.spyOn(api, "installUpdate").mockResolvedValue({
+    exitRequired: false,
+    message: "隔离安装完成",
+  });
 });
 afterEach(() => {
   client.clear();
@@ -52,10 +68,14 @@ describe("GitHub版本更新", () => {
     mount();
     await screen.findByText("新版本 v99.0.0");
     expect(api.checkUpdate).toHaveBeenCalledOnce();
+    expect(api.startUpdateDownload).not.toHaveBeenCalled();
+    expect(api.installUpdate).not.toHaveBeenCalled();
     expect(screen.getByText(/<img src=x/)).toBeVisible();
     expect(screen.queryByRole("img")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "前往下载" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "GitHub 手动下载" }),
+    );
     expect(api.openRelease).toHaveBeenCalledExactlyOnceWith(release.releaseUrl);
   });
   it("相同或本地更高版本不显示更新提示，手动检测可刷新", async () => {
@@ -98,7 +118,7 @@ describe("GitHub版本更新", () => {
     expect(api.checkUpdate).toHaveBeenCalledOnce();
     resolve(release);
     await userEvent.click(
-      await screen.findByRole("button", { name: "前往下载" }),
+      await screen.findByRole("button", { name: "GitHub 手动下载" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "未能打开浏览器",
@@ -116,4 +136,63 @@ describe("GitHub版本更新", () => {
     expect(screen.getByRole("button", { name: "检测更新" })).toBeDisabled();
     expect(screen.queryByText("已是最新版本")).toBeNull();
   });
+});
+
+it("每次选择远程更新，显示进度，取消后重新选择，不记忆下载方式", async () => {
+  mount();
+  await screen.findByText("新版本 v99.0.0");
+  expect(screen.getByRole("button", { name: "GitHub 手动下载" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "远程更新" })).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "远程更新" }));
+  expect(api.startUpdateDownload).toHaveBeenCalledExactlyOnceWith("99.0.0");
+  expect(
+    await screen.findByRole("progressbar", { name: "安装包下载进度" }),
+  ).toHaveAttribute("value", "100");
+  expect(screen.queryByRole("button", { name: "GitHub 手动下载" })).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "取消更新" }));
+  expect(api.cancelUpdateDownload).toHaveBeenCalledExactlyOnceWith("job");
+  expect(screen.getByRole("button", { name: "远程更新" })).toBeVisible();
+  expect(api.installUpdate).not.toHaveBeenCalled();
+  await userEvent.click(
+    screen.getByRole("button", { name: "GitHub 手动下载" }),
+  );
+  expect(api.openRelease).toHaveBeenCalledOnce();
+});
+it("校验完成仍等待用户确认安装，下载失败允许重选方式", async () => {
+  vi.mocked(api.updateDownloadStatus)
+    .mockResolvedValueOnce(null)
+    .mockResolvedValue({
+      id: "job",
+      version: "99.0.0",
+      phase: "ready",
+      downloaded: 1000,
+      total: 1000,
+      message: "校验通过",
+    });
+  mount();
+  await screen.findByText("新版本 v99.0.0");
+  await userEvent.click(screen.getByRole("button", { name: "远程更新" }));
+  await screen.findByText("校验通过");
+  expect(api.installUpdate).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole("button", { name: "安装更新" }));
+  expect(api.installUpdate).toHaveBeenCalledExactlyOnceWith("job");
+  await screen.findByText("隔离安装完成");
+  await userEvent.click(screen.getByRole("button", { name: "返回更新方式" }));
+  vi.mocked(api.startUpdateDownload).mockRejectedValue(
+    new Error("最新版本已变化，请重新检测"),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "远程更新" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("最新版本已变化");
+  expect(screen.getByRole("button", { name: "GitHub 手动下载" })).toBeEnabled();
+});
+it("不提供可校验本系统安装包时只有手动方式可用", async () => {
+  vi.mocked(api.checkUpdate).mockResolvedValue({
+    ...release,
+    remoteUpdateAvailable: false,
+  });
+  mount();
+  await screen.findByText("新版本 v99.0.0");
+  expect(screen.getByRole("button", { name: "远程更新" })).toBeDisabled();
+  expect(screen.getByText(/此版本未提供可校验/)).toBeVisible();
+  expect(api.startUpdateDownload).not.toHaveBeenCalled();
 });

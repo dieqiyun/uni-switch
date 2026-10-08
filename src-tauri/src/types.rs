@@ -32,6 +32,18 @@ impl Target {
     }
 }
 
+/// Opaque approval for one exact provider, target and current file snapshot.
+/// File contents and credentials are retained only by the backend.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyOverwriteConfirmation {
+    pub token: String,
+    pub target: Target,
+    pub provider_id: String,
+    pub directory: String,
+    pub files: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderInput {
@@ -412,6 +424,9 @@ pub struct TargetStatus {
     pub message: String,
     #[serde(default)]
     pub applied_model: Option<String>,
+    /// Read-back global config choices; not the model/effort of a live thread.
+    pub configured_model: Option<String>,
+    pub configured_reasoning_effort: Option<String>,
     pub configuration_revision: u64,
 }
 

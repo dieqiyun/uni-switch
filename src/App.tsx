@@ -72,6 +72,7 @@ import {
   type RuntimeStatus,
   type Target,
   type QuickModelInput,
+  type ApplyOverwriteConfirmation,
 } from "./types";
 
 type Popup =
@@ -84,6 +85,11 @@ type Popup =
   | { kind: "update" }
   | { kind: "directory" }
   | { kind: "conflict" }
+  | {
+      kind: "overwrite";
+      provider: Provider;
+      confirmation: ApplyOverwriteConfirmation;
+    }
   | { kind: "help"; topic?: string }
   | { kind: "restart-client"; runtime: RuntimeStatus }
   | null;
@@ -119,6 +125,7 @@ export default function App() {
     onAction?: () => void;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [updateBusy, setUpdateBusy] = useState(false);
   const [busyProviderId, setBusyProviderId] = useState<string | null>(null);
   const [fastProviderId, setFastProviderId] = useState<string | null>(null);
   const [conversionProviderId, setConversionProviderId] = useState<
@@ -193,6 +200,43 @@ export default function App() {
   const observedCodex = useRef<{ directory: string; revision: number } | null>(
     null,
   );
+  const observedClaudeWrites = useRef<
+    Partial<Record<Target, { directory: string; revision: number }>>
+  >({});
+  const [claudeWriteRevisions, setClaudeWriteRevisions] = useState<
+    Partial<Record<Target, number>>
+  >({});
+  useEffect(() => {
+    if (!desktopRuntime) return;
+    for (const value of query.data?.targets ?? []) {
+      if (value.target === "codex" || value.configurationRevision === undefined)
+        continue;
+      const previous = observedClaudeWrites.current[value.target];
+      const revision = value.configurationRevision;
+      observedClaudeWrites.current[value.target] = {
+        directory: value.directory,
+        revision,
+      };
+      if (
+        !previous ||
+        previous.directory !== value.directory ||
+        revision < previous.revision
+      ) {
+        setClaudeWriteRevisions((pending) => {
+          const next = { ...pending };
+          delete next[value.target];
+          return next;
+        });
+        if (previous?.directory !== value.directory)
+          delete promptedRevision.current[value.target];
+      } else if (revision > previous.revision) {
+        setClaudeWriteRevisions((pending) => ({
+          ...pending,
+          [value.target]: revision,
+        }));
+      }
+    }
+  }, [query.data]);
   const [codexWriteRevision, setCodexWriteRevision] = useState<number | null>(
     null,
   );
@@ -256,6 +300,37 @@ export default function App() {
       setPopup({ kind: "restart-client", runtime: value });
       return;
     }
+    for (const clientTarget of ["claude_desktop", "claude_cli"] as const) {
+      const revision = claudeWriteRevisions[clientTarget];
+      if (revision === undefined) continue;
+      setClaudeWriteRevisions((pending) => {
+        const next = { ...pending };
+        delete next[clientTarget];
+        return next;
+      });
+      if (revision <= (promptedRevision.current[clientTarget] ?? -1)) continue;
+      const current =
+        clientTarget === "claude_desktop"
+          ? claudeDesktopRuntime
+          : claudeCliRuntime;
+      const value: RuntimeStatus =
+        current?.configurationRevision === revision
+          ? { ...current }
+          : {
+              target: clientTarget,
+              configurationRevision: revision,
+              clientRunning: false,
+              restartRequired: false,
+              bridgeRequired: false,
+              bridgeHealthy: true,
+              desktopRunning: false,
+              desktopRestartRequired: false,
+              canRestartClient: false,
+            };
+      promptedRevision.current[clientTarget] = revision;
+      setPopup({ kind: "restart-client", runtime: value });
+      return;
+    }
     const pending = [codexRuntime, claudeDesktopRuntime, claudeCliRuntime]
       .filter((value): value is RuntimeStatus => !!value)
       .sort(
@@ -280,6 +355,7 @@ export default function App() {
     popup,
     busy,
     codexWriteRevision,
+    claudeWriteRevisions,
   ]);
   const background = useQuery({
     queryKey: ["background"],
@@ -362,6 +438,7 @@ export default function App() {
     success: string | ((result: T) => string),
     close = false,
     providerId: string | null = null,
+    onConflict?: (error: unknown) => Promise<void>,
   ) {
     setBusy(true);
     setBusyProviderId(providerId);
@@ -382,6 +459,19 @@ export default function App() {
       if (close) setPopup(null);
       return result;
     } catch (error) {
+      if (
+        onConflict &&
+        ["external_change", "overwrite_confirmation_changed"].includes(
+          errorCode(error),
+        )
+      ) {
+        try {
+          await onConflict(error);
+          return;
+        } catch (preparationError) {
+          error = preparationError;
+        }
+      }
       setNotice({
         error: true,
         text: explainError(error).message,
@@ -403,13 +493,60 @@ export default function App() {
           else if (explainError(error).field && providerId) {
             const provider = providers.find((p) => p.id === providerId);
             if (provider) setPopup({ kind: "edit", provider });
-          } else void action(task, success, close, providerId);
+          } else void action(task, success, close, providerId, onConflict);
         },
       });
     } finally {
       setBusy(false);
       setBusyProviderId(null);
     }
+  }
+  async function useProvider(
+    provider: Provider,
+    applyTarget: Target,
+    confirmation?: ApplyOverwriteConfirmation,
+  ) {
+    await action(
+      () =>
+        confirmation
+          ? api.apply(applyTarget, provider.id, confirmation.token)
+          : api.apply(applyTarget, provider.id),
+      desktopRuntime
+        ? `配置已写入 ${targetNames[applyTarget]}。请按提示重启并新开对话；旧会话可能继续沿用原模型和思考强度。`
+        : "预览：已选择配置，未修改客户端文件。",
+      !!confirmation,
+      provider.id,
+      async (error) => {
+        const prepared = await api.prepareOverwrite(applyTarget, provider.id);
+        if (
+          prepared.target !== applyTarget ||
+          prepared.providerId !== provider.id
+        )
+          throw new Error("配置确认信息已变化，请重新点击使用。");
+        const latest = await api.overview();
+        const currentProvider = latest.providers.find(
+          (value) => value.id === provider.id,
+        );
+        if (!currentProvider) throw new Error("供应商已被删除，请刷新列表。");
+        client.setQueryData(["overview"], latest);
+        setBusy(false);
+        setBusyProviderId(null);
+        setPopup({
+          kind: "overwrite",
+          provider: currentProvider,
+          confirmation: prepared,
+        });
+        setNotice(
+          confirmation
+            ? {
+                error: true,
+                text: "确认期间配置又发生变化，或确认已过期。此次没有写入，请检查后再次确认。",
+                details: error,
+              }
+            : null,
+        );
+      },
+    );
   }
   async function quickModels(input: QuickModelInput, label: string) {
     setQuickProviderId(input.expected.id);
@@ -799,7 +936,17 @@ export default function App() {
                         isActive && status?.appliedModel
                           ? status.appliedModel
                           : provider.model;
-                      const upToDate = isActive && applied;
+                      const codexChoiceDiffers =
+                        target === "codex" &&
+                        isActive &&
+                        status?.state === "applied" &&
+                        !!status.configuredModel &&
+                        (status.configuredModel !== displayedModel ||
+                          (!!provider.reasoningEffort &&
+                            status.configuredReasoningEffort !==
+                              provider.reasoningEffort));
+                      const upToDate =
+                        isActive && applied && !codexChoiceDiffers;
                       const conversionBlocked =
                         needsProtocolConversion(provider, target) &&
                         !protocolConversionEnabled(provider, target);
@@ -989,6 +1136,24 @@ export default function App() {
                               provider={provider}
                             />
                           </div>
+                          {codexChoiceDiffers && (
+                            <p
+                              className="provider-state-note attention"
+                              role="status"
+                            >
+                              Codex 配置当前选择：
+                              <code>{status.configuredModel}</code>
+                              {" · 思考强度 "}
+                              <code>
+                                {status.configuredReasoningEffort || "模型默认"}
+                              </code>
+                              。点击「重新应用」恢复供应商默认模型，
+                              {provider.reasoningEffort
+                                ? `思考强度使用供应商设置 ${provider.reasoningEffort}。`
+                                : "并保留此思考强度。"}
+                              已有会话请在 Codex 内确认模型和思考强度。
+                            </p>
+                          )}
                           {isActive && activeState.tone === "attention" && (
                             <p
                               className={
@@ -1034,7 +1199,6 @@ export default function App() {
                                 conversionBlocked ||
                                 protocolPending ||
                                 upToDate ||
-                                status?.state === "external_change" ||
                                 status?.state === "error"
                               }
                               aria-describedby={
@@ -1042,16 +1206,16 @@ export default function App() {
                                   ? `protocol-hint-${provider.id}`
                                   : undefined
                               }
-                              onClick={() =>
-                                void action(
-                                  () => api.apply(target, provider.id),
-                                  desktopRuntime
-                                    ? `配置已写入 ${targetNames[target]}。请按供应商行的提示加载配置。`
-                                    : "预览：已选择配置，未修改客户端文件。",
-                                  false,
-                                  provider.id,
-                                )
-                              }
+                              onClick={(event) => {
+                                document
+                                  .querySelector("[data-dialog-return]")
+                                  ?.removeAttribute("data-dialog-return");
+                                event.currentTarget.setAttribute(
+                                  "data-dialog-return",
+                                  "",
+                                );
+                                void useProvider(provider, target);
+                              }}
                             >
                               {busyProviderId === provider.id &&
                               fastProviderId !== provider.id
@@ -1059,12 +1223,14 @@ export default function App() {
                                   conversionProviderId === provider.id
                                   ? "保存中…"
                                   : "正在应用…"
-                                : upToDate
-                                  ? activeState.label
-                                  : isActive &&
-                                      status?.state === "saved_changes"
-                                    ? "更新配置"
-                                    : "使用"}
+                                : codexChoiceDiffers
+                                  ? "重新应用"
+                                  : upToDate
+                                    ? activeState.label
+                                    : isActive &&
+                                        status?.state === "saved_changes"
+                                      ? "更新配置"
+                                      : "使用"}
                               {upToDate ? (
                                 <Check size={15} aria-hidden />
                               ) : (
@@ -1184,10 +1350,16 @@ export default function App() {
       {popup?.kind === "update" && (
         <Modal
           title="软件更新"
-          description="查看 GitHub 最新正式版本和更新说明。"
+          description="每次更新选择 GitHub 手动下载或远程更新。"
+          busy={updateBusy}
+          dismissOnOutside={!updateBusy}
           onClose={() => setPopup(null)}
         >
-          <AppUpdatePanel state={appUpdate} showHeading={false} />
+          <AppUpdatePanel
+            state={appUpdate}
+            showHeading={false}
+            onBusy={setUpdateBusy}
+          />
         </Modal>
       )}
       {popup?.kind === "models" && (
@@ -1618,10 +1790,78 @@ export default function App() {
           </form>
         </Modal>
       )}
+      {popup?.kind === "overwrite" && (
+        <Modal
+          title="覆盖现有 API 配置？"
+          description={`${targetNames[popup.confirmation.target]} 的 API 配置已被其他工具修改，是否强制覆盖并使用「${popup.provider.name}」？`}
+          onClose={() => {
+            setNotice(null);
+            setPopup(null);
+          }}
+          busy={busy}
+          dismissOnOutside={false}
+          initialFocusId="cancel-overwrite"
+        >
+          <p>
+            只覆盖此客户端的
+            API、模型和相关受管设置，保留其他设置。覆盖前会自动备份当前文件，其他客户端不受影响。
+          </p>
+          <p className="scope-hint">
+            若其他切换工具仍在自动写入，请先暂停它，避免配置反复被改动。
+          </p>
+          <p>配置目录</p>
+          <code className="settings-path">{popup.confirmation.directory}</code>
+          {popup.confirmation.files.length > 0 && (
+            <details className="files-details">
+              <summary>
+                将更新 {popup.confirmation.files.length} 个配置文件
+              </summary>
+              <ul>
+                {popup.confirmation.files.map((file) => (
+                  <li key={file}>
+                    <code>{file}</code>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {notice?.error && (
+            <p className="error-notice" role="alert">
+              {notice.text}
+            </p>
+          )}
+          <div className="modal-actions">
+            <button
+              id="cancel-overwrite"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => {
+                setNotice(null);
+                setPopup(null);
+              }}
+            >
+              取消
+            </button>
+            <button
+              className="button danger"
+              disabled={busy}
+              onClick={() =>
+                void useProvider(
+                  popup.provider,
+                  popup.confirmation.target,
+                  popup.confirmation,
+                )
+              }
+            >
+              {busy ? "正在覆盖…" : "强制覆盖并使用"}
+            </button>
+          </div>
+        </Modal>
+      )}
       {popup?.kind === "conflict" && (
         <Modal
           title="处理现有配置"
-          description="为保护现有配置，软件已暂停写入。请先撤回其他工具对 API 字段或模型目录的修改，再重试。"
+          description="为保护现有配置，软件已暂停写入。可关闭此窗口并点击供应商的「使用」确认覆盖，或先撤回其他工具的修改。"
           wide
           onClose={() => setPopup(null)}
           busy={busy}

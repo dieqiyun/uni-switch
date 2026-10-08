@@ -2,13 +2,13 @@
 
 简洁的 Codex / Claude Code API 配置工具。填写 **API 地址、API Key**，点击 **添加并使用**；日常切换只需一次点击。
 
-**当前版本：0.5.20 · Windows / Linux / macOS · AGPL-3.0-only**
+**当前版本：0.5.21 · Windows / Linux / macOS · AGPL-3.0-only**
 
 [下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [开源许可](LICENSE)
 
 ![uni-switch 模型配置](docs/screenshots/model-catalog-pruned-local.png)
 
-本版修复支持图片的 GPT 在 Codex 中被误判为仅文本的问题。模型配置支持按模型自动匹配图片能力和手动覆盖，旧版受管配置会自动检查修复并提示重启。详见 [模型能力说明](docs/model-capabilities.md)。
+本版新增每次选择 GitHub 手动下载或远程更新，并在切换后明确提醒新开对话；修复重新应用供应商导致有效思考强度丢失和默认模型状态误导的问题。外部配置冲突时可确认后备份并覆盖。详见 [更新记录](CHANGELOG.md)、[远程更新说明](docs/remote-update.md) 和 [模型请求排查](docs/model-routing-diagnosis.md)。
 
 ## 供应商赞助名单
 
@@ -37,9 +37,9 @@
 - 同步成功后移除上游已下架的模型，并为失效默认模型选择有效替代项；同步失败保留原列表。
 - 双向协议转换：Codex 使用 Claude Messages 模型；Claude Code 使用 OpenAI 模型。
 - 供应商列表直接切换默认模型、上下文、Fast 加速模式和协议转换；完整模型配置在弹窗中确认。
-- Codex 配置写入时自动检查思考强度显示。实际修改后提供立即重启 / 稍后重启；Claude 两端检测到对应运行客户端时也会提示。
-- 本地配置备份、外部修改冲突检测、恢复原配置；后台协议转换与可选 Windows 登录启动。
-- 左下角版本入口检查 GitHub 最新正式版，发现新版时持续显示明确提醒、目标版本和「立即更新」入口。
+- Codex 配置写入时自动检查思考强度显示并保留有效用户选择。实际修改后提示重启和新开对话；Claude 未运行时也提示后续启动与新对话。
+- 本地配置备份、外部修改冲突检测、确认覆盖及恢复原配置；后台协议转换与可选 Windows 登录启动。
+- 左下角版本入口检查 GitHub 最新正式版，发现新版时持续显示提醒；每次选择手动下载或远程下载、校验后确认安装。
 - 软件内提供可离线查看的分类教程，与 GitHub 使用教程共用内容。
 
 ## 使用
@@ -48,7 +48,7 @@
 
 1. 在左侧选择 Codex 或 Claude Code；Claude Code 可分别选择桌面端和 CLI。
 2. 点击 **添加供应商**，填写 API 地址和 API Key，点击 **添加并使用**。
-3. 按提示重启对应客户端，加载新配置及模型列表。
+3. 按提示重启对应客户端并新开对话，确认模型和思考强度。旧 Codex 会话或恢复的会话仍可能保留原选择。
 4. 后续切换点击供应商行的 **使用**。点击 **管理模型**调整启用列表、默认模型和上下文。
 
 模型弹窗中的同步和选择属于草稿，取消不会写入。当前供应商确认保存后立即应用；未使用供应商在下次使用时应用。余额查询范围由上游接口决定，密钥额度与账户余额会分别标注。
@@ -61,17 +61,17 @@
 
 | 系统 / 文件 | 用途 |
 | --- | --- |
-| Windows x64：`uni-switch_0.5.20_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
-| Windows x64：`uni-switch_0.5.20_x64-portable.zip` | 便携程序、说明和许可证 |
-| Windows x64：`uni-switch_0.5.20_x64.exe` | 独立程序，需要系统已有 WebView2 |
-| Linux x64：`uni-switch_0.5.20_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
-| Linux x64：`uni-switch_0.5.20_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
-| macOS：`uni-switch_0.5.20_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
-| macOS：`uni-switch_0.5.20_universal.app.tar.gz` | 通用 app 归档 |
-| `uni-switch_0.5.20_source.zip` | 与三平台程序对应的完整源码和构建文件 |
+| Windows x64：`uni-switch_0.5.21_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
+| Windows x64：`uni-switch_0.5.21_x64-portable.zip` | 便携程序、说明和许可证 |
+| Windows x64：`uni-switch_0.5.21_x64.exe` | 独立程序，需要系统已有 WebView2 |
+| Linux x64：`uni-switch_0.5.21_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
+| Linux x64：`uni-switch_0.5.21_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
+| macOS：`uni-switch_0.5.21_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
+| macOS：`uni-switch_0.5.21_universal.app.tar.gz` | 通用 app 归档 |
+| `uni-switch_0.5.21_source.zip` | 与三平台程序对应的完整源码和构建文件 |
 | `README-zh-CN.md` / `SHA256SUMS.txt` | 完整教程 / 附件校验值 |
 
-本版恢复完整开源与源码归档，许可保持 AGPL-3.0-only。v0.5.19 历史附件保留。更新检测按当前系统选择下载地址，不自动替换运行中的程序。
+继续提供完整源码及三平台程序，许可保持 AGPL-3.0-only，历史版本全部保留。每次更新选择「GitHub 手动下载」或「远程更新」，检测不会自动下载安装。远程更新下载并校验本系统安装包，仍需点击「安装更新」：Windows 启动向导并退出应用，macOS 打开 DMG 后拖入安装，Linux 使用系统安装程序或替换 AppImage。详情见 [远程更新说明](docs/remote-update.md)。
 
 macOS 包使用 ad-hoc 签名，尚未经过 Apple Developer ID 签名与公证；首次打开如被阻止，请先核对发布来源和校验值，再到「系统设置 → 隐私与安全性」允许打开。Linux AppImage 如缺少 FUSE，可使用 `--appimage-extract-and-run`；DEB 通过包管理器安装依赖。
 

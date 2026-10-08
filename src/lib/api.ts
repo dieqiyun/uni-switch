@@ -20,7 +20,10 @@ import type {
   QuickModelInput,
   UpdateSource,
   UpdateCheck,
+  UpdateDownloadStatus,
+  UpdateInstallResult,
   ProtocolConversionResult,
+  ApplyOverwriteConfirmation,
 } from "../types";
 import { APP_VERSION } from "./appVersion";
 import releaseConfig from "../../release-config.json";
@@ -137,6 +140,20 @@ export const api = {
       throw new Error("请在 uni-switch 桌面应用中检测更新。");
     return invoke("check_app_update");
   },
+  startUpdateDownload: async (
+    version: string,
+  ): Promise<UpdateDownloadStatus> => {
+    if (!desktopRuntime) throw new Error("请在桌面应用中下载更新。");
+    return invoke("start_app_update_download", { version });
+  },
+  updateDownloadStatus: async (): Promise<UpdateDownloadStatus | null> => {
+    if (!desktopRuntime) return null;
+    return invoke("get_app_update_download");
+  },
+  cancelUpdateDownload: async (id: string): Promise<void> =>
+    invoke("cancel_app_update_download", { id }),
+  installUpdate: async (id: string): Promise<UpdateInstallResult> =>
+    invoke("install_app_update", { id }),
   openRelease: async (url: string): Promise<void> => {
     if (!desktopRuntime) throw new Error("请在桌面应用中打开 GitHub 发布页。");
     return invoke("open_app_release", { url });
@@ -380,8 +397,32 @@ export const api = {
     data.providers = data.providers.filter((p) => p.id !== providerId);
     persist(data);
   },
-  apply: async (target: Target, providerId: string): Promise<TargetStatus> => {
-    if (desktopRuntime) return invoke("apply_provider", { target, providerId });
+  prepareOverwrite: async (
+    target: Target,
+    providerId: string,
+  ): Promise<ApplyOverwriteConfirmation> => {
+    if (desktopRuntime)
+      return invoke("prepare_apply_overwrite", { target, providerId });
+    const status = preview().targets.find((value) => value.target === target)!;
+    return {
+      token: crypto.randomUUID(),
+      target,
+      providerId,
+      directory: status.directory,
+      files: status.files,
+    };
+  },
+  apply: async (
+    target: Target,
+    providerId: string,
+    confirmationToken?: string,
+  ): Promise<TargetStatus> => {
+    if (desktopRuntime)
+      return invoke("apply_provider", {
+        target,
+        providerId,
+        ...(confirmationToken ? { confirmationToken } : {}),
+      });
     const data = preview();
     const supplier = data.providers.find((p) => p.id === providerId);
     if (

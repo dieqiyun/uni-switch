@@ -1995,3 +1995,39 @@ summary {
     order: 4;
   }
 }
+
+/* Plain, readable reminders and update progress without nested cards. */
+.session-switch-notice {
+  margin: 20px 0;
+  padding-left: 14px;
+  border-left: 3px solid #202020;
+}
+.session-switch-notice strong {
+  font-size: 15px;
+}
+.session-switch-notice p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #4a4a4a;
+  margin: 8px 0;
+}
+.remote-update-progress {
+  margin: 20px 0;
+  border-top: 1px solid #e8e8e8;
+  padding-top: 16px;
+}
+.remote-update-progress h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.remote-update-progress p {
+  line-height: 1.8;
+  font-size: 13px;
+}
+.remote-update-progress progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  accent-color: #202020;
+  margin: 14px 0;
+}
