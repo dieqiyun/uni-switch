@@ -2789,6 +2789,190 @@ fn codex_switch_preserves_comments_projects_and_credentials() {
 }
 
 #[test]
+fn native_claude_client_bases_do_not_duplicate_the_sdk_version_path() {
+    for (upstream, expected) in [
+        (
+            "https://gateway.example.test/v1",
+            "https://gateway.example.test",
+        ),
+        (
+            "https://gateway.example.test/v1/",
+            "https://gateway.example.test",
+        ),
+        (
+            "https://gateway.example.test",
+            "https://gateway.example.test",
+        ),
+        (
+            "https://gateway.example.test/",
+            "https://gateway.example.test",
+        ),
+        (
+            "https://gateway.example.test:9443/custom/anthropic/v1/",
+            "https://gateway.example.test:9443/custom/anthropic",
+        ),
+        (
+            "https://gateway.example.test/custom/v10",
+            "https://gateway.example.test/custom/v10",
+        ),
+        (
+            "https://gateway.example.test/custom/v1/service",
+            "https://gateway.example.test/custom/v1/service",
+        ),
+    ] {
+        for auth in ["bearer", "x-api-key"] {
+            let (temp, mut store) = fixture();
+            let mut value = input(Family::Claude, "Native Claude base");
+            value.base_url = upstream.into();
+            value.auth_mode = auth.into();
+            value.model = "claude-opus-5-5".into();
+            value.codex_options.models = ["claude-opus-5-5", "claude-fable-5", "claude-haiku-5-5"]
+                .iter()
+                .map(|id| ProviderModel {
+                    id: (*id).into(),
+                    enabled: true,
+                    ..Default::default()
+                })
+                .collect();
+            let provider = store.save(value).unwrap();
+            for target in [Target::ClaudeDesktop, Target::ClaudeCli] {
+                assert_eq!(store.apply(target, &provider.id).unwrap().state, "applied");
+                assert_eq!(store.status(target).unwrap().state, "applied");
+            }
+            let cli = read_json(&temp.path().join("claude_cli/settings.json"));
+            assert_eq!(cli["env"]["ANTHROPIC_BASE_URL"], expected, "{upstream}");
+            assert_eq!(cli["env"]["ANTHROPIC_MODEL"], "claude-opus-5-5");
+            let auth_key = if auth == "bearer" {
+                "ANTHROPIC_AUTH_TOKEN"
+            } else {
+                "ANTHROPIC_API_KEY"
+            };
+            assert_eq!(cli["env"][auth_key], "test-key-1234");
+            let profile = read_json(&temp.path().join(format!(
+                "claude_desktop/Claude-3p/configLibrary/{}.json",
+                adapters::PROFILE_UUID
+            )));
+            assert_eq!(profile["inferenceGatewayBaseUrl"], expected, "{upstream}");
+            assert_eq!(profile["inferenceGatewayAuthScheme"], auth);
+            assert_eq!(
+                profile["inferenceModels"],
+                json!(["claude-opus-5-5", "claude-fable-5", "claude-haiku-5-5"])
+            );
+            assert_eq!(
+                store.provider(&provider.id).unwrap().summary.base_url,
+                upstream.trim_end_matches('/')
+            );
+            assert!(!store.bridge_required());
+        }
+    }
+}
+
+#[test]
+fn native_claude_base_normalization_restores_the_original_client_values() {
+    let (temp, mut store) = fixture();
+    let cli_path = temp.path().join("claude_cli/settings.json");
+    let profile_path = temp.path().join(format!(
+        "claude_desktop/Claude-3p/configLibrary/{}.json",
+        adapters::PROFILE_UUID
+    ));
+    let original_cli = json!({
+        "env": {"ANTHROPIC_BASE_URL": "https://original.example.test/route/v1", "KEEP": "yes"},
+        "hooks": {"Stop": []}
+    });
+    let original_profile = json!({
+        "inferenceGatewayBaseUrl": "https://original.example.test/route/v1",
+        "permissionMode": "default"
+    });
+    put(&cli_path, &original_cli.to_string());
+    put(&profile_path, &original_profile.to_string());
+    let provider = store
+        .save(input(Family::Claude, "Native Claude base restore"))
+        .unwrap();
+    for target in [Target::ClaudeCli, Target::ClaudeDesktop] {
+        store.apply(target, &provider.id).unwrap();
+    }
+    assert_eq!(
+        read_json(&cli_path)["env"]["ANTHROPIC_BASE_URL"],
+        "https://gateway.example.test"
+    );
+    assert_eq!(
+        read_json(&profile_path)["inferenceGatewayBaseUrl"],
+        "https://gateway.example.test"
+    );
+    for target in [Target::ClaudeCli, Target::ClaudeDesktop] {
+        store.restore(target).unwrap();
+    }
+    assert_eq!(read_json(&cli_path), original_cli);
+    assert_eq!(read_json(&profile_path), original_profile);
+}
+
+#[test]
+fn legacy_claude_client_base_is_pending_without_overwriting_external_changes() {
+    let (temp, mut store) = fixture();
+    let provider = store
+        .save(input(Family::Claude, "Legacy native base"))
+        .unwrap();
+    for target in [Target::ClaudeDesktop, Target::ClaudeCli] {
+        store.apply(target, &provider.id).unwrap();
+        let (_, _, baseline) = store.target_record(target).unwrap();
+        let mut baseline = baseline.unwrap();
+        let file = baseline
+            .iter_mut()
+            .find(|file| {
+                file.keys.iter().any(|key| {
+                    matches!(
+                        key.as_str(),
+                        "env.ANTHROPIC_BASE_URL" | "inferenceGatewayBaseUrl"
+                    )
+                })
+            })
+            .unwrap();
+        let mut doc: Value = serde_json::from_str(file.expected.as_deref().unwrap()).unwrap();
+        let base = if target == Target::ClaudeCli {
+            &mut doc["env"]["ANTHROPIC_BASE_URL"]
+        } else {
+            &mut doc["inferenceGatewayBaseUrl"]
+        };
+        *base = json!(provider.base_url);
+        let legacy = doc.to_string();
+        put(&file.path, &legacy);
+        file.expected = Some(legacy.clone());
+        let path = file.path.clone();
+        store
+            .conn
+            .execute(
+                "UPDATE targets SET baseline=?1 WHERE id=?2",
+                params![json(&baseline).unwrap(), target.id()],
+            )
+            .unwrap();
+        let revision = store.status(target).unwrap().configuration_revision;
+        assert_eq!(store.status(target).unwrap().state, "saved_changes");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), legacy);
+        let outside = legacy.replace("gateway.example.test", "outside.example.test");
+        put(&path, &outside);
+        assert_eq!(store.status(target).unwrap().state, "external_change");
+        assert_eq!(
+            store.apply(target, &provider.id).unwrap_err().code,
+            "external_change"
+        );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), outside);
+        put(&path, &legacy);
+        store.apply(target, &provider.id).unwrap();
+        let status = store.status(target).unwrap();
+        assert_eq!(status.state, "applied");
+        assert!(status.configuration_revision > revision);
+        assert!(!std::fs::read_to_string(&path)
+            .unwrap()
+            .contains("gateway.example.test/v1"));
+        assert_eq!(
+            store.provider(&provider.id).unwrap().summary.base_url,
+            provider.base_url
+        );
+    }
+    assert!(!temp.path().join("codex/config.toml").exists());
+}
+
+#[test]
 fn desktop_writes_profile_and_library_preserves_mcp_and_restores_new_settings() {
     let (temp, mut store) = fixture();
     let dir = temp.path().join("claude_desktop");

@@ -1,5 +1,63 @@
 use super::*;
 
+#[test]
+fn new_claude_and_deepseek_thinking_use_declared_formats_not_budgets() {
+    for effort in ["minimal", "medium", "xhigh", "ultra"] {
+        let source = json!({"model":"claude-haiku-5-5","input":"Hi","reasoning":{"effort":effort},"max_output_tokens":256,"temperature":1,"top_p":0.8});
+        let converted = convert::request(&source, false).unwrap();
+        assert_eq!(converted.body["thinking"]["type"], "adaptive");
+        assert!(converted.body["thinking"].get("budget_tokens").is_none());
+        assert!(converted.body.get("temperature").is_none());
+        assert!(converted.body.get("top_p").is_none());
+        assert_eq!(
+            converted.body["output_config"]["effort"],
+            match effort {
+                "minimal" => "low",
+                "ultra" => "max",
+                other => other,
+            }
+        );
+    }
+    let source = json!({"model":"deepseek-v4.1-flash","input":"Hi","reasoning":{"effort":"medium"},"max_output_tokens":256});
+    let converted = convert::request(&source, false).unwrap();
+    assert_eq!(converted.body["thinking"], json!({"type":"enabled"}));
+    assert_eq!(converted.body["output_config"]["effort"], "high");
+    let disabled =
+        json!({"model":"deepseek-v4.1-flash","input":"Hi","reasoning":{"effort":"none"}});
+    assert_eq!(
+        convert::request(&disabled, false).unwrap().body["thinking"],
+        json!({"type":"disabled"})
+    );
+    let source = json!({"model":"claude-haiku-4-5","input":"Hi","reasoning":{"effort":"high"},"max_output_tokens":8192});
+    assert_eq!(
+        convert::request(&source, false).unwrap().body["thinking"]["budget_tokens"],
+        4096
+    );
+}
+
+#[test]
+fn unknown_models_require_thinking_evidence_and_manual_override_is_respected() {
+    let source = json!({"model":"private-claude","input":"Hi","reasoning":{"effort":"high"}});
+    assert!(convert::request(&source, false).is_err());
+    let mut model = crate::types::ProviderModel {
+        id: "private-claude".into(),
+        ..Default::default()
+    };
+    model.profile_overrides.thinking_format = Some(crate::types::ThinkingFormat::Adaptive);
+    assert_eq!(
+        convert::request_with_model(&source, false, &model)
+            .unwrap()
+            .body["thinking"]["type"],
+        "adaptive"
+    );
+    model.profile_overrides.thinking_format = Some(crate::types::ThinkingFormat::None);
+    assert!(convert::request_with_model(&source, false, &model)
+        .unwrap()
+        .body
+        .get("thinking")
+        .is_none());
+}
+
 #[tokio::test]
 async fn occupied_saved_port_recovers_without_changing_client_address_or_token() {
     let temp = tempfile::tempdir().unwrap();

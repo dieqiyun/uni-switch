@@ -4475,7 +4475,7 @@ dependencies = [
 
 [[package]]
 name = "uni-switch"
-version = "0.5.21"
+version = "0.5.22"
 dependencies = [
  "async-stream",
  "axum",
@@ -4483,6 +4483,7 @@ dependencies = [
  "dirs 6.0.0",
  "futures-util",
  "reqwest 0.12.28",
+ "ring",
  "rusqlite",
  "serde",
  "serde_json",

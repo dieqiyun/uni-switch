@@ -3,8 +3,12 @@ import {
   modelCapability,
   knownCapabilities,
   preserveCapabilities,
+  effectiveProfile,
+  knownProfile,
+  installRegistry,
 } from "./modelCapabilities";
-import type { ProviderModel } from "../types";
+import registry from "../content/model-capabilities.json";
+import type { ModelRegistry, ProviderModel } from "../types";
 const model: ProviderModel = {
   id: "gpt-4o",
   enabled: true,
@@ -54,5 +58,95 @@ describe("模型能力解析", () => {
       source: "manual",
     });
     expect(preserveCapabilities(fresh).capabilityOverrides).toEqual({});
+  });
+  it("档案逐字段合并，保留明确 false、空档位和旧格式的上游档位", () => {
+    const haiku = { ...model, id: "claude-haiku-5-5" };
+    expect(effectiveProfile(haiku)).toMatchObject({
+      thinkingFormat: "adaptive",
+      defaultEffort: "medium",
+    });
+    expect(
+      effectiveProfile({ ...haiku, reasoningEfforts: ["high"] })
+        .reasoningEfforts,
+    ).toEqual(["high"]);
+    const observed = {
+      ...haiku,
+      profile: {
+        reasoningEfforts: [],
+        toolCalls: false,
+        endpoints: { responses: false, messages: true },
+      },
+    };
+    expect(effectiveProfile(observed)).toMatchObject({
+      reasoningEfforts: [],
+      toolCalls: false,
+      endpoints: { responses: false, messages: true },
+    });
+    expect(effectiveProfile(observed).defaultEffort).toBeUndefined();
+    expect(
+      effectiveProfile({
+        ...observed,
+        profileOverrides: { toolCalls: true, thinkingFormat: "budget" },
+      }),
+    ).toMatchObject({ toolCalls: true, thinkingFormat: "budget" });
+    expect(knownProfile("private/claude-haiku-5-5")).toEqual({});
+    expect(
+      effectiveProfile({ ...model, id: "private-model" }).thinkingFormat,
+    ).toBeUndefined();
+    expect(
+      effectiveProfile({
+        ...model,
+        id: "private-model",
+        officialProfile: { thinkingFormat: "budget" },
+      }).thinkingFormat,
+    ).toBe("budget");
+  });
+  it("同步只保留用户旧的思考模式覆盖，不接受上游伪造的手动值", () => {
+    const previous: ProviderModel = {
+      ...model,
+      profileOverrides: { thinkingFormat: "budget" },
+    };
+    const incoming: ProviderModel = {
+      ...model,
+      profile: { thinkingFormat: "adaptive" },
+      profileOverrides: { thinkingFormat: "none" },
+    };
+    expect(preserveCapabilities(incoming, previous).profileOverrides).toEqual({
+      thinkingFormat: "budget",
+    });
+    expect(preserveCapabilities(incoming).profileOverrides).toEqual({});
+    expect(
+      preserveCapabilities(incoming, previous).profile?.thinkingFormat,
+    ).toBe("adaptive");
+  });
+  it("运行时资料更新不回滚到低于最近安装的版本", () => {
+    const next: ModelRegistry = {
+      ...(registry as ModelRegistry),
+      version: registry.version + 2,
+      entries: [
+        ...(registry as ModelRegistry).entries,
+        {
+          ids: ["new-qa-model"],
+          capabilities: { imageInput: true },
+          profile: { thinkingFormat: "adaptive" },
+          source: "https://example.test/docs",
+        },
+      ],
+    };
+    installRegistry(next);
+    expect(knownProfile("new-qa-model").thinkingFormat).toBe("adaptive");
+    installRegistry({
+      ...next,
+      version: next.version - 1,
+      entries: (registry as ModelRegistry).entries,
+    });
+    expect(knownCapabilities("new-qa-model").imageInput).toBe(true);
+    installRegistry({
+      ...next,
+      schemaVersion: 2,
+      version: next.version + 1,
+      entries: [],
+    });
+    expect(knownCapabilities("new-qa-model").imageInput).toBe(true);
   });
 });

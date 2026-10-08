@@ -31,6 +31,56 @@ export interface ModelCapabilities {
   imageInput?: boolean | null;
   parallelToolCalls?: boolean | null;
 }
+export interface EndpointSupport {
+  messages?: boolean | null;
+  chatCompletions?: boolean | null;
+  responses?: boolean | null;
+}
+export interface ModelProfile {
+  contextWindow?: number | null;
+  maxInputTokens?: number | null;
+  maxOutputTokens?: number | null;
+  reasoningEfforts?: string[] | null;
+  defaultEffort?: string | null;
+  thinkingFormat?:
+    | "adaptive"
+    | "budget"
+    | "deepseek"
+    | "openai"
+    | "none"
+    | null;
+  samplingParameters?: boolean | null;
+  toolCalls?: boolean | null;
+  structuredOutput?: boolean | null;
+  endpoints?: EndpointSupport;
+}
+export interface ModelRegistryEntry {
+  ids: string[];
+  capabilities: ModelCapabilities;
+  profile?: ModelProfile;
+  source: string;
+}
+export interface ModelRegistry {
+  schemaVersion: number;
+  version: number;
+  verifiedAt: string;
+  entries: ModelRegistryEntry[];
+}
+export interface ModelRegistryStatus {
+  registry: ModelRegistry;
+  checkedAt: number | null;
+  updated: boolean;
+  updateAvailable: boolean;
+  message: string;
+}
+export interface ModelVerification {
+  model: string;
+  endpoint: "messages" | "chat_completions" | "responses";
+  feature: "text" | "image" | "tools" | "stream";
+  state: "verified" | "unsupported" | "unknown";
+  checkedAt: number;
+  message: string;
+}
 export interface ProviderModel {
   id: string;
   contextWindow: number | null;
@@ -38,6 +88,13 @@ export interface ProviderModel {
   enabled: boolean;
   capabilities?: ModelCapabilities;
   capabilityOverrides?: ModelCapabilities;
+  profile?: ModelProfile;
+  profileOverrides?: ModelProfile;
+  officialProfile?: ModelProfile;
+  officialCapabilities?: ModelCapabilities;
+  officialSource?: string | null;
+  canonicalId?: string | null;
+  metadataUpdatedAt?: number | null;
 }
 export interface BalanceQuery {
   adapter?:

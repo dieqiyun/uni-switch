@@ -3,6 +3,7 @@ import { RefreshCw, Search, Check, X } from "lucide-react";
 import type { Target } from "../types";
 import { capabilityFields, modelCapability } from "../lib/modelCapabilities";
 import type { useConnectionDiscovery } from "../lib/useConnectionDiscovery";
+import { ModelProfileDetails } from "./ModelProfileDetails";
 
 export function ModelPicker({
   discovery,
@@ -282,9 +283,10 @@ export function ModelPicker({
                       </label>
                     );
                   })}
-                {Object.values(m.capabilityOverrides ?? {}).some(
-                  (v) => typeof v === "boolean",
-                ) && (
+                {(m.profileOverrides?.thinkingFormat != null ||
+                  Object.values(m.capabilityOverrides ?? {}).some(
+                    (v) => typeof v === "boolean",
+                  )) && (
                   <button
                     type="button"
                     className="text-button capability-reset"
@@ -309,6 +311,7 @@ export function ModelPicker({
                   请输入 0.001–100000 之间的 k 值，最多三位小数
                 </p>
               )}
+              <ModelProfileDetails model={m} discovery={discovery} />
             </div>
           ))}
           {!visible.length && (

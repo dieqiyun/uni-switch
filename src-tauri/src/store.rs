@@ -949,6 +949,13 @@ impl Store {
                     _ => {}
                 }
             }
+            if state == "applied"
+                && target.family() == Family::Claude
+                && adapters::claude_client_base_needs_update(files)?
+            {
+                state = "saved_changes".into();
+                message = "Claude 接入地址需要更新以避免重复 /v1。点击「更新配置」，然后完全退出并重新打开客户端。".into();
+            }
             if state == "applied" {
                 if let Some(id) = &active {
                     if let Ok(provider) = self.provider(id) {

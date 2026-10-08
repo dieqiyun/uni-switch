@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-10-07",
+  "verifiedAt": "2026-10-08",
   "entries": [
     {
       "ids": ["gpt-6-astra"],
@@ -8,7 +8,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-6-astra",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-6.1-sol"],
@@ -17,7 +20,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-6-luna"],
@@ -26,7 +32,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-6-luna",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.6-cyber"],
@@ -34,7 +43,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-cyber"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-cyber",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-6-sol"],
@@ -43,7 +55,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-6-sol",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.6-sol", "gpt-5.6"],
@@ -52,7 +67,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.6-terra"],
@@ -61,7 +79,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.6-luna"],
@@ -70,7 +91,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.5", "gpt-5.5-2026-04-23"],
@@ -79,7 +103,10 @@
         "parallelToolCalls": true
       },
       "source": "https://developers.openai.com/api/docs/models/gpt-5.5",
-      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+      "toolSource": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.5-pro", "gpt-5.5-pro-2026-04-23"],
@@ -87,7 +114,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.5-pro"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.5-pro",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.4", "gpt-5.4-2026-03-05"],
@@ -95,7 +125,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.4"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.4-pro", "gpt-5.4-pro-2026-03-05"],
@@ -103,7 +136,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-pro"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-pro",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.4-mini", "gpt-5.4-mini-2026-03-17"],
@@ -111,7 +147,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-mini"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.2", "gpt-5.2-2025-12-11"],
@@ -119,7 +158,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.2"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.2-pro", "gpt-5.2-pro-2025-12-11"],
@@ -127,7 +169,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-pro"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-pro",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5", "gpt-5-2025-08-07"],
@@ -135,7 +180,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5-mini", "gpt-5-mini-2025-08-07"],
@@ -143,7 +191,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5-mini"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-mini",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5-nano", "gpt-5-nano-2025-08-07"],
@@ -151,7 +202,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5-nano"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-nano",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5-pro", "gpt-5-pro-2025-10-06"],
@@ -159,7 +213,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5-pro"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-pro",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["o3-pro", "o3-pro-2025-06-10"],
@@ -195,7 +252,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-nano"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.4-nano",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.3-codex"],
@@ -203,7 +263,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.3-codex"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.1", "gpt-5.1-2025-11-13"],
@@ -211,7 +274,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.1"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.3-chat-latest"],
@@ -219,7 +285,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.3-chat-latest"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.3-chat-latest",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.2-chat-latest"],
@@ -227,7 +296,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-chat-latest"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-chat-latest",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.2-codex"],
@@ -235,7 +307,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-codex"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.2-codex",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["o3-deep-research", "o3-deep-research-2025-06-26"],
@@ -327,7 +402,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.1-codex-max"],
@@ -335,7 +413,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-max"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-max",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5.1-codex-mini"],
@@ -343,7 +424,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-mini"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-mini",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5-codex"],
@@ -351,7 +435,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5-codex"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-codex",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["codex-mini-latest"],
@@ -392,7 +479,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-chat-latest"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.1-chat-latest",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": ["gpt-5-chat-latest"],
@@ -400,7 +490,10 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://developers.openai.com/api/docs/models/gpt-5-chat-latest"
+      "source": "https://developers.openai.com/api/docs/models/gpt-5-chat-latest",
+      "profile": {
+        "thinkingFormat": "openai"
+      }
     },
     {
       "ids": [
@@ -451,7 +544,8 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/haiku-4-5/overview"
+      "source": "https://platform.claude.com/docs/en/models/haiku-4-5/overview",
+      "profile": { "thinkingFormat": "budget" }
     },
     {
       "ids": ["claude-fable-5"],
@@ -491,7 +585,11 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/opus-4-7/overview"
+      "source": "https://platform.claude.com/docs/en/models/opus-4-7/overview",
+      "profile": {
+        "thinkingFormat": "adaptive",
+        "reasoningEfforts": ["low", "medium", "high", "max"]
+      }
     },
     {
       "ids": ["claude-opus-4-6"],
@@ -499,7 +597,11 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/opus-4-6/overview"
+      "source": "https://platform.claude.com/docs/en/models/opus-4-6/overview",
+      "profile": {
+        "thinkingFormat": "adaptive",
+        "reasoningEfforts": ["low", "medium", "high", "max"]
+      }
     },
     {
       "ids": ["claude-sonnet-4-6"],
@@ -507,7 +609,11 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/sonnet-4-6/overview"
+      "source": "https://platform.claude.com/docs/en/models/sonnet-4-6/overview",
+      "profile": {
+        "thinkingFormat": "adaptive",
+        "reasoningEfforts": ["low", "medium", "high"]
+      }
     },
     {
       "ids": ["claude-opus-4-5", "claude-opus-4-5-20251101"],
@@ -515,7 +621,8 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/opus-4-5/overview"
+      "source": "https://platform.claude.com/docs/en/models/opus-4-5/overview",
+      "profile": { "thinkingFormat": "budget" }
     },
     {
       "ids": ["claude-sonnet-4-5", "claude-sonnet-4-5-20250929"],
@@ -523,7 +630,8 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/sonnet-4-5/overview"
+      "source": "https://platform.claude.com/docs/en/models/sonnet-4-5/overview",
+      "profile": { "thinkingFormat": "budget" }
     },
     {
       "ids": [
@@ -542,10 +650,22 @@
       "source": "https://ai.google.dev/gemini-api/docs/image-understanding"
     },
     {
-      "ids": ["deepseek-flash", "deepseek-v4-flash-vision-exp"],
+      "ids": ["deepseek-flash"],
       "capabilities": {
         "imageInput": true
       },
+      "source": "https://api-docs.deepseek.com/api/list-models/",
+      "profile": {
+        "contextWindow": 1048576,
+        "maxOutputTokens": 393216,
+        "thinkingFormat": "deepseek",
+        "reasoningEfforts": ["low", "high", "max"],
+        "defaultEffort": "high"
+      }
+    },
+    {
+      "ids": ["deepseek-v4-flash-vision-exp"],
+      "capabilities": { "imageInput": true },
       "source": "https://api-docs.deepseek.com/guides/vision/"
     },
     {
@@ -571,6 +691,40 @@
         "parallelToolCalls": true
       },
       "source": "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json"
+    },
+    {
+      "ids": ["deepseek-v4.1-flash"],
+      "capabilities": {
+        "imageInput": true
+      },
+      "profile": {
+        "thinkingFormat": "deepseek",
+        "reasoningEfforts": ["low", "high", "max"],
+        "defaultEffort": "high",
+        "contextWindow": 1048576,
+        "maxOutputTokens": 393216
+      },
+      "source": "https://api-docs.deepseek.com/news/news260910/"
+    },
+    {
+      "ids": ["claude-haiku-5-5"],
+      "capabilities": {
+        "imageInput": true,
+        "parallelToolCalls": true
+      },
+      "profile": {
+        "contextWindow": 1000000,
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000,
+        "reasoningEfforts": ["low", "medium", "high", "xhigh", "max"],
+        "defaultEffort": "medium",
+        "thinkingFormat": "adaptive",
+        "samplingParameters": false,
+        "toolCalls": true
+      },
+      "source": "https://platform.claude.com/docs/en/models/haiku-5-5/overview"
     }
-  ]
+  ],
+  "schemaVersion": 1,
+  "version": 2026100801
 }
