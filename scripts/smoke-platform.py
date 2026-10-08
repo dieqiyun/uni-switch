@@ -48,7 +48,7 @@ def smoke(platform):
                         print(json.dumps({"platform": platform, "architectures": arches, "started": True, "databaseInitialized": True, "clientConfigurationUnchanged": True}))
                         return
                     time.sleep(0.2)
-                raise RuntimeError("Isolated app did not initialize")
+                raise RuntimeError("Isolated app did not initialize; files=" + str([str(p.relative_to(run)) for p in run.rglob("*") if p.is_file()]) + "\n" + (run / "log.txt").read_text(encoding="utf-8", errors="replace"))
             finally:
                 if proc.poll() is None:
                     proc.terminate()

@@ -52,7 +52,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev xdg-utils xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev xdg-utils xvfb dbus
       - name: Dependencies
         run: |
           corepack enable
@@ -73,7 +73,9 @@ jobs:
         run: corepack pnpm tauri build ${{ matrix.build_args }}
       - name: Linux isolated launch
         if: runner.os == 'Linux'
-        run: xvfb-run -a python scripts/smoke-platform.py linux-x64
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: dbus-run-session -- xvfb-run -a python scripts/smoke-platform.py linux-x64
       - name: macOS isolated launch and universal signature
         if: runner.os == 'macOS'
         run: python scripts/smoke-platform.py macos-universal
