@@ -2,6 +2,9 @@
 
 # 配置与界面验证清单
 
+2026-10-08，v0.5.20 已正式发布并标记 Latest：[三平台原生构建 37713701338](https://github.com/dieqiyun/uni-switch/actions/runs/37713701338) 的 Windows x64、Linux x64、macOS universal 全部成功，隔离启动、数据库初始化及测试配置不变均通过；macOS 核对 Intel / Apple Silicon 双架构及 ad-hoc 签名。发布标签对应 16706033016959d149f6a4b8361a19fe73640354，十项附件下载回读 SHA256 与公开 digest / size 全部一致，源码归档包含全部 424 个 Git 文件（PowerShell 文件遵循声明的 CRLF 规则）。新版 0.5.20 的真实 GitHub 检查显示当前版本；旧版 0.5.19 检测到 0.5.20，并在左下角显示更新提醒，安装包链接正确；两次隔离客户端配置不变，pageErrors 均为 0。Windows 的显式数据目录启动已修复默认路径提前求值，Linux CI 补齐独立 D-Bus 会话。发布后 main 仅补充发布脚本的草稿按 ID 查询修订及验证记录，未移动发布标签、未替换程序；该修订另通过 3 项无外部请求的回归（草稿标签 404、草稿歧义拒绝、源码标签变更拒绝）。证据：.qa/multiplatform-ci-0.5.20.json、.qa/platform-artifact-preflight-0.5.20.json、.qa/published-0.5.20.json、.qa/github-live/results.json、.qa/github-upgrade-live/results.json、.qa/publish-draft-regression.json。
+
+
 2026-10-08，v0.5.20 本地回归：140项前端测试、126项Rust测试（1项Windows环境辅助ignored）、TypeScript/Vite、Clippy及教程一致性通过。原生模型/能力/更新/教程19组、38处Axe，协议8组、8处Axe通过，pageErrors均为0；真实隔离Codex图片请求和两方向图片转换继续成功。三平台更新包选择新增不同系统/架构与Linux AppImage回退测试。GitHub原生三平台构建与启动检查另行记录，未操作真实客户端。
 
 

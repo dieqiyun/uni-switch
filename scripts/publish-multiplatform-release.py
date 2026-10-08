@@ -58,8 +58,12 @@ def publish(gh, resume=False):
         for item in manifest["assets"]:
             if hashlib.sha256((Path(directory) / item["name"]).read_bytes()).hexdigest() != item["sha256"]:
                 raise RuntimeError("Downloaded checksum mismatch; release remains draft")
-    release = api(f"repos/{repository}/releases/tags/{tag}")
-    if not release["draft"] or len(release["assets"]) != len(expected) or {a["name"] for a in release["assets"]} != expected:
+    created_releases = api(f"repos/{repository}/releases?per_page=100")
+    drafts = [release for release in created_releases if release["tag_name"] == tag]
+    if len(drafts) != 1 or not isinstance(drafts[0].get("id"), int) or not drafts[0]["draft"]:
+        raise RuntimeError("Expected one created draft release")
+    release = api(f"repos/{repository}/releases/{drafts[0]['id']}")
+    if release["tag_name"] != tag or not release["draft"] or len(release["assets"]) != len(expected) or {a["name"] for a in release["assets"]} != expected:
         raise RuntimeError("Draft/asset count mismatch")
     if api(f"repos/{repository}/git/ref/tags/{tag}")["object"]["sha"] != revision:
         raise RuntimeError("Final source tag mismatch")

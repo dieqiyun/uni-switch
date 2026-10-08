@@ -16,7 +16,7 @@
 
 发布附件共十项：Windows 安装/独立/便携三项，Linux DEB / AppImage 两项，macOS DMG / app.tar.gz 两项，对应 source.zip、README-zh-CN.md 和 SHA256SUMS.txt。
 
-使用 `scripts/publish-multiplatform-release.py` 发布；源码必须在公开 main，标签必须指向构建提交。先建草稿，固定清单上传，再下载所有附件校验 SHA256，最终公开并设 Latest。不覆盖公开同版本；失败可继续同版本草稿。
+使用 `scripts/publish-multiplatform-release.py` 发布；源码必须在公开 main，标签必须指向构建提交。先建草稿，固定清单上传，再下载所有附件校验 SHA256，最终公开并设 Latest。不覆盖公开同版本；失败可继续同版本草稿。草稿阶段从发布列表定位唯一的标签与 Release ID，再按 ID 查询，避免按标签读取尚未公开的草稿时返回 404；公开后再核对 Latest 与全部附件。
 
 macOS 使用 ad-hoc 签名，不具备 Apple Developer ID 公证；发布说明应明确首次打开限制。Windows 程序未增加购买的代码签名证书。macOS / Linux 自动重启与系统登录启动尚未实现，配置写入后手动重启。
 
