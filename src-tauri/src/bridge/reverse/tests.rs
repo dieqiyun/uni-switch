@@ -1,6 +1,165 @@
 use super::*;
 
 #[test]
+fn mid_conversation_system_messages_keep_roles_order_and_tool_history() {
+    let source = json!({"system":"Initial instructions","max_tokens":256,"messages":[
+        {"role":"user","content":"Read the file"},
+        {"role":"assistant","content":[{"type":"tool_use","id":"call_system","name":"Read","input":{"path":"qa.txt"}}]},
+        {"role":"user","content":[{"type":"tool_result","tool_use_id":"call_system","content":"Synthetic contents"}]},
+        {"role":"system","content":[{"type":"text","text":"New instructions","cache_control":{"type":"ephemeral"}},{"type":"text","text":"Keep Chinese: 中文"}]},
+        {"role":"assistant","content":"Acknowledged"},
+        {"role":"system","content":"Latest instructions"},
+        {"role":"user","content":"Continue"}
+    ]});
+    for streaming in [false, true] {
+        let converted = request(&source, "gpt-4.1", streaming).unwrap();
+        assert_eq!(converted["instructions"], "Initial instructions");
+        assert_eq!(converted["input"].as_array().unwrap().len(), 7);
+        assert_eq!(converted["input"][1]["type"], "function_call");
+        assert_eq!(converted["input"][2]["type"], "function_call_output");
+        assert_eq!(
+            converted["input"][3],
+            json!({"type":"message","role":"system","content":[{"type":"input_text","text":"New instructions"},{"type":"input_text","text":"Keep Chinese: 中文"}]})
+        );
+        assert_eq!(converted["input"][5]["role"], "system");
+        assert_eq!(converted["input"][6]["content"][0]["text"], "Continue");
+        let chat = chat_request(&converted).unwrap();
+        let roles: Vec<_> = chat["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["role"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            roles,
+            [
+                "system",
+                "user",
+                "assistant",
+                "tool",
+                "system",
+                "assistant",
+                "system",
+                "user"
+            ]
+        );
+        assert_eq!(chat["messages"][2]["tool_calls"][0]["id"], "call_system");
+        assert_eq!(chat["messages"][3]["tool_call_id"], "call_system");
+        assert_eq!(
+            chat["messages"][4]["content"][1]["text"],
+            "Keep Chinese: 中文"
+        );
+        assert_eq!(
+            chat["messages"][6]["content"][0]["text"],
+            "Latest instructions"
+        );
+        assert_eq!(chat["stream"], streaming);
+    }
+}
+
+#[test]
+fn temporary_system_text_expires_without_losing_per_turn_effort() {
+    let mut model = crate::types::ProviderModel {
+        id: "gpt-5.4".into(),
+        ..Default::default()
+    };
+    model.profile_overrides.reasoning_efforts =
+        Some(vec!["low".into(), "medium".into(), "max".into()]);
+    let mut source = json!({"max_tokens":256,"thinking":{"type":"adaptive"},"output_config":{"effort":"medium"},"messages":[
+        {"role":"user","content":"First turn"},
+        {"role":"system","content":"Expired instruction","clear_at":"next_user_message","output_config":{"effort":"low"}},
+        {"role":"assistant","content":"First reply"},
+        {"role":"user","content":"Second turn"},
+        {"role":"system","content":[{"type":"text","text":"Current instruction"}],"clear_at":"next_user_message","output_config":{}},
+        {"role":"system","content":[],"clear_at":null,"output_config":{"effort":"max"}},
+        {"role":"system","content":"Persistent instruction","clear_at":"never","output_config":{"effort":null}}
+    ]});
+    let converted = request_with_model(&source, &model.id, false, &model).unwrap();
+    assert_eq!(converted["input"].as_array().unwrap().len(), 5);
+    assert_eq!(
+        converted["input"][3]["content"][0]["text"],
+        "Current instruction"
+    );
+    assert_eq!(
+        converted["input"][4]["content"][0]["text"],
+        "Persistent instruction"
+    );
+    assert!(!converted.to_string().contains("Expired instruction"));
+    assert_eq!(converted["reasoning"]["effort"], "max");
+    assert_eq!(
+        chat_request_with_model(&converted, &model).unwrap()["reasoning_effort"],
+        "max"
+    );
+    source["messages"][5]["output_config"] = json!({});
+    let converted = request_with_model(&source, &model.id, false, &model).unwrap();
+    assert_eq!(converted["reasoning"]["effort"], "low");
+}
+
+#[test]
+fn rejects_unknown_roles_and_non_text_system_content_without_echoing_input() {
+    for role in [
+        json!("developer"),
+        json!("tool"),
+        json!("synthetic-secret-role"),
+        json!(42),
+        Value::Null,
+    ] {
+        let invalid = json!({"messages":[{"role":role,"content":"synthetic-secret-content"}]});
+        let error = request(&invalid, "gpt-4.1", false).unwrap_err();
+        assert!(!error.contains("synthetic-secret"));
+    }
+    for content in [
+        json!([{"type":"image","source":{"type":"url","url":"https://example.test/synthetic-secret"}}]),
+        json!([{"type":"tool_use","id":"call1","name":"Read","input":{}}]),
+        json!([{"type":"tool_result","tool_use_id":"call1","content":"Done"}]),
+        json!([{"type":"thinking","thinking":"synthetic-secret"}]),
+        json!([{"type":"tool_reference","tool_name":"Read"}]),
+        json!([{"type":"text","text":42}]),
+        json!({"text":"synthetic-secret"}),
+        Value::Null,
+    ] {
+        let invalid = json!({"messages":[{"role":"system","content":content},{"role":"user","content":"QA"}]});
+        let error = request(&invalid, "gpt-4.1", false).unwrap_err();
+        assert!(error.contains("system"), "{error}");
+        assert!(!error.contains("synthetic-secret"));
+        let invalid_top = json!({"system":content,"messages":[{"role":"user","content":"QA"}]});
+        assert!(request(&invalid_top, "gpt-4.1", false).is_err());
+    }
+    for fields in [
+        json!({"clear_at":"unknown"}),
+        json!({"clear_at":42}),
+        json!({"output_config":"unknown"}),
+        json!({"output_config":{"format":{"type":"json_schema"}}}),
+        json!({"output_config":{"effort":"unknown"}}),
+        json!({"output_config":{"effort":42}}),
+    ] {
+        let mut message = json!({"role":"system","content":"QA"});
+        message
+            .as_object_mut()
+            .unwrap()
+            .extend(fields.as_object().unwrap().clone());
+        let invalid = json!({"messages":[message,{"role":"user","content":"QA"}]});
+        assert!(request(&invalid, "gpt-4.1", false).is_err());
+    }
+}
+
+#[test]
+fn output_config_only_system_message_changes_effort_without_creating_history() {
+    let source = json!({"messages":[
+        {"role":"user","content":"QA"},
+        {"role":"system","output_config":{"effort":"low"}}
+    ],"thinking":{"type":"adaptive"},"output_config":{"effort":"high"},"max_tokens":256});
+    let converted = request(&source, "gpt-5.4", false).unwrap();
+    assert_eq!(converted["input"].as_array().unwrap().len(), 1);
+    assert_eq!(converted["reasoning"]["effort"], "low");
+    for config in [json!({}), json!({"effort":null})] {
+        let mut invalid = source.clone();
+        invalid["messages"][1]["output_config"] = config;
+        assert!(request(&invalid, "gpt-5.4", false).is_err());
+    }
+}
+
+#[test]
 fn deepseek_chat_maps_effort_and_replays_reasoning_on_tool_turns() {
     let model = crate::types::ProviderModel {
         id: "deepseek-flash".into(),

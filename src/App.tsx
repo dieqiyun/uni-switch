@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "./client-config.css";
 import * as Tabs from "@radix-ui/react-tabs";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -60,6 +61,11 @@ import { TutorialDialog } from "./components/TutorialDialog";
 import { WindowChrome } from "./components/WindowChrome";
 import { ProviderName } from "./components/ProviderName";
 import { ModelRegistryPanel } from "./components/ModelRegistryPanel";
+import {
+  ClientConfigEditor,
+  ConfigRestartNotice,
+} from "./components/ClientConfigEditor";
+import { ExtraClientPanel } from "./components/ExtraClientPanel";
 import { installRegistry } from "./lib/modelCapabilities";
 import {
   ProviderModelSelect,
@@ -69,6 +75,10 @@ import codexLogo from "./assets/brands/codex.png";
 import claudeLogo from "./assets/brands/claude.png";
 import {
   targetNames,
+  clientNames,
+  type ClientKind,
+  type ExtraClient,
+  type ConfigWriteResult,
   type Family,
   type Provider,
   type RuntimeStatus,
@@ -78,6 +88,8 @@ import {
 } from "./types";
 
 type Popup =
+  | { kind: "config-editor"; client: ClientKind }
+  | { kind: "config-restart"; client: ClientKind; result: ConfigWriteResult }
   | { kind: "create" }
   | { kind: "edit"; provider: Provider; models?: boolean }
   | { kind: "models"; provider: Provider; target: Target }
@@ -122,6 +134,7 @@ export default function App() {
     };
   }, []);
   const [family, setFamily] = useState<Family>(() => loadTarget().family);
+  const [extraClient, setExtraClient] = useState<ExtraClient | null>(null);
   const [claudeTarget, setClaudeTarget] = useState<Target>(
     () => loadTarget().claudeTarget,
   );
@@ -633,6 +646,12 @@ export default function App() {
     }
   }
   const switchFamily = (value: string) => {
+    if (["zcode", "dsh", "workbuddy"].includes(value)) {
+      setExtraClient(value as ExtraClient);
+      setNotice(null);
+      return;
+    }
+    setExtraClient(null);
     setFamily(value as Family);
     setSearch("");
     setSearchExpanded(false);
@@ -644,7 +663,7 @@ export default function App() {
   };
   return (
     <Tabs.Root
-      value={family}
+      value={extraClient ?? family}
       onValueChange={switchFamily}
       orientation={compact ? "horizontal" : "vertical"}
       className={`app-shell${desktopRuntime ? " desktop-shell" : ""}`}
@@ -672,6 +691,20 @@ export default function App() {
               <span className="nav-copy">
                 <strong>{item === "codex" ? "Codex" : "Claude Code"}</strong>
                 <small>桌面端与 CLI</small>
+              </span>
+              <span className="nav-indicator" aria-hidden />
+            </Tabs.Trigger>
+          ))}
+          {(["zcode", "dsh", "workbuddy"] as const).map((item) => (
+            <Tabs.Trigger key={item} value={item} disabled={busy}>
+              <span className="app-glyph extra-client-glyph" aria-hidden>
+                {item === "zcode" ? "Z" : item === "dsh" ? "DS" : "W"}
+              </span>
+              <span className="nav-copy">
+                <strong>{clientNames[item]}</strong>
+                <small>
+                  {item === "dsh" ? "DeepSeek Harness" : "一键配置"}
+                </small>
               </span>
               <span className="nav-indicator" aria-hidden />
             </Tabs.Trigger>
@@ -704,663 +737,735 @@ export default function App() {
             浏览器预览 · 应用操作仅作演示，不会修改客户端配置
           </div>
         )}
-        <header className="workspace-header" data-tauri-drag-region>
-          <div className="workspace-title" data-tauri-drag-region>
-            <h1 data-tauri-drag-region>{product}</h1>
-            <span
-              className="supplier-total"
-              aria-label={`已保存 ${providers.length} 个 API 供应商`}
-            >
-              <span className="supplier-total-label">供应商</span>
-              <span className="count">{providers.length}</span>
-            </span>
-            {family === "claude" && (
-              <div
-                className="segmented"
-                role="group"
-                aria-label="Claude 配置目标"
-              >
-                <button
-                  disabled={busy}
-                  aria-pressed={target === "claude_desktop"}
-                  onClick={() => changeTarget("claude_desktop")}
+        {extraClient ? (
+          <ExtraClientPanel
+            key={extraClient}
+            client={extraClient}
+            providers={providers}
+            onManage={() => switchFamily("codex")}
+            onBusy={setBusy}
+            onEdit={(value) =>
+              setPopup({ kind: "config-editor", client: value })
+            }
+            onWritten={(value, result) => {
+              setPopup({ kind: "config-restart", client: value, result });
+              void client.invalidateQueries({
+                queryKey: ["client-config", value],
+              });
+            }}
+          />
+        ) : (
+          <>
+            <header className="workspace-header" data-tauri-drag-region>
+              <div className="workspace-title" data-tauri-drag-region>
+                <h1 data-tauri-drag-region>{product}</h1>
+                <span
+                  className="supplier-total"
+                  aria-label={`已保存 ${providers.length} 个 API 供应商`}
                 >
-                  <Monitor size={16} aria-hidden />
-                  桌面端
-                </button>
-                <button
-                  disabled={busy}
-                  aria-pressed={target === "claude_cli"}
-                  onClick={() => changeTarget("claude_cli")}
-                >
-                  <Terminal size={16} aria-hidden />
-                  CLI
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="header-tools">
-            {!!providers.length && providers.length <= 3 && !searchExpanded && (
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="搜索供应商"
-                title="搜索供应商（Ctrl+F）"
-                onClick={() => setSearchExpanded(true)}
-              >
-                <Search size={17} aria-hidden />
-              </button>
-            )}
-            {providers.length > 0 && (
-              <button
-                className="button primary"
-                data-dialog-fallback
-                disabled={busy || query.isPending}
-                onClick={(e) => open({ kind: "create" }, e)}
-              >
-                <Plus size={17} aria-hidden />
-                添加供应商
-              </button>
-            )}
-            <button
-              className="icon-button refresh-button"
-              aria-label="刷新配置状态"
-              title="刷新配置状态"
-              disabled={busy || query.isFetching}
-              onClick={() =>
-                void action(async () => {
-                  const result = await query.refetch();
-                  if (result.error) throw result.error;
-                }, "配置状态已刷新。")
-              }
-            >
-              <RefreshCw
-                size={18}
-                className={query.isFetching ? "spinning" : ""}
-                aria-hidden
-              />
-            </button>
-            <button
-              className="button settings-trigger"
-              aria-label="设置"
-              title="设置"
-              disabled={busy || !status}
-              onClick={(e) => open({ kind: "settings" }, e)}
-            >
-              <SlidersHorizontal size={17} aria-hidden />
-              <span>设置</span>
-            </button>
-          </div>
-        </header>
-        <main>
-          <Tabs.Content value={family} key={family}>
-            {notice && (
-              <div
-                className={`notice ${notice.error ? "error" : ""}`}
-                role={notice.error ? "alert" : "status"}
-              >
-                {notice.error ? (
-                  <Unplug size={18} aria-hidden />
-                ) : (
-                  <Check size={18} aria-hidden />
-                )}
-                <span>{notice.text}</span>
-                {notice.syncProviderId && (
-                  <button
-                    className="text-button"
-                    disabled={busy}
-                    onClick={() => void syncProvider(notice.syncProviderId!)}
+                  <span className="supplier-total-label">供应商</span>
+                  <span className="count">{providers.length}</span>
+                </span>
+                {family === "claude" && (
+                  <div
+                    className="segmented"
+                    role="group"
+                    aria-label="Claude 配置目标"
                   >
-                    同步其他客户端
+                    <button
+                      disabled={busy}
+                      aria-pressed={target === "claude_desktop"}
+                      onClick={() => changeTarget("claude_desktop")}
+                    >
+                      <Monitor size={16} aria-hidden />
+                      桌面端
+                    </button>
+                    <button
+                      disabled={busy}
+                      aria-pressed={target === "claude_cli"}
+                      onClick={() => changeTarget("claude_cli")}
+                    >
+                      <Terminal size={16} aria-hidden />
+                      CLI
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="header-tools">
+                {!!providers.length &&
+                  providers.length <= 3 &&
+                  !searchExpanded && (
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label="搜索供应商"
+                      title="搜索供应商（Ctrl+F）"
+                      onClick={() => setSearchExpanded(true)}
+                    >
+                      <Search size={17} aria-hidden />
+                    </button>
+                  )}
+                {providers.length > 0 && (
+                  <button
+                    className="button primary"
+                    data-dialog-fallback
+                    disabled={busy || query.isPending}
+                    onClick={(e) => open({ kind: "create" }, e)}
+                  >
+                    <Plus size={17} aria-hidden />
+                    添加供应商
                   </button>
                 )}
-                {!!notice.details && (
-                  <details>
-                    <summary>处理问题</summary>
-                    <ErrorFeedback
-                      error={notice.details}
-                      onAction={
-                        notice.onAction ||
-                        (() =>
-                          errorCode(notice.details) === "external_change"
-                            ? setPopup({ kind: "conflict" })
-                            : setPopup({ kind: "settings" }))
-                      }
-                    />
-                  </details>
-                )}
-                <button aria-label="关闭提示" onClick={() => setNotice(null)}>
-                  ×
-                </button>
-              </div>
-            )}
-            {query.error && query.data && (
-              <div className="error-notice" role="alert">
-                {errorMessage(query.error)}
                 <button
-                  className="text-button"
-                  onClick={() => void query.refetch()}
-                >
-                  重试
-                </button>
-              </div>
-            )}
-            <div className="workspace-grid">
-              <section
-                className="config-section"
-                aria-labelledby="config-heading"
-              >
-                <h2 id="config-heading" className="sr-only">
-                  API 供应商
-                </h2>
-                {(providers.length > 3 || search || searchExpanded) && (
-                  <div className="search-field">
-                    <Search size={17} aria-hidden />
-                    <input
-                      aria-label="搜索 API 配置"
-                      placeholder="搜索名称、地址或模型"
-                      value={search}
-                      ref={searchInput}
-                      title="Ctrl+F 搜索供应商"
-                      onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape" && search) {
-                          e.preventDefault();
-                          setSearch("");
-                        }
-                      }}
-                    />
-                    {search && (
-                      <>
-                        <span className="search-result-count" role="status">
-                          {visible.length} / {providers.length}
-                        </span>
-                        <button
-                          type="button"
-                          className="icon-button"
-                          aria-label="清空供应商搜索"
-                          onClick={() => {
-                            setSearch("");
-                            searchInput.current?.focus();
-                          }}
-                        >
-                          <X size={16} aria-hidden />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-                {query.isPending ? (
-                  <div className="empty-state" role="status">
-                    <RefreshCw className="spinning" size={26} aria-hidden />
-                    <p>正在读取你的配置…</p>
-                  </div>
-                ) : query.error && !query.data ? (
-                  <div className="empty-state load-failure" role="alert">
-                    <Unplug size={26} aria-hidden />
-                    <h3>暂时无法读取供应商</h3>
-                    <p>数据尚未读取，请重试后继续操作。</p>
-                    <button
-                      className="button primary"
-                      disabled={query.isFetching}
-                      onClick={() => void query.refetch()}
-                    >
-                      <RefreshCw size={16} aria-hidden />
-                      重新读取
-                    </button>
-                    <details>
-                      <summary>查看原因</summary>
-                      <p>{errorMessage(query.error)}</p>
-                    </details>
-                  </div>
-                ) : providers.length === 0 ? (
-                  <div className="empty-state">
-                    <span className="empty-icon" aria-hidden>
-                      <Plus size={26} />
-                    </span>
-                    <h3>还没有 API 供应商</h3>
-                    <p>
-                      填写供应商提供的地址和密钥，自动获取模型，
-                      <br />
-                      填入一次，以后轻松切换。
-                    </p>
-                    <button
-                      className="button primary button-large"
-                      disabled={busy}
-                      onClick={(e) => open({ kind: "create" }, e)}
-                    >
-                      <Plus size={18} aria-hidden />
-                      添加第一个供应商
-                      <ArrowRight size={17} aria-hidden />
-                    </button>
-                    <span className="empty-note">
-                      <ShieldCheck size={15} aria-hidden />
-                      应用前自动备份，随时可以恢复
-                    </span>
-                  </div>
-                ) : (
-                  <ul
-                    className="provider-list"
-                    aria-label="已保存的 API 配置"
-                    aria-busy={busy}
-                  >
-                    {visible.map((provider) => {
-                      const isActive = status?.activeProviderId === provider.id;
-                      const displayedModel =
-                        isActive && status?.appliedModel
-                          ? status.appliedModel
-                          : provider.model;
-                      const codexChoiceDiffers =
-                        target === "codex" &&
-                        isActive &&
-                        status?.state === "applied" &&
-                        !!status.configuredModel &&
-                        (status.configuredModel !== displayedModel ||
-                          (!!provider.reasoningEffort &&
-                            status.configuredReasoningEffort !==
-                              provider.reasoningEffort));
-                      const upToDate =
-                        isActive && applied && !codexChoiceDiffers;
-                      const conversionBlocked =
-                        needsProtocolConversion(provider, target) &&
-                        !protocolConversionEnabled(provider, target);
-                      const protocolPending =
-                        desktopRuntime && !protocolConfirmed(provider);
-                      return (
-                        <li
-                          key={provider.id}
-                          className={`provider-card ${isActive ? "is-active" : ""}`}
-                        >
-                          <div className="provider-heading">
-                            <div className="provider-name">
-                              <div className="provider-title">
-                                <ProviderName
-                                  provider={provider}
-                                  displayName={displayProviderName(
-                                    provider,
-                                    providers,
-                                  )}
-                                  disabled={busy}
-                                  editing={renameProviderId === provider.id}
-                                  onEditing={(editing) => {
-                                    setRenameProviderId(
-                                      editing ? provider.id : null,
-                                    );
-                                    if (!editing)
-                                      requestAnimationFrame(() =>
-                                        document
-                                          .querySelector<HTMLButtonElement>(
-                                            `[data-provider-name="${provider.id}"]`,
-                                          )
-                                          ?.focus(),
-                                      );
-                                  }}
-                                  onSave={async (expected, name) =>
-                                    !!(await action(
-                                      () => api.rename(expected, name),
-                                      "供应商名称已更新。",
-                                      false,
-                                      provider.id,
-                                    ))
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  className={`provider-pin-button ${listPreferences.pinned.includes(provider.id) ? "is-pinned" : ""}`}
-                                  aria-label={`${listPreferences.pinned.includes(provider.id) ? "取消置顶" : "置顶"} ${provider.name}`}
-                                  aria-pressed={listPreferences.pinned.includes(
-                                    provider.id,
-                                  )}
-                                  title={
-                                    listPreferences.pinned.includes(provider.id)
-                                      ? "取消置顶"
-                                      : "置顶供应商"
-                                  }
-                                  onClick={() =>
-                                    setListPreferences((p) => ({
-                                      ...p,
-                                      pinned: p.pinned.includes(provider.id)
-                                        ? p.pinned.filter(
-                                            (id) => id !== provider.id,
-                                          )
-                                        : [...p.pinned, provider.id],
-                                    }))
-                                  }
-                                >
-                                  <Pin size={13} aria-hidden />
-                                  {listPreferences.pinned.includes(provider.id)
-                                    ? "已置顶"
-                                    : "置顶"}
-                                </button>
-                                {isActive &&
-                                  activeState.tone === "attention" && (
-                                    <span
-                                      className={`current-label ${activeState.tone === "attention" ? "attention" : ""}`}
-                                    >
-                                      <span aria-hidden />
-                                      {activeState.label}
-                                    </span>
-                                  )}
-                              </div>
-                              <span
-                                className="provider-address"
-                                title={provider.baseUrl}
-                              >
-                                <span className="provider-address-label">
-                                  API 地址
-                                </span>
-                                <span>{provider.baseUrl}</span>
-                              </span>
-                            </div>
-                          </div>
-                          <ProviderProtocolControl
-                            provider={provider}
-                            target={target}
-                            active={isActive}
-                            disabled={busy}
-                            toggleDisabled={
-                              isActive && status?.state !== "applied"
-                            }
-                            saving={conversionProviderId === provider.id}
-                            onToggle={(provider, enabled) =>
-                              void toggleConversion(provider, enabled)
-                            }
-                          />
-                          <div
-                            className={`provider-meta ${target === "codex" ? "is-codex" : "is-claude"}`}
-                          >
-                            <div className="provider-model-controls">
-                              <ProviderModelSelect
-                                provider={provider}
-                                target={target}
-                                displayedModel={displayedModel}
-                                disabled={
-                                  busy ||
-                                  (isActive && status?.state !== "applied")
-                                }
-                                expanded={
-                                  popup?.kind === "models" &&
-                                  popup.provider.id === provider.id
-                                }
-                                onExpand={(event) =>
-                                  open(
-                                    { kind: "models", provider, target },
-                                    event,
-                                  )
-                                }
-                                onSave={quickModels}
-                              />
-                              {target === "codex" && (
-                                <div className="provider-setting provider-fast-control">
-                                  <span className="provider-setting-label">
-                                    Fast 加速模式
-                                  </span>
-                                  <label
-                                    className="provider-fast-toggle"
-                                    title={
-                                      providerProtocol(provider) === "anthropic"
-                                        ? "Claude 协议转换暂不支持 Fast。"
-                                        : "加速模式需供应商支持，可能增加费用。"
-                                    }
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      role="switch"
-                                      aria-label={`Fast 模式 · ${provider.name}`}
-                                      aria-describedby={`fast-hint-${provider.id}`}
-                                      checked={
-                                        provider.codexOptions?.fastMode === true
-                                      }
-                                      disabled={
-                                        busy ||
-                                        providerProtocol(provider) ===
-                                          "anthropic" ||
-                                        (isActive &&
-                                          (status?.state ===
-                                            "external_change" ||
-                                            status?.state === "error"))
-                                      }
-                                      onChange={() => void toggleFast(provider)}
-                                    />
-                                    <span
-                                      className="provider-fast-track"
-                                      aria-hidden
-                                    />
-                                    <span>
-                                      {fastProviderId === provider.id
-                                        ? "保存中…"
-                                        : provider.codexOptions?.fastMode
-                                          ? "已开启"
-                                          : "已关闭"}
-                                    </span>
-                                  </label>
-                                  <span
-                                    id={`fast-hint-${provider.id}`}
-                                    className="provider-setting-help"
-                                  >
-                                    {providerProtocol(provider) === "anthropic"
-                                      ? "Claude 转换暂不支持"
-                                      : "需供应商支持，可能增加费用"}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <ProviderBalance
-                              key={`${provider.id}-${provider.updatedAt}-${provider.keySuffix}-${provider.baseUrl}-${JSON.stringify(provider.codexOptions?.balanceQuery)}`}
-                              provider={provider}
-                            />
-                          </div>
-                          {codexChoiceDiffers && (
-                            <p
-                              className="provider-state-note attention"
-                              role="status"
-                            >
-                              Codex 配置当前选择：
-                              <code>{status.configuredModel}</code>
-                              {" · 思考强度 "}
-                              <code>
-                                {status.configuredReasoningEffort || "模型默认"}
-                              </code>
-                              。点击「重新应用」恢复供应商默认模型，
-                              {provider.reasoningEffort
-                                ? `思考强度使用供应商设置 ${provider.reasoningEffort}。`
-                                : "并保留此思考强度。"}
-                              已有会话请在 Codex 内确认模型和思考强度。
-                            </p>
-                          )}
-                          {isActive && activeState.tone === "attention" && (
-                            <p
-                              className={
-                                "provider-state-note " + activeState.tone
-                              }
-                              role="status"
-                            >
-                              {activeState.note}
-                              {needsRestart(runtime.data) && runtime.data && (
-                                <button
-                                  type="button"
-                                  className="text-button"
-                                  disabled={busy}
-                                  onClick={(e) =>
-                                    open(
-                                      {
-                                        kind: "restart-client",
-                                        runtime: runtime.data!,
-                                      },
-                                      e,
-                                    )
-                                  }
-                                >
-                                  重启 {restartNames[target]}
-                                </button>
-                              )}
-                              {(status?.state === "external_change" ||
-                                status?.state === "error") && (
-                                <button
-                                  className="text-button"
-                                  onClick={() => setPopup({ kind: "conflict" })}
-                                >
-                                  查看配置
-                                </button>
-                              )}
-                            </p>
-                          )}
-                          <div className="provider-actions">
-                            <button
-                              className={`button apply-button ${upToDate ? "applied-button" : "secondary"}`}
-                              disabled={
-                                busy ||
-                                conversionBlocked ||
-                                protocolPending ||
-                                upToDate ||
-                                status?.state === "error"
-                              }
-                              aria-describedby={
-                                conversionBlocked || protocolPending
-                                  ? `protocol-hint-${provider.id}`
-                                  : undefined
-                              }
-                              onClick={(event) => {
-                                document
-                                  .querySelector("[data-dialog-return]")
-                                  ?.removeAttribute("data-dialog-return");
-                                event.currentTarget.setAttribute(
-                                  "data-dialog-return",
-                                  "",
-                                );
-                                void useProvider(provider, target);
-                              }}
-                            >
-                              {busyProviderId === provider.id &&
-                              fastProviderId !== provider.id
-                                ? quickProviderId === provider.id ||
-                                  conversionProviderId === provider.id
-                                  ? "保存中…"
-                                  : "正在应用…"
-                                : codexChoiceDiffers
-                                  ? "重新应用"
-                                  : upToDate
-                                    ? activeState.label
-                                    : isActive &&
-                                        status?.state === "saved_changes"
-                                      ? "更新配置"
-                                      : "使用"}
-                              {upToDate ? (
-                                <Check size={15} aria-hidden />
-                              ) : (
-                                <ArrowRight size={15} aria-hidden />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              className="provider-edit-button"
-                              aria-label={`编辑 ${provider.name}`}
-                              disabled={busy}
-                              onClick={(e) =>
-                                open({ kind: "edit", provider }, e)
-                              }
-                            >
-                              <Pencil size={14} aria-hidden />
-                              编辑
-                            </button>
-                            <button
-                              type="button"
-                              className="provider-delete-button"
-                              title={
-                                query.data?.targets.some(
-                                  (t) => t.activeProviderId === provider.id,
-                                )
-                                  ? "此供应商正在使用，请先切换或恢复"
-                                  : "删除配置"
-                              }
-                              aria-label={`删除 ${provider.name}`}
-                              disabled={
-                                busy ||
-                                query.data?.targets.some(
-                                  (t) => t.activeProviderId === provider.id,
-                                )
-                              }
-                              onClick={(e) =>
-                                open({ kind: "delete", provider }, e)
-                              }
-                            >
-                              <Trash2 size={14} aria-hidden />
-                              删除
-                            </button>
-                          </div>
-                          {query.data?.targets.some(
-                            (t) =>
-                              t.target !== target &&
-                              t.activeProviderId === provider.id &&
-                              t.state === "saved_changes",
-                          ) && (
-                            <div className="provider-sync-row">
-                              <span>其他客户端的连接配置有待更新</span>
-                              <button
-                                className="text-button provider-sync-button"
-                                disabled={busy}
-                                title="同步地址与密钥，保留各客户端的模型和上下文"
-                                onClick={() => void syncProvider(provider.id)}
-                              >
-                                同步其他客户端
-                              </button>
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                {providers.length > 0 && visible.length === 0 && (
-                  <div className="no-results">
-                    <Search size={22} aria-hidden />
-                    <p>没有找到匹配的配置</p>
-                    <button
-                      className="text-button"
-                      onClick={() => setSearch("")}
-                    >
-                      清空搜索
-                    </button>
-                  </div>
-                )}
-                <div className="section-footnote">
-                  <ShieldCheck size={15} aria-hidden />
-                  <span>保留客户端的其他设置，仅修改 API 配置。</span>
-                </div>
-              </section>
-            </div>
-          </Tabs.Content>
-        </main>
-        <footer className="workspace-footer">
-          <div className="footer-status">
-            <span className="footer-status-text">
-              <span className="footer-dot" />
-              {runtime.data?.bridgeRequired && runtime.data.bridgeHealthy
-                ? "兼容服务运行中 · 关闭窗口后保留托盘"
-                : desktopRuntime
-                  ? "配置保存在本机"
-                  : "界面预览"}
-            </span>
-            {runtime.data?.bridgeRequired &&
-              background.data?.supported &&
-              !background.data.enabled && (
-                <button
-                  className="text-button"
-                  disabled={busy}
+                  className="icon-button refresh-button"
+                  aria-label="刷新配置状态"
+                  title="刷新配置状态"
+                  disabled={busy || query.isFetching}
                   onClick={() =>
                     void action(async () => {
-                      await api.setBackground(true);
-                      await background.refetch();
-                    }, "已开启后台启动。下次登录 Windows 时自动恢复兼容连接。")
+                      const result = await query.refetch();
+                      if (result.error) throw result.error;
+                    }, "配置状态已刷新。")
                   }
                 >
-                  开启后台启动
+                  <RefreshCw
+                    size={18}
+                    className={query.isFetching ? "spinning" : ""}
+                    aria-hidden
+                  />
                 </button>
-              )}
-          </div>
-          <ServicePromotion />
-        </footer>
+                <button
+                  className="button settings-trigger"
+                  aria-label="设置"
+                  title="设置"
+                  disabled={busy || !status}
+                  onClick={(e) => open({ kind: "settings" }, e)}
+                >
+                  <SlidersHorizontal size={17} aria-hidden />
+                  <span>设置</span>
+                </button>
+              </div>
+            </header>
+            <main>
+              <Tabs.Content value={family} key={family}>
+                {notice && (
+                  <div
+                    className={`notice ${notice.error ? "error" : ""}`}
+                    role={notice.error ? "alert" : "status"}
+                  >
+                    {notice.error ? (
+                      <Unplug size={18} aria-hidden />
+                    ) : (
+                      <Check size={18} aria-hidden />
+                    )}
+                    <span>{notice.text}</span>
+                    {notice.syncProviderId && (
+                      <button
+                        className="text-button"
+                        disabled={busy}
+                        onClick={() =>
+                          void syncProvider(notice.syncProviderId!)
+                        }
+                      >
+                        同步其他客户端
+                      </button>
+                    )}
+                    {!!notice.details && (
+                      <details>
+                        <summary>处理问题</summary>
+                        <ErrorFeedback
+                          error={notice.details}
+                          onAction={
+                            notice.onAction ||
+                            (() =>
+                              errorCode(notice.details) === "external_change"
+                                ? setPopup({ kind: "conflict" })
+                                : setPopup({ kind: "settings" }))
+                          }
+                        />
+                      </details>
+                    )}
+                    <button
+                      aria-label="关闭提示"
+                      onClick={() => setNotice(null)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                {query.error && query.data && (
+                  <div className="error-notice" role="alert">
+                    {errorMessage(query.error)}
+                    <button
+                      className="text-button"
+                      onClick={() => void query.refetch()}
+                    >
+                      重试
+                    </button>
+                  </div>
+                )}
+                <div className="workspace-grid">
+                  <section
+                    className="config-section"
+                    aria-labelledby="config-heading"
+                  >
+                    <h2 id="config-heading" className="sr-only">
+                      API 供应商
+                    </h2>
+                    {(providers.length > 3 || search || searchExpanded) && (
+                      <div className="search-field">
+                        <Search size={17} aria-hidden />
+                        <input
+                          aria-label="搜索 API 配置"
+                          placeholder="搜索名称、地址或模型"
+                          value={search}
+                          ref={searchInput}
+                          title="Ctrl+F 搜索供应商"
+                          onChange={(e) => setSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape" && search) {
+                              e.preventDefault();
+                              setSearch("");
+                            }
+                          }}
+                        />
+                        {search && (
+                          <>
+                            <span className="search-result-count" role="status">
+                              {visible.length} / {providers.length}
+                            </span>
+                            <button
+                              type="button"
+                              className="icon-button"
+                              aria-label="清空供应商搜索"
+                              onClick={() => {
+                                setSearch("");
+                                searchInput.current?.focus();
+                              }}
+                            >
+                              <X size={16} aria-hidden />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {query.isPending ? (
+                      <div className="empty-state" role="status">
+                        <RefreshCw className="spinning" size={26} aria-hidden />
+                        <p>正在读取你的配置…</p>
+                      </div>
+                    ) : query.error && !query.data ? (
+                      <div className="empty-state load-failure" role="alert">
+                        <Unplug size={26} aria-hidden />
+                        <h3>暂时无法读取供应商</h3>
+                        <p>数据尚未读取，请重试后继续操作。</p>
+                        <button
+                          className="button primary"
+                          disabled={query.isFetching}
+                          onClick={() => void query.refetch()}
+                        >
+                          <RefreshCw size={16} aria-hidden />
+                          重新读取
+                        </button>
+                        <details>
+                          <summary>查看原因</summary>
+                          <p>{errorMessage(query.error)}</p>
+                        </details>
+                      </div>
+                    ) : providers.length === 0 ? (
+                      <div className="empty-state">
+                        <span className="empty-icon" aria-hidden>
+                          <Plus size={26} />
+                        </span>
+                        <h3>还没有 API 供应商</h3>
+                        <p>
+                          填写供应商提供的地址和密钥，自动获取模型，
+                          <br />
+                          填入一次，以后轻松切换。
+                        </p>
+                        <button
+                          className="button primary button-large"
+                          disabled={busy}
+                          onClick={(e) => open({ kind: "create" }, e)}
+                        >
+                          <Plus size={18} aria-hidden />
+                          添加第一个供应商
+                          <ArrowRight size={17} aria-hidden />
+                        </button>
+                        <span className="empty-note">
+                          <ShieldCheck size={15} aria-hidden />
+                          应用前自动备份，随时可以恢复
+                        </span>
+                      </div>
+                    ) : (
+                      <ul
+                        className="provider-list"
+                        aria-label="已保存的 API 配置"
+                        aria-busy={busy}
+                      >
+                        {visible.map((provider) => {
+                          const isActive =
+                            status?.activeProviderId === provider.id;
+                          const displayedModel =
+                            isActive && status?.appliedModel
+                              ? status.appliedModel
+                              : provider.model;
+                          const codexChoiceDiffers =
+                            target === "codex" &&
+                            isActive &&
+                            status?.state === "applied" &&
+                            !!status.configuredModel &&
+                            (status.configuredModel !== displayedModel ||
+                              (!!provider.reasoningEffort &&
+                                status.configuredReasoningEffort !==
+                                  provider.reasoningEffort));
+                          const upToDate =
+                            isActive && applied && !codexChoiceDiffers;
+                          const conversionBlocked =
+                            needsProtocolConversion(provider, target) &&
+                            !protocolConversionEnabled(provider, target);
+                          const protocolPending =
+                            desktopRuntime && !protocolConfirmed(provider);
+                          return (
+                            <li
+                              key={provider.id}
+                              className={`provider-card ${isActive ? "is-active" : ""}`}
+                            >
+                              <div className="provider-heading">
+                                <div className="provider-name">
+                                  <div className="provider-title">
+                                    <ProviderName
+                                      provider={provider}
+                                      displayName={displayProviderName(
+                                        provider,
+                                        providers,
+                                      )}
+                                      disabled={busy}
+                                      editing={renameProviderId === provider.id}
+                                      onEditing={(editing) => {
+                                        setRenameProviderId(
+                                          editing ? provider.id : null,
+                                        );
+                                        if (!editing)
+                                          requestAnimationFrame(() =>
+                                            document
+                                              .querySelector<HTMLButtonElement>(
+                                                `[data-provider-name="${provider.id}"]`,
+                                              )
+                                              ?.focus(),
+                                          );
+                                      }}
+                                      onSave={async (expected, name) =>
+                                        !!(await action(
+                                          () => api.rename(expected, name),
+                                          "供应商名称已更新。",
+                                          false,
+                                          provider.id,
+                                        ))
+                                      }
+                                    />
+                                    <button
+                                      type="button"
+                                      className={`provider-pin-button ${listPreferences.pinned.includes(provider.id) ? "is-pinned" : ""}`}
+                                      aria-label={`${listPreferences.pinned.includes(provider.id) ? "取消置顶" : "置顶"} ${provider.name}`}
+                                      aria-pressed={listPreferences.pinned.includes(
+                                        provider.id,
+                                      )}
+                                      title={
+                                        listPreferences.pinned.includes(
+                                          provider.id,
+                                        )
+                                          ? "取消置顶"
+                                          : "置顶供应商"
+                                      }
+                                      onClick={() =>
+                                        setListPreferences((p) => ({
+                                          ...p,
+                                          pinned: p.pinned.includes(provider.id)
+                                            ? p.pinned.filter(
+                                                (id) => id !== provider.id,
+                                              )
+                                            : [...p.pinned, provider.id],
+                                        }))
+                                      }
+                                    >
+                                      <Pin size={13} aria-hidden />
+                                      {listPreferences.pinned.includes(
+                                        provider.id,
+                                      )
+                                        ? "已置顶"
+                                        : "置顶"}
+                                    </button>
+                                    {isActive &&
+                                      activeState.tone === "attention" && (
+                                        <span
+                                          className={`current-label ${activeState.tone === "attention" ? "attention" : ""}`}
+                                        >
+                                          <span aria-hidden />
+                                          {activeState.label}
+                                        </span>
+                                      )}
+                                  </div>
+                                  <span
+                                    className="provider-address"
+                                    title={provider.baseUrl}
+                                  >
+                                    <span className="provider-address-label">
+                                      API 地址
+                                    </span>
+                                    <span>{provider.baseUrl}</span>
+                                  </span>
+                                </div>
+                              </div>
+                              <ProviderProtocolControl
+                                provider={provider}
+                                target={target}
+                                active={isActive}
+                                disabled={busy}
+                                toggleDisabled={
+                                  isActive && status?.state !== "applied"
+                                }
+                                saving={conversionProviderId === provider.id}
+                                onToggle={(provider, enabled) =>
+                                  void toggleConversion(provider, enabled)
+                                }
+                              />
+                              <div
+                                className={`provider-meta ${target === "codex" ? "is-codex" : "is-claude"}`}
+                              >
+                                <div className="provider-model-controls">
+                                  <ProviderModelSelect
+                                    provider={provider}
+                                    target={target}
+                                    displayedModel={displayedModel}
+                                    disabled={
+                                      busy ||
+                                      (isActive && status?.state !== "applied")
+                                    }
+                                    expanded={
+                                      popup?.kind === "models" &&
+                                      popup.provider.id === provider.id
+                                    }
+                                    onExpand={(event) =>
+                                      open(
+                                        { kind: "models", provider, target },
+                                        event,
+                                      )
+                                    }
+                                    onSave={quickModels}
+                                  />
+                                  {target === "codex" && (
+                                    <div className="provider-setting provider-fast-control">
+                                      <span className="provider-setting-label">
+                                        Fast 加速模式
+                                      </span>
+                                      <label
+                                        className="provider-fast-toggle"
+                                        title={
+                                          providerProtocol(provider) ===
+                                          "anthropic"
+                                            ? "Claude 协议转换暂不支持 Fast。"
+                                            : "加速模式需供应商支持，可能增加费用。"
+                                        }
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          role="switch"
+                                          aria-label={`Fast 模式 · ${provider.name}`}
+                                          aria-describedby={`fast-hint-${provider.id}`}
+                                          checked={
+                                            provider.codexOptions?.fastMode ===
+                                            true
+                                          }
+                                          disabled={
+                                            busy ||
+                                            providerProtocol(provider) ===
+                                              "anthropic" ||
+                                            (isActive &&
+                                              (status?.state ===
+                                                "external_change" ||
+                                                status?.state === "error"))
+                                          }
+                                          onChange={() =>
+                                            void toggleFast(provider)
+                                          }
+                                        />
+                                        <span
+                                          className="provider-fast-track"
+                                          aria-hidden
+                                        />
+                                        <span>
+                                          {fastProviderId === provider.id
+                                            ? "保存中…"
+                                            : provider.codexOptions?.fastMode
+                                              ? "已开启"
+                                              : "已关闭"}
+                                        </span>
+                                      </label>
+                                      <span
+                                        id={`fast-hint-${provider.id}`}
+                                        className="provider-setting-help"
+                                      >
+                                        {providerProtocol(provider) ===
+                                        "anthropic"
+                                          ? "Claude 转换暂不支持"
+                                          : "需供应商支持，可能增加费用"}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <ProviderBalance
+                                  key={`${provider.id}-${provider.updatedAt}-${provider.keySuffix}-${provider.baseUrl}-${JSON.stringify(provider.codexOptions?.balanceQuery)}`}
+                                  provider={provider}
+                                />
+                              </div>
+                              {codexChoiceDiffers && (
+                                <p
+                                  className="provider-state-note attention"
+                                  role="status"
+                                >
+                                  Codex 配置当前选择：
+                                  <code>{status.configuredModel}</code>
+                                  {" · 思考强度 "}
+                                  <code>
+                                    {status.configuredReasoningEffort ||
+                                      "模型默认"}
+                                  </code>
+                                  。点击「重新应用」恢复供应商默认模型，
+                                  {provider.reasoningEffort
+                                    ? `思考强度使用供应商设置 ${provider.reasoningEffort}。`
+                                    : "并保留此思考强度。"}
+                                  已有会话请在 Codex 内确认模型和思考强度。
+                                </p>
+                              )}
+                              {isActive && activeState.tone === "attention" && (
+                                <p
+                                  className={
+                                    "provider-state-note " + activeState.tone
+                                  }
+                                  role="status"
+                                >
+                                  {activeState.note}
+                                  {needsRestart(runtime.data) &&
+                                    runtime.data && (
+                                      <button
+                                        type="button"
+                                        className="text-button"
+                                        disabled={busy}
+                                        onClick={(e) =>
+                                          open(
+                                            {
+                                              kind: "restart-client",
+                                              runtime: runtime.data!,
+                                            },
+                                            e,
+                                          )
+                                        }
+                                      >
+                                        重启 {restartNames[target]}
+                                      </button>
+                                    )}
+                                  {(status?.state === "external_change" ||
+                                    status?.state === "error") && (
+                                    <button
+                                      className="text-button"
+                                      onClick={() =>
+                                        setPopup({ kind: "conflict" })
+                                      }
+                                    >
+                                      查看配置
+                                    </button>
+                                  )}
+                                </p>
+                              )}
+                              <div className="provider-actions">
+                                <button
+                                  className={`button apply-button ${upToDate ? "applied-button" : "secondary"}`}
+                                  disabled={
+                                    busy ||
+                                    conversionBlocked ||
+                                    protocolPending ||
+                                    upToDate ||
+                                    status?.state === "error"
+                                  }
+                                  aria-describedby={
+                                    conversionBlocked || protocolPending
+                                      ? `protocol-hint-${provider.id}`
+                                      : undefined
+                                  }
+                                  onClick={(event) => {
+                                    document
+                                      .querySelector("[data-dialog-return]")
+                                      ?.removeAttribute("data-dialog-return");
+                                    event.currentTarget.setAttribute(
+                                      "data-dialog-return",
+                                      "",
+                                    );
+                                    void useProvider(provider, target);
+                                  }}
+                                >
+                                  {busyProviderId === provider.id &&
+                                  fastProviderId !== provider.id
+                                    ? quickProviderId === provider.id ||
+                                      conversionProviderId === provider.id
+                                      ? "保存中…"
+                                      : "正在应用…"
+                                    : codexChoiceDiffers
+                                      ? "重新应用"
+                                      : upToDate
+                                        ? activeState.label
+                                        : isActive &&
+                                            status?.state === "saved_changes"
+                                          ? "更新配置"
+                                          : "使用"}
+                                  {upToDate ? (
+                                    <Check size={15} aria-hidden />
+                                  ) : (
+                                    <ArrowRight size={15} aria-hidden />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="provider-edit-button"
+                                  aria-label={`编辑 ${provider.name}`}
+                                  disabled={busy}
+                                  onClick={(e) =>
+                                    open({ kind: "edit", provider }, e)
+                                  }
+                                >
+                                  <Pencil size={14} aria-hidden />
+                                  编辑
+                                </button>
+                                <button
+                                  type="button"
+                                  className="provider-delete-button"
+                                  title={
+                                    query.data?.targets.some(
+                                      (t) => t.activeProviderId === provider.id,
+                                    )
+                                      ? "此供应商正在使用，请先切换或恢复"
+                                      : "删除配置"
+                                  }
+                                  aria-label={`删除 ${provider.name}`}
+                                  disabled={
+                                    busy ||
+                                    query.data?.targets.some(
+                                      (t) => t.activeProviderId === provider.id,
+                                    )
+                                  }
+                                  onClick={(e) =>
+                                    open({ kind: "delete", provider }, e)
+                                  }
+                                >
+                                  <Trash2 size={14} aria-hidden />
+                                  删除
+                                </button>
+                              </div>
+                              {query.data?.targets.some(
+                                (t) =>
+                                  t.target !== target &&
+                                  t.activeProviderId === provider.id &&
+                                  t.state === "saved_changes",
+                              ) && (
+                                <div className="provider-sync-row">
+                                  <span>其他客户端的连接配置有待更新</span>
+                                  <button
+                                    className="text-button provider-sync-button"
+                                    disabled={busy}
+                                    title="同步地址与密钥，保留各客户端的模型和上下文"
+                                    onClick={() =>
+                                      void syncProvider(provider.id)
+                                    }
+                                  >
+                                    同步其他客户端
+                                  </button>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                    {providers.length > 0 && visible.length === 0 && (
+                      <div className="no-results">
+                        <Search size={22} aria-hidden />
+                        <p>没有找到匹配的配置</p>
+                        <button
+                          className="text-button"
+                          onClick={() => setSearch("")}
+                        >
+                          清空搜索
+                        </button>
+                      </div>
+                    )}
+                    <div className="section-footnote">
+                      <ShieldCheck size={15} aria-hidden />
+                      <span>保留客户端的其他设置，仅修改 API 配置。</span>
+                    </div>
+                  </section>
+                </div>
+              </Tabs.Content>
+            </main>
+            <footer className="workspace-footer">
+              <div className="footer-status">
+                <span className="footer-status-text">
+                  <span className="footer-dot" />
+                  {runtime.data?.bridgeRequired && runtime.data.bridgeHealthy
+                    ? "兼容服务运行中 · 关闭窗口后保留托盘"
+                    : desktopRuntime
+                      ? "配置保存在本机"
+                      : "界面预览"}
+                </span>
+                {runtime.data?.bridgeRequired &&
+                  background.data?.supported &&
+                  !background.data.enabled && (
+                    <button
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() =>
+                        void action(async () => {
+                          await api.setBackground(true);
+                          await background.refetch();
+                        }, "已开启后台启动。下次登录 Windows 时自动恢复兼容连接。")
+                      }
+                    >
+                      开启后台启动
+                    </button>
+                  )}
+              </div>
+              <ServicePromotion />
+            </footer>
+          </>
+        )}
       </div>
+      {popup?.kind === "config-editor" && (
+        <ClientConfigEditor
+          key={popup.client}
+          client={popup.client}
+          onClose={() => setPopup(null)}
+          onSaved={(result) => {
+            const configClient = popup.client;
+            if (
+              ["codex", "claude_desktop", "claude_cli"].includes(configClient)
+            )
+              promptedRevision.current[configClient as Target] =
+                result.configurationRevision;
+            setPopup({ kind: "config-restart", client: configClient, result });
+            void client.invalidateQueries({ queryKey: ["overview"] });
+            void client.invalidateQueries({
+              queryKey: ["client-config", configClient],
+            });
+            void client.invalidateQueries({ queryKey: ["runtime"] });
+          }}
+        />
+      )}
+      {popup?.kind === "config-restart" && (
+        <ConfigRestartNotice
+          client={popup.client}
+          result={popup.result}
+          onClose={() => setPopup(null)}
+        />
+      )}
       {popup?.kind === "update" && (
         <Modal
           title="软件更新"
@@ -1576,6 +1681,15 @@ export default function App() {
             aria-labelledby="location-heading"
           >
             <h3 id="location-heading">配置位置</h3>
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() =>
+                setPopup({ kind: "config-editor", client: target })
+              }
+            >
+              查看 / 编辑配置文件
+            </button>
             <code className="settings-path">{status?.directory}</code>
             <p id="location-hint">
               直接使用此目录读取和写入配置。其他位置的配置不会影响当前选择。

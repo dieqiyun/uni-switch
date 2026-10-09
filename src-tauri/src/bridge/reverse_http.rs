@@ -309,6 +309,209 @@ mod tests {
         );
     }
     #[tokio::test]
+    async fn system_messages_work_for_both_endpoints_streams_and_token_counts() {
+        use crate::types::{
+            ClaudeProtocol, CodexOptions, EndpointSupport, Family, ProviderInput, ProviderModel,
+        };
+        for target in [Target::ClaudeCli, Target::ClaudeDesktop] {
+            for chat in [false, true] {
+                let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+                let captured_upstream = captured.clone();
+                let upstream = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+                let base = format!("http://{}/v1", upstream.local_addr().unwrap());
+                let endpoint = if chat {
+                    "/v1/chat/completions"
+                } else {
+                    "/v1/responses"
+                };
+                let router = Router::new().route(endpoint, post(move |Json(body): Json<Value>| {
+                    let captured = captured_upstream.clone();
+                    async move {
+                        captured.lock().unwrap().push(body.clone());
+                        let text = "QA_SYSTEM_OK";
+                        if body["stream"] == true {
+                            let wire = if chat {
+                                format!("data: {}\n\ndata: [DONE]\n\n", json!({"choices":[{"delta":{"content":text},"finish_reason":"stop"}]}))
+                            } else {
+                                format!("data: {}\n\ndata: {}\n\n",
+                                    json!({"type":"response.output_text.delta","output_index":0,"content_index":0,"delta":text}),
+                                    json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":text}]}]}}))
+                            };
+                            ([(header::CONTENT_TYPE, "text/event-stream")], wire).into_response()
+                        } else if chat {
+                            Json(json!({"choices":[{"message":{"content":text},"finish_reason":"stop"}]})).into_response()
+                        } else {
+                            Json(json!({"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":text}]}]})).into_response()
+                        }
+                    }
+                }));
+                let server =
+                    tokio::spawn(async move { axum::serve(upstream, router).await.unwrap() });
+                let temp = tempfile::tempdir().unwrap();
+                let mut store = Store::open(temp.path().join("data")).unwrap();
+                store
+                    .set_directory(
+                        target,
+                        temp.path().join("isolated-client").to_string_lossy().into(),
+                    )
+                    .unwrap();
+                let token = "b".repeat(64);
+                store.set_bridge_route(Route {
+                    port: 19873,
+                    token: token.clone(),
+                });
+                let mut model = ProviderModel {
+                    id: "gpt-5.4".into(),
+                    ..Default::default()
+                };
+                model.profile.endpoints = EndpointSupport {
+                    responses: Some(!chat),
+                    chat_completions: Some(chat),
+                    ..Default::default()
+                };
+                let provider = store
+                    .save(ProviderInput {
+                        id: None,
+                        family: Family::Claude,
+                        name: "Synthetic system QA".into(),
+                        base_url: base,
+                        api_key: Some("synthetic-system-key".into()),
+                        balance_access_token: None,
+                        model: model.id.clone(),
+                        auth_mode: "bearer".into(),
+                        reasoning_effort: None,
+                        codex_options: CodexOptions {
+                            claude_protocol: ClaudeProtocol::Openai,
+                            models: vec![model],
+                            ..Default::default()
+                        },
+                    })
+                    .unwrap();
+                store.apply(target, &provider.id).unwrap();
+                let runtime = Runtime {
+                    store: Arc::new(Mutex::new(store)),
+                    token: token.clone(),
+                    client: reqwest::Client::builder().no_proxy().build().unwrap(),
+                };
+                let mut headers = HeaderMap::new();
+                headers.insert("x-api-key", token.parse().unwrap());
+                let path = (target.id().to_owned(), provider.id.clone());
+                let source = json!({"model":"gpt-5.4","system":"Initial instructions","max_tokens":256,"thinking":{"type":"adaptive"},"messages":[
+                    {"role":"user","content":"Previous turn"},
+                    {"role":"assistant","content":"Previous reply"},
+                    {"role":"user","content":"Current turn"},
+                    {"role":"system","content":"Current instructions","clear_at":"next_user_message","output_config":{"effort":"low"}}
+                ]});
+                let count = count_tokens(
+                    State(runtime.clone()),
+                    Path(path.clone()),
+                    headers.clone(),
+                    Json(source.clone()),
+                )
+                .await
+                .unwrap();
+                assert_eq!(count.status(), StatusCode::OK);
+                assert_eq!(count.headers()["x-uni-switch-token-count"], "estimated");
+                let count: Value = serde_json::from_slice(
+                    &axum::body::to_bytes(count.into_body(), 1024).await.unwrap(),
+                )
+                .unwrap();
+                assert!(count["input_tokens"].as_u64().unwrap() > 0);
+                assert!(
+                    captured.lock().unwrap().is_empty(),
+                    "Counting must not call inference"
+                );
+                for streaming in [false, true] {
+                    let mut body = source.clone();
+                    body["stream"] = json!(streaming);
+                    let reply = messages(
+                        State(runtime.clone()),
+                        Path(path.clone()),
+                        headers.clone(),
+                        Json(body),
+                    )
+                    .await
+                    .unwrap();
+                    assert_eq!(reply.status(), StatusCode::OK);
+                    let reply = String::from_utf8(
+                        axum::body::to_bytes(reply.into_body(), 64 * 1024)
+                            .await
+                            .unwrap()
+                            .to_vec(),
+                    )
+                    .unwrap();
+                    assert!(reply.contains("QA_SYSTEM_OK"), "{reply}");
+                    assert!(
+                        reply.contains(if streaming {
+                            "message_stop"
+                        } else {
+                            "end_turn"
+                        }),
+                        "{reply}"
+                    );
+                }
+                let requests = captured.lock().unwrap().clone();
+                assert_eq!(requests.len(), 2);
+                for request in requests {
+                    if chat {
+                        assert_eq!(request["messages"][0]["role"], "system");
+                        assert_eq!(request["messages"][4]["role"], "system");
+                        assert_eq!(
+                            request["messages"][4]["content"][0]["text"],
+                            "Current instructions"
+                        );
+                        assert_eq!(request["reasoning_effort"], "low");
+                    } else {
+                        assert_eq!(request["instructions"], "Initial instructions");
+                        assert_eq!(request["input"][3]["role"], "system");
+                        assert_eq!(
+                            request["input"][3]["content"][0]["text"],
+                            "Current instructions"
+                        );
+                        assert_eq!(request["reasoning"]["effort"], "low");
+                    }
+                }
+                for invalid in [
+                    json!({"role":"synthetic-secret-role","content":"synthetic-secret-text"}),
+                    json!({"role":"system","content":[{"type":"image","source":{"type":"url","url":"https://example.test/synthetic-secret"}}]}),
+                ] {
+                    let mut body = source.clone();
+                    body["messages"].as_array_mut().unwrap().push(invalid);
+                    let (status, Json(error)) = messages(
+                        State(runtime.clone()),
+                        Path(path.clone()),
+                        headers.clone(),
+                        Json(body.clone()),
+                    )
+                    .await
+                    .unwrap_err();
+                    assert_eq!(status, StatusCode::BAD_REQUEST);
+                    assert_eq!(error["error"]["type"], "invalid_request_error");
+                    assert!(!error.to_string().contains("synthetic-secret"));
+                    assert_eq!(
+                        count_tokens(
+                            State(runtime.clone()),
+                            Path(path.clone()),
+                            headers.clone(),
+                            Json(body)
+                        )
+                        .await
+                        .unwrap_err()
+                        .0,
+                        StatusCode::BAD_REQUEST
+                    );
+                }
+                assert_eq!(
+                    captured.lock().unwrap().len(),
+                    2,
+                    "Invalid inputs must not reach upstream"
+                );
+                server.abort();
+            }
+        }
+    }
+
+    #[tokio::test]
     async fn declared_endpoints_avoid_responses_and_errors_do_not_invent_fallbacks() {
         use crate::types::{
             ClaudeProtocol, CodexOptions, EndpointSupport, Family, ProviderInput, ProviderModel,

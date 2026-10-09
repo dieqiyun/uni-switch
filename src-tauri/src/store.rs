@@ -6,6 +6,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
+mod client_configs;
 
 pub struct Store {
     conn: Connection,
@@ -178,6 +179,7 @@ impl Store {
                     .execute(&format!("ALTER TABLE targets ADD COLUMN {column} TEXT"), [])?;
             }
         }
+        store.initialize_client_configs()?;
         store.recover()?;
         store.migrate_model_capabilities()?;
         Ok(store)
@@ -185,6 +187,9 @@ impl Store {
 
     fn migrate_model_capabilities(&mut self) -> Result<()> {
         let target = Target::Codex;
+        if self.manually_configured(target)? {
+            return Ok(());
+        }
         let (_, active, baseline) = self.target_record(target)?;
         let (Some(id), Some(mut baseline)) = (active, baseline) else {
             return Ok(());
@@ -871,7 +876,7 @@ impl Store {
             [id],
             |row| row.get(0),
         )?;
-        if in_use {
+        if in_use || self.extra_client_uses(id)? {
             return Err(AppError::new(
                 "in_use",
                 "此配置仍在客户端中使用，请先应用其他配置或恢复原配置",
@@ -998,6 +1003,10 @@ impl Store {
         } else {
             None
         };
+        if active.is_some() && self.manually_configured(target)? {
+            state = "external_change".into();
+            message = "配置已手动保存。重新应用供应商将覆盖相关设置，请先确认。".into();
+        }
         Ok(TargetStatus {
             target,
             directory: directory.to_string_lossy().into_owned(),
@@ -1216,6 +1225,15 @@ impl Store {
         approval: Option<OverwriteApproval>,
     ) -> Result<TargetStatus> {
         let accepted_source = Some(source.unwrap_or(Self::source_signature(&provider)?));
+        if approval.is_none()
+            && self.target_record(target)?.2.is_some()
+            && self.manually_configured(target)?
+        {
+            return Err(AppError::new(
+                "external_change",
+                "配置已手动保存，请确认后再应用供应商",
+            ));
+        }
         let provider = Self::for_target(&provider, target);
         let provider_id = provider.summary.id.clone();
         let (directory, active, baseline) = self.target_record(target)?;
@@ -2035,7 +2053,7 @@ impl Store {
             previous_revision
         };
         tx.execute(
-            "UPDATE targets SET active=?1,baseline=?2,applied_at_ms=?4 WHERE id=?3",
+            "UPDATE targets SET active=?1,baseline=?2,applied_at_ms=?4,configuration_manual=0 WHERE id=?3",
             params![pending.active, baseline, pending.target.id(), revision],
         )?;
         tx.execute(
@@ -2081,6 +2099,7 @@ impl Store {
     }
 
     pub fn recover(&mut self) -> Result<()> {
+        self.recover_config_operations()?;
         let rows: Vec<(String, String)> = {
             let mut stmt = self.conn.prepare(
                 "SELECT id,data FROM operations WHERE status='pending' ORDER BY created_at",

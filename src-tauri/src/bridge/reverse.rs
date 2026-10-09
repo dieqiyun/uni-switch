@@ -77,6 +77,23 @@ fn text_blocks(value: &Value, assistant: bool) -> ConversionResult<Vec<Value>> {
     Ok(output)
 }
 
+fn system_text_blocks(value: &Value) -> ConversionResult<Vec<Value>> {
+    if let Some(text) = value.as_str() {
+        return Ok(vec![json!({"type":"input_text","text":text})]);
+    }
+    value
+        .as_array()
+        .ok_or("system 内容必须是文本或文本块数组")?
+        .iter()
+        .map(|block| {
+            if block["type"] != "text" {
+                return Err("system 仅支持文本块，不能包含图片、工具或思考内容".into());
+            }
+            Ok(json!({"type":"input_text","text":block["text"].as_str().ok_or("system 文本块缺少 text")?}))
+        })
+        .collect()
+}
+
 pub fn request(body: &Value, model: &str, streaming: bool) -> ConversionResult<Value> {
     request_with_model(
         body,
@@ -99,17 +116,73 @@ pub fn request_with_model(
     let mut input = Vec::new();
     let mut system = Vec::new();
     if let Some(value) = body.get("system") {
-        for part in text_blocks(value, false)? {
+        for part in system_text_blocks(value)? {
             system.push(part["text"].as_str().ok_or("system 仅支持文本")?.to_owned());
         }
     }
     let messages = body["messages"]
         .as_array()
         .ok_or("Claude 请求缺少 messages")?;
-    for message in messages {
+    let last_user = messages
+        .iter()
+        .rposition(|message| message["role"] == "user");
+    let mut requested_effort = body
+        .pointer("/output_config/effort")
+        .and_then(Value::as_str);
+    for (index, message) in messages.iter().enumerate() {
         let role = message["role"].as_str().ok_or("消息缺少 role")?;
-        if !matches!(role, "user" | "assistant") {
-            return Err("Claude 消息 role 必须为 user 或 assistant".into());
+        if !matches!(role, "user" | "assistant" | "system") {
+            return Err(format!(
+                "Claude 第 {} 条消息 role 必须为 user、assistant 或 system，请检查客户端请求协议",
+                index + 1
+            ));
+        }
+        if role == "system" {
+            // New Claude clients append system instructions within the history.
+            // Preserve their role and position rather than hoisting them into
+            // the initial instructions or downgrading them to user text.
+            let expired = match message.get("clear_at").filter(|value| !value.is_null()) {
+                None => false,
+                Some(value) if value == "never" => false,
+                Some(value) if value == "next_user_message" => {
+                    last_user.is_some_and(|last| last > index)
+                }
+                Some(_) => return Err("system clear_at 必须为 never 或 next_user_message".into()),
+            };
+            let mut message_effort = None;
+            if let Some(config) = message
+                .get("output_config")
+                .filter(|value| !value.is_null())
+            {
+                let config = config
+                    .as_object()
+                    .ok_or("system output_config 必须是对象")?;
+                if config.keys().any(|key| key != "effort") {
+                    return Err("system output_config 仅支持 effort".into());
+                }
+                if let Some(value) = config.get("effort").filter(|value| !value.is_null()) {
+                    let effort = value
+                        .as_str()
+                        .filter(|value| {
+                            matches!(*value, "low" | "medium" | "high" | "xhigh" | "max")
+                        })
+                        .ok_or("system effort 必须为 low、medium、high、xhigh 或 max")?;
+                    message_effort = Some(effort);
+                }
+            }
+            let content = match message.get("content") {
+                Some(value) => system_text_blocks(value)?,
+                None if message_effort.is_some() => Vec::new(),
+                None => return Err("system 消息缺少 content 或有效的 output_config.effort".into()),
+            };
+            if let Some(effort) = message_effort {
+                requested_effort = Some(effort);
+            }
+            // clear_at expires the text, not per-turn output configuration.
+            if !expired && !content.is_empty() {
+                input.push(json!({"type":"message","role":"system","content":content}));
+            }
+            continue;
         }
         let blocks = if message["content"].is_string() {
             vec![json!({"type":"text","text":message["content"]})]
@@ -219,16 +292,13 @@ pub fn request_with_model(
                 Some(crate::types::ThinkingFormat::Openai | crate::types::ThinkingFormat::Deepseek)
             ))
     {
-        let effort = body
-            .pointer("/output_config/effort")
-            .and_then(Value::as_str)
-            .unwrap_or_else(
-                || match body["thinking"]["budget_tokens"].as_u64().unwrap_or(4096) {
-                    0..=1024 => "low",
-                    1025..=3072 => "medium",
-                    _ => "high",
-                },
-            );
+        let effort = requested_effort.unwrap_or_else(|| {
+            match body["thinking"]["budget_tokens"].as_u64().unwrap_or(4096) {
+                0..=1024 => "low",
+                1025..=3072 => "medium",
+                _ => "high",
+            }
+        });
         let effort = if profile.reasoning_efforts.is_none()
             && profile.thinking_format != Some(crate::types::ThinkingFormat::Deepseek)
         {
