@@ -3,6 +3,7 @@ pub mod adapters;
 pub mod background;
 pub mod bridge;
 mod browser;
+pub mod client_config;
 pub mod discovery;
 pub mod error;
 pub mod model_capabilities;
@@ -37,6 +38,59 @@ mod desktop {
     fn get_overview(state: State<AppState>) -> Result<Overview> {
         locked(&state)?.overview()
     }
+    #[tauri::command]
+    fn get_client_config_status(
+        state: State<AppState>,
+        client: crate::client_config::ClientKind,
+    ) -> Result<crate::client_config::ClientConfigStatus> {
+        locked(&state)?.client_config_status(client)
+    }
+    #[tauri::command]
+    fn read_client_config(
+        state: State<AppState>,
+        client: crate::client_config::ClientKind,
+        file_id: String,
+    ) -> Result<crate::client_config::ConfigDocument> {
+        locked(&state)?.read_client_config(client, &file_id)
+    }
+    #[tauri::command]
+    fn save_client_config(
+        state: State<AppState>,
+        document: crate::client_config::ConfigDocument,
+    ) -> Result<crate::client_config::ConfigWriteResult> {
+        locked(&state)?.save_client_config(document)
+    }
+    #[tauri::command]
+    fn set_client_config_directory(
+        state: State<AppState>,
+        client: crate::client_config::ClientKind,
+        directory: String,
+    ) -> Result<()> {
+        locked(&state)?.set_client_config_directory(client, directory)
+    }
+    #[tauri::command]
+    fn apply_client_config(
+        state: State<AppState>,
+        client: crate::client_config::ClientKind,
+        provider_id: String,
+        protocol: crate::client_config::NativeProtocol,
+        expected_revision: Option<String>,
+    ) -> Result<crate::client_config::ConfigWriteResult> {
+        locked(&state)?.apply_client_config(
+            client,
+            &provider_id,
+            protocol,
+            expected_revision.as_deref(),
+        )
+    }
+    #[tauri::command]
+    fn restore_client_config(
+        state: State<AppState>,
+        client: crate::client_config::ClientKind,
+    ) -> Result<crate::client_config::ConfigWriteResult> {
+        locked(&state)?.restore_client_config(client)
+    }
+
     #[tauri::command]
     fn get_background_settings() -> Result<crate::background::BackgroundSettings> {
         crate::background::settings()
@@ -548,6 +602,12 @@ mod desktop {
             })
             .invoke_handler(tauri::generate_handler![
                 get_overview,
+                get_client_config_status,
+                read_client_config,
+                save_client_config,
+                set_client_config_directory,
+                apply_client_config,
+                restore_client_config,
                 get_update_source,
                 check_app_update,
                 start_app_update_download,

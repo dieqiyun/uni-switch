@@ -1,5 +1,46 @@
 export type Family = "codex" | "claude";
 export type Target = "codex" | "claude_desktop" | "claude_cli";
+export type ExtraClient = "zcode" | "dsh" | "workbuddy";
+export type ClientKind = Target | ExtraClient;
+export type NativeProtocol = "messages" | "chat_completions" | "responses";
+export const clientNames: Record<ClientKind, string> = {
+  codex: "Codex",
+  claude_desktop: "Claude Code 桌面端",
+  claude_cli: "Claude Code CLI",
+  zcode: "ZCode",
+  dsh: "DSH",
+  workbuddy: "WorkBuddy",
+};
+export interface ConfigFile {
+  id: string;
+  path: string;
+  format: "json" | "toml" | "yaml";
+  exists: boolean;
+}
+export interface ClientConfigStatus {
+  client: ClientKind;
+  directory: string;
+  files: ConfigFile[];
+  activeProviderId: string | null;
+  canRestore: boolean;
+  state: string;
+  message: string;
+  revision: string;
+}
+export interface ConfigDocument {
+  client: ClientKind;
+  fileId: string;
+  path: string;
+  format: ConfigFile["format"];
+  content: string;
+  revision: string;
+  exists: boolean;
+}
+export interface ConfigWriteResult {
+  changed: boolean;
+  backupPath: string | null;
+  configurationRevision: number;
+}
 export interface Provider {
   id: string;
   family: Family;

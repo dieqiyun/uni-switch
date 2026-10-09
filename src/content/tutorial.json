@@ -38,6 +38,15 @@
             "从蝶祈云官网进入控制台，创建或复制你的 API Key，查看对应渠道给出的 API 接入地址；将这两项填入 uni-switch 后点击「添加并使用」。不要直接把官网首页当作 API 地址。",
             "密钥只在你自己的电脑输入。教程不要求提供密码、真实 Key、控制台 Access Token 或用户 ID。余额如果只返回密钥额度，界面会标明查询范围。"
           ]
+        },
+        {
+          "title": "ZCode、DSH 与 WorkBuddy 一键配置",
+          "paragraphs": [
+            "左侧选择 ZCode、DSH 或 WorkBuddy，选择已保存供应商并点击「一键配置」。新客户端与 Codex、Claude Code 共用供应商列表；可通过「添加 / 管理供应商」进入现有管理页。",
+            "ZCode 支持 Claude Messages、OpenAI Chat Completions 和 Responses，写入个人供应商列表并设置默认模型。DSH（DeepSeek Harness）支持这三种协议，写入独立路由、凭据与新 agent 默认模型。",
+            "WorkBuddy 使用 Chat Completions 自定义模型入口。保存后重启，在 WorkBuddy 的模型选择器中选用新模型。若供应商只支持 Claude Messages，且没有 Chat 接口支持依据，会阻止写入并说明原因。",
+            "首次应用前核对页面中的目录。WorkBuddy 的当前默认入口为 ~/.workbuddy/models.json；如果版本使用旧的 ~/.codebuddy/models.json，可在「修改配置目录」中指定。项目级配置或客户端启动环境可能覆盖用户配置。"
+          ]
         }
       ]
     },
@@ -259,6 +268,20 @@
             "下载或网络错误时可重新选择方式；最新版本在确认后改变时，需要重新检测和选择，软件不会静默换成另一版本。缺少可校验安装包或不支持当前系统时，远程更新不可用，可到 GitHub 手动下载。",
             "GitHub 限流或网络失败不能视为已经是最新版。发布页提供对应源码、许可证、教程和 SHA256 校验值。更新请求不附带供应商 API Key。"
           ]
+        },
+        {
+          "title": "查看与手动编辑配置文件",
+          "steps": [
+            "Codex / Claude Code：打开「设置」→「查看 / 编辑配置文件」。ZCode / DSH / WorkBuddy：点击页面中的同名按钮。",
+            "选择文件，查看实际路径与只读内容；点击「开始编辑」后修改。Codex 同时提供 config.toml、auth.json 与模型目录；Claude Code 提供设置文件与有效配置档案。",
+            "点击「保存配置」。应用校验 JSON、TOML 或 YAML，自动备份原文件并回读验证，真正写入成功后提示完全退出并重新打开客户端、新开对话。",
+            "若文件在编辑期间被外部修改，保存会停止并保留草稿。先复制需要保留的内容，再重新读取文件。关闭或切换文件时可选择继续编辑或放弃未保存修改。"
+          ],
+          "paragraphs": [
+            "只查看、取消、格式错误及内容未变化都不会写入，也不会提示重启。文件内容只在主动打开时读取，不存入浏览器本地存储。",
+            "手动保存后，重新应用供应商须确认覆盖；确认前和确认期间都会检查文件变化。备份位于应用数据目录 backups/client-config-*.json，包含原文和新内容，请按含密钥文件妥善保管。",
+            "新客户端的「恢复原配置」恢复首次接管前的完整文件；请先保留接管后手动增加的内容。发现未确认的外部修改时停止自动恢复。"
+          ]
         }
       ]
     },
@@ -305,6 +328,14 @@
               ]
             ]
           }
+        },
+        {
+          "title": "Claude CLI 提示消息 role 必须为 user 或 assistant",
+          "paragraphs": [
+            "如果完整报错是「API Error: 400 Claude 消息 role 必须为 user 或 assistant」，这是旧版本 uni-switch 本地协议转换服务的校验错误。新版 Claude Messages 可以在历史消息中追加 system 指令，旧转换逻辑只接受 user / assistant，导致请求在发送上游前被拒绝。",
+            "v0.5.23 已兼容这类 system 文本消息，并保留它在对话中的位置、临时指令失效规则和逐轮思考强度。升级到 v0.5.23 或更新版本后，重启 uni-switch 和对应 Claude CLI 再验证。",
+            "同时核对供应商的实际 API 协议。Claude 供应商分组或 Claude 模型名称不代表接入地址一定支持 Messages。如果供应商提供原生 Claude Messages，确认协议显示为 Claude 后重新应用；只有 OpenAI 接口的渠道仍需要保持「转换为 Claude」开启和 uni-switch 后台运行。不要手工删掉 system 消息或把它改成 user。"
+          ]
         },
         {
           "title": "配置被其他工具修改",

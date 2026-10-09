@@ -1,5 +1,26 @@
 # 更新记录
 
+## 0.5.23 — 2026-10-09
+
+### Claude CLI 消息兼容
+
+- 修复 Claude → OpenAI 本地转换桥拒绝历史中的 system 消息、提示「API Error: 400 Claude 消息 role 必须为 user 或 assistant」的问题；指令保留原位置与角色，覆盖 Responses、Chat Completions、JSON、SSE 和 token 计数入口。
+- 支持临时 system 文本的 clear_at 失效规则、逐消息 output_config.effort 和仅携带 effort 的指令；原工具调用和工具结果顺序保持不变，非法角色和无法转换的内容继续在本地拒绝。
+- 更新排查教程，区分供应商分组、模型名称和实际接口协议；不修改既有八档客户端菜单及上下文同步规则。
+
+### 多客户端一键配置与文件编辑
+
+- 新增 ZCode、DSH（DeepSeek Harness）、WorkBuddy 入口，共用已保存供应商。ZCode / DSH 支持 Messages、Chat Completions 和 Responses；WorkBuddy 写入 Chat Completions 自定义模型，重启后在客户端选择器中选用。
+- Codex、Claude Code 桌面端 / CLI 和新客户端可显示实际配置文件路径、主动读取内容、手动编辑与保存；校验 JSON / TOML / YAML，保存前备份，真实写入后提示重启并新开对话。
+- 保留其他供应商与无关设置，检测外部修改、拒绝符号链接和重解析点；手动修改后的供应商重新应用需确认，多文件写入提供事务日志与中断恢复。
+- 新客户端可修改配置目录和恢复首次接管前的文件；恢复前明确提醒保留后续手动内容。WorkBuddy 旧目录需按客户端版本手动选择。
+
+### 发布与验证
+
+- 保持 Windows x64、Linux x64、macOS 通用程序及精确对应的 AGPL-3.0-only 源码、中文指南与 SHA256 校验。
+- 本地前端 174 项、Rust 180 项通过（另 1 项原有环境辅助测试忽略）；六客户端隔离界面配置与保存验证通过。实际 Claude Code CLI 的隔离请求追加官方格式的 system 后，旧程序复现原 400，修复后两种上游接口正常完成回复；未使用真实凭据或收费上游。
+- 公开发布前要求 PR 必需检查、三平台原生构建、隔离启动与固定产物清单 / 对应源码 / 上传回读校验全部成功。
+
 ## 0.5.22 — 2026-10-09
 
 ### Claude 原生接入与协议检测
