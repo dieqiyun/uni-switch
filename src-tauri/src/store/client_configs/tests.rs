@@ -97,7 +97,7 @@ fn client_config_desktop_inventory_exposes_selected_uuid_and_ignores_traversal()
         .unwrap()
         .files
         .iter()
-        .any(|f| f.path.contains("private")));
+        .any(|f| std::path::Path::new(&f.path).ends_with("private.json")));
 }
 #[cfg(windows)]
 #[test]
