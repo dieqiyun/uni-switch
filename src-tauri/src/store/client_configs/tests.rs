@@ -650,3 +650,205 @@ fn client_config_existing_managed_target_manual_save_survives_reopen_and_require
         .unwrap();
     assert_eq!(store.status(Target::Codex).unwrap().state, "applied");
 }
+
+#[test]
+fn client_config_native_endpoint_and_auth_matrix_uses_sdk_base_semantics() {
+    let (_temp, mut store) = fixture();
+    let p = provider(&mut store, Family::Codex);
+    let mut saved = store.provider(&p.id).unwrap();
+    // Explicit evidence permits all three native APIs, without guessing from IDs.
+    saved.summary.codex_options.models = vec![ProviderModel {
+        id: "qa-model".into(),
+        enabled: true,
+        profile_overrides: crate::types::ModelProfile {
+            endpoints: crate::types::EndpointSupport {
+                messages: Some(true),
+                chat_completions: Some(true),
+                responses: Some(true),
+            },
+            ..Default::default()
+        },
+        ..Default::default()
+    }];
+    for (source, openai_base, messages_base) in [
+        (
+            "https://gateway.example",
+            "https://gateway.example/v1",
+            "https://gateway.example",
+        ),
+        (
+            "https://gateway.example/",
+            "https://gateway.example/v1",
+            "https://gateway.example",
+        ),
+        (
+            "https://gateway.example/v1/",
+            "https://gateway.example/v1",
+            "https://gateway.example/v1",
+        ),
+        (
+            "https://gateway.example/proxy/v1",
+            "https://gateway.example/proxy/v1",
+            "https://gateway.example/proxy/v1",
+        ),
+        (
+            "https://gateway.example/proxy",
+            "https://gateway.example/proxy",
+            "https://gateway.example/proxy",
+        ),
+        (
+            "https://gateway.example/api/paas/v4",
+            "https://gateway.example/api/paas/v4",
+            "https://gateway.example/api/paas/v4",
+        ),
+        (
+            "https://gateway.example/chat/completions",
+            "https://gateway.example",
+            "https://gateway.example",
+        ),
+        (
+            "https://gateway.example/proxy/v1/messages/",
+            "https://gateway.example/proxy/v1",
+            "https://gateway.example/proxy/v1",
+        ),
+        (
+            "https://gateway.example/proxy/v1/responses",
+            "https://gateway.example/proxy/v1",
+            "https://gateway.example/proxy/v1",
+        ),
+        (
+            "https://gateway.example/proxy/v1/chat/completions",
+            "https://gateway.example/proxy/v1",
+            "https://gateway.example/proxy/v1",
+        ),
+    ] {
+        saved.summary.base_url = source.into();
+        for protocol in [
+            NativeProtocol::Messages,
+            NativeProtocol::ChatCompletions,
+            NativeProtocol::Responses,
+        ] {
+            for auth in ["bearer", "x-api-key"] {
+                saved.summary.auth_mode = auth.into();
+                for client in [ClientKind::Zcode, ClientKind::Dsh, ClientKind::Workbuddy] {
+                    if client == ClientKind::Workbuddy
+                        && (auth != "bearer" || protocol != NativeProtocol::ChatCompletions)
+                    {
+                        continue;
+                    }
+                    let specs = store.config_specs(client).unwrap();
+                    let changes = client_config::plan(client, &specs, &saved, protocol).unwrap();
+                    let doc: serde_json::Value = if client == ClientKind::Dsh {
+                        serde_yaml_ng::from_str(changes[0].after.as_deref().unwrap()).unwrap()
+                    } else {
+                        serde_json::from_str(changes[0].after.as_deref().unwrap()).unwrap()
+                    };
+                    let (actual_base, actual_headers) = match client {
+                        ClientKind::Zcode => {
+                            let api = &doc["config"]["providerConfigRules"]["providerRules"][0]
+                                ["config"]["api"];
+                            (
+                                api["baseUrl"].as_str().unwrap().to_owned(),
+                                api["headers"].clone(),
+                            )
+                        }
+                        ClientKind::Dsh => {
+                            let route = &doc[0]["insert"][0]["config"]["providers"]["uni-switch"];
+                            (
+                                route["baseURL"].as_str().unwrap().to_owned(),
+                                route["headers"].clone(),
+                            )
+                        }
+                        ClientKind::Workbuddy => {
+                            assert_eq!(
+                                doc["models"][0]["url"],
+                                format!("{openai_base}/chat/completions"),
+                                "{source}"
+                            );
+                            continue;
+                        }
+                        _ => unreachable!(),
+                    };
+                    let expected = if protocol == NativeProtocol::Messages {
+                        if client == ClientKind::Dsh {
+                            messages_base.strip_suffix("/v1").unwrap_or(messages_base)
+                        } else {
+                            messages_base
+                        }
+                    } else {
+                        openai_base
+                    };
+                    assert_eq!(actual_base, expected, "{client:?} {protocol:?} {source}");
+                    if auth == "x-api-key" {
+                        assert_eq!(actual_headers["x-api-key"], saved.api_key);
+                    } else if protocol == NativeProtocol::Messages {
+                        assert_eq!(
+                            actual_headers["Authorization"],
+                            format!("Bearer {}", saved.api_key)
+                        );
+                    } else {
+                        assert_eq!(actual_headers, json!({}));
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn client_config_workbuddy_unrepresentable_auth_is_rejected_without_writes() {
+    let (temp, mut store) = fixture();
+    let p = provider(&mut store, Family::Codex);
+    let mut input = ProviderInput {
+        id: Some(p.id.clone()),
+        family: p.family,
+        name: p.name,
+        base_url: p.base_url,
+        api_key: None,
+        balance_access_token: None,
+        model: p.model,
+        auth_mode: "x-api-key".into(),
+        reasoning_effort: None,
+        codex_options: CodexOptions {
+            upstream_protocol: Some(CodexProtocol::Openai),
+            ..Default::default()
+        },
+    };
+    let p = store.save(input.clone()).unwrap();
+    let path = temp.path().join("workbuddy/models.json");
+    let original = r#"{"models":[{"id":"keep"}]}"#;
+    put(&path, original);
+    assert_eq!(
+        store
+            .apply_client_config(
+                ClientKind::Workbuddy,
+                &p.id,
+                NativeProtocol::ChatCompletions,
+                None
+            )
+            .unwrap_err()
+            .code,
+        "unsupported_auth"
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+    assert!(
+        !store
+            .client_config_status(ClientKind::Workbuddy)
+            .unwrap()
+            .can_restore
+    );
+    assert!(!temp.path().join("data/backups").exists());
+    input.auth_mode = "bearer".into();
+    store.save(input).unwrap();
+    assert!(
+        store
+            .apply_client_config(
+                ClientKind::Workbuddy,
+                &p.id,
+                NativeProtocol::ChatCompletions,
+                None
+            )
+            .unwrap()
+            .changed
+    );
+}

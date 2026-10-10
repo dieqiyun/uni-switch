@@ -4488,7 +4488,7 @@ dependencies = [
 
 [[package]]
 name = "uni-switch"
-version = "0.5.23"
+version = "0.5.24"
 dependencies = [
  "async-stream",
  "axum",

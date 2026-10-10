@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
+import { preview } from "vite";
 
 const root = path.resolve(".qa/protocol-bridge/native", String(Date.now()));
 const codexHome = path.join(root, "codex");
@@ -54,6 +55,18 @@ const server = http.createServer(async (req, res) => {
   for await (const chunk of req) raw += chunk;
   const body = JSON.parse(raw);
   requests.push(body);
+  if (body.messages.at(-1)?.role === "assistant") {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        error: {
+          message:
+            "This model does not support assistant message prefill. The conversation must end with a user message.",
+        },
+      }),
+    );
+    return;
+  }
   if (mode === "http-error") {
     res.writeHead(429, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: { message: `rate limit ${key}` } }));
@@ -221,13 +234,19 @@ async function until(fn, timeout = 25000) {
   }
   throw Error("QA timeout");
 }
-let child, browser, page, codex;
+let child, browser, page, codex, relay, previewServer;
+const relayed = [];
 try {
   try {
     assert.equal((await fetch("http://127.0.0.1:9223/json/version")).ok, false);
   } catch (e) {
     if (e.code === "ERR_ASSERTION") throw e;
   }
+  previewServer = await preview({
+    root: path.resolve("."),
+    preview: { host: "127.0.0.1", port: 1420, strictPort: true },
+    clearScreen: false,
+  });
   child = spawn(
     path.resolve(
       process.env.UNI_SWITCH_QA_EXE ||
@@ -263,30 +282,36 @@ try {
       { name, args },
     );
   await page.getByRole("button", { name: /^添加(第一个)?供应商$/ }).waitFor();
-  await invoke("set_directory", {target:"codex", directory:codexHome});
+  await invoke("set_directory", { target: "codex", directory: codexHome });
   await page.getByRole("button", { name: /^添加(第一个)?供应商$/ }).click();
-  await page.locator(".form-advanced > summary").click();
-  await page.getByLabel("API 协议").selectOption("anthropic");
+  await page
+    .getByRole("group", { name: "API 协议", exact: true })
+    .getByRole("radio", { name: "Claude Messages", exact: true })
+    .check();
   await page.locator("#baseUrl").fill(origin);
   await page.locator("#apiKey").fill(key);
-  await page.getByText("更换模型",{exact:true}).click();
   await page
     .getByRole("checkbox", { name: "启用 claude-sonnet-4-6", exact: true })
     .waitFor();
   await page
     .getByRole("checkbox", { name: "启用 claude-sonnet-4-6", exact: true })
     .check();
-  await page.getByRole("checkbox", { name: "启用 claude-opus-4-6", exact: true }).check();
+  await page
+    .getByRole("checkbox", { name: "启用 claude-opus-4-6", exact: true })
+    .check();
   await page
     .getByRole("dialog")
-    .screenshot({ path: "docs/screenshots/claude-protocol-form.png" });
+    .screenshot({ path: path.join(root, "claude-protocol-form.png") });
   const audit = await new AxeBuilder({ page }).analyze();
   assert.deepEqual(
     audit.violations.map((v) => v.id),
     [],
   );
   await page.getByRole("button", { name: "添加并使用", exact: true }).click();
-  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page
+    .getByRole("dialog", { name: "添加供应商", exact: true })
+    .waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "稍后重启", exact: true }).click();
   const overview = await invoke("get_overview");
   const provider = overview.providers[0];
   assert.equal(provider.codexOptions.protocol, "anthropic");
@@ -346,7 +371,54 @@ try {
   delete env.OPENAI_API_KEY;
   for (const name of Object.keys(env))
     if (/^(https?|all)_proxy$/i.test(name)) delete env[name];
-  codex = spawn(binary, ["app-server"], {
+  // Reproduce Codex's continuation history using real client requests, without
+  // changing the generated config or relying on a model to emit commentary.
+  const progress = "Writing the optimization handbook to outputs.";
+  relay = http.createServer(async (req, res) => {
+    try {
+      let raw = "";
+      for await (const chunk of req) raw += chunk;
+      const body = raw ? JSON.parse(raw) : null;
+      const injected =
+        req.url === "/responses" &&
+        Array.isArray(body?.input) &&
+        mode !== "text";
+      if (injected)
+        body.input.push({
+          type: "message",
+          role: "assistant",
+          phase: "commentary",
+          content: [{ type: "output_text", text: progress }],
+        });
+      relayed.push({ path: req.url, injected });
+      const forwarded = await fetch(url + req.url, {
+        method: req.method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.authorization,
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      res.writeHead(forwarded.status, {
+        "Content-Type":
+          forwarded.headers.get("content-type") ?? "application/json",
+      });
+      for await (const chunk of forwarded.body) res.write(chunk);
+      res.end();
+    } catch (error) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { message: String(error) } }));
+    }
+  });
+  await new Promise((resolve) => relay.listen(0, "127.0.0.1", resolve));
+  const providerKey = config.match(/^model_provider = "([^"]+)"/m)[1];
+  const relayOverride =
+    "model_providers." +
+    providerKey +
+    '.base_url="http://127.0.0.1:' +
+    relay.address().port +
+    '"';
+  codex = spawn(binary, ["app-server", "-c", relayOverride], {
     env,
     cwd: codexHome,
     windowsHide: true,
@@ -475,6 +547,22 @@ try {
     45000,
   );
   await turn("Continue after the summary. Reply hello without tools.");
+  assert.ok(relayed.some((request) => request.injected));
+  assert.ok(
+    requests.some((request) =>
+      request.messages.some(
+        (message) =>
+          message.role === "assistant" &&
+          message.content.some((block) => block.text === progress),
+      ),
+    ),
+  );
+  assert.ok(
+    requests.every((request) => request.messages.at(-1).role === "user"),
+  );
+  checks.push(
+    "Real Codex continuation after assistant commentary preserves progress, signed thinking and tool results, and succeeds against a supplier that rejects assistant prefill",
+  );
   checks.push(
     "Real Codex 0.160 app-server loads both Claude IDs, completes five turns and compaction, executes shell read and custom apply_patch, sends results and signed thinking back, and switches model in the same thread",
   );
@@ -490,7 +578,10 @@ try {
     [
       "exec",
       "--skip-git-repo-check",
+      "--ephemeral",
       "--json",
+      "-c",
+      relayOverride,
       "-m",
       "claude-sonnet-4-6",
       "-c",
@@ -701,6 +792,7 @@ try {
         checks,
         requests,
         notifications,
+        relayed,
         binary,
         limitation:
           "Real Codex runtime and native uni-switch against an isolated fake Anthropic supplier; no real supplier credentials or user configuration used.",
@@ -731,6 +823,12 @@ try {
   if (codex) codex.kill();
   if (browser) await browser.close();
   if (child) child.kill();
+  if (relay) {
+    relay.closeAllConnections();
+    await new Promise((resolve) => relay.close(resolve));
+  }
+  if (previewServer)
+    await new Promise((resolve) => previewServer.httpServer.close(resolve));
   server.closeAllConnections();
   await new Promise((r) => server.close(r));
 }

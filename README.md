@@ -2,7 +2,7 @@
 
 简洁的 Codex / Claude Code API 配置工具。填写 **API 地址、API Key**，点击 **添加并使用**；日常切换只需一次点击。
 
-**当前版本：0.5.23 · Windows / Linux / macOS · AGPL-3.0-only**
+**当前版本：0.5.24 · Windows / Linux / macOS · AGPL-3.0-only**
 
 [下载安装包](https://github.com/dieqiyun/uni-switch/releases/latest) · [使用教程](docs/tutorial.md) · [供应商赞助](docs/sponsors.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/dieqiyun/uni-switch/issues) · [参与开发](CONTRIBUTING.md) · [开源许可](LICENSE)
 
@@ -38,6 +38,7 @@
 - 默认启用全部适用模型。每个模型可设置上下文长度，默认 256k。
 - 同步成功后移除上游已下架的模型，并为失效默认模型选择有效替代项；同步失败保留原列表。
 - 双向协议转换：Codex 使用 Claude Messages 模型；Claude Code 使用 OpenAI 模型。
+- ZCode、DSH、WorkBuddy 使用官网原始图标，可一键写入原生配置和手动编辑配置文件；写入后提示重启。详见 [多客户端配置与兼容边界](docs/client-config-editor.md)。
 - 供应商列表直接切换默认模型、上下文、Fast 加速模式和协议转换；完整模型配置在弹窗中确认。
 - Codex 配置写入时自动检查思考强度显示并保留有效用户选择。实际修改后提示重启和新开对话；Claude 未运行时也提示后续启动与新对话。
 - 本地配置备份、外部修改冲突检测、确认覆盖及恢复原配置；后台协议转换与可选 Windows 登录启动。
@@ -63,14 +64,14 @@
 
 | 系统 / 文件 | 用途 |
 | --- | --- |
-| Windows x64：`uni-switch_0.5.23_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
-| Windows x64：`uni-switch_0.5.23_x64-portable.zip` | 便携程序、说明和许可证 |
-| Windows x64：`uni-switch_0.5.23_x64.exe` | 独立程序，需要系统已有 WebView2 |
-| Linux x64：`uni-switch_0.5.23_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
-| Linux x64：`uni-switch_0.5.23_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
-| macOS：`uni-switch_0.5.23_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
-| macOS：`uni-switch_0.5.23_universal.app.tar.gz` | 通用 app 归档 |
-| `uni-switch_0.5.23_source.zip` | 与三平台程序对应的完整源码和构建文件 |
+| Windows x64：`uni-switch_0.5.24_x64-setup.exe` | 安装包，推荐 Windows 用户使用 |
+| Windows x64：`uni-switch_0.5.24_x64-portable.zip` | 便携程序、说明和许可证 |
+| Windows x64：`uni-switch_0.5.24_x64.exe` | 独立程序，需要系统已有 WebView2 |
+| Linux x64：`uni-switch_0.5.24_amd64.deb` | Ubuntu 22.04+ / Debian 12+ 桌面系统 |
+| Linux x64：`uni-switch_0.5.24_x86_64.AppImage` | 设置可执行权限后运行，需要桌面环境与 WebKitGTK 4.1 |
+| macOS：`uni-switch_0.5.24_universal.dmg` | 通用安装包，同时包含 Intel 和 Apple Silicon 架构 |
+| macOS：`uni-switch_0.5.24_universal.app.tar.gz` | 通用 app 归档 |
+| `uni-switch_0.5.24_source.zip` | 与三平台程序对应的完整源码和构建文件 |
 | `README-zh-CN.md` / `SHA256SUMS.txt` | 完整教程 / 附件校验值 |
 
 继续提供完整源码及三平台程序，许可保持 AGPL-3.0-only，历史版本全部保留。每次更新选择「GitHub 手动下载」或「远程更新」，检测不会自动下载安装。远程更新下载并校验本系统安装包，仍需点击「安装更新」：Windows 启动向导并退出应用，macOS 打开 DMG 后拖入安装，Linux 使用系统安装程序或替换 AppImage。详情见 [远程更新说明](docs/remote-update.md)。

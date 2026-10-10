@@ -1,9 +1,8 @@
-.extra-client-glyph {
-  font-weight: 700;
-  font-size: 18px;
-  background: #f4f4f4;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+.extra-client-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 .extra-client-main {
   padding: 24px 30px 40px;
@@ -168,7 +167,11 @@
   .app-nav {
     overflow-x: auto;
   }
-  .app-nav > button {
-    flex-shrink: 0;
+  .app-nav[role="tablist"] .nav-indicator {
+    display: none;
+  }
+  .app-nav[role="tablist"] > button {
+    flex: 0 0 auto;
+    min-width: max-content;
   }
 }

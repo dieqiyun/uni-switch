@@ -160,6 +160,50 @@ pub fn request_with_model(
     stream: bool,
     configured: &crate::types::ProviderModel,
 ) -> ConversionResult<Converted> {
+    let mut converted = history_with_model(request, stream, configured)?;
+    let messages = converted.body["messages"].as_array_mut().unwrap();
+    if let Some(last) = messages.last().filter(|m| m["role"] == "assistant") {
+        // Responses replays complete assistant items when continuing a turn.
+        // Messages interprets a final assistant item as a literal prefill, which
+        // newer models reject. Preserve the history and request a new turn on
+        // every Messages model, including private aliases with unknown metadata.
+        if let Some(call) = last["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b["type"] == "tool_use")
+        {
+            return Err(format!(
+                "对话末尾的工具调用 {} 尚未提供工具结果，请先返回工具结果后继续生成",
+                call["id"].as_str().unwrap_or("（缺少 ID）")
+            ));
+        }
+        push(
+            messages,
+            "user",
+            vec![
+                json!({"type":"text","text":"Continue from the preceding assistant messages to fulfill the original user request. Do not repeat content that has already been provided."}),
+            ],
+        );
+    }
+    Ok(converted)
+}
+
+pub fn compaction_request(request: &Value) -> ConversionResult<Converted> {
+    let model = crate::types::ProviderModel {
+        id: request["model"].as_str().unwrap_or("").into(),
+        ..Default::default()
+    };
+    // Compaction converts unfinished tools into historical data and supplies
+    // its own user instruction; it must not use the generation continuation.
+    history_with_model(request, false, &model)
+}
+
+fn history_with_model(
+    request: &Value,
+    stream: bool,
+    configured: &crate::types::ProviderModel,
+) -> ConversionResult<Converted> {
     let profile = crate::model_capabilities::profile(configured);
     if profile.endpoints.messages == Some(false) {
         return Err("当前模型未提供 Claude Messages 接口，请检查模型接口声明".into());

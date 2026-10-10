@@ -305,6 +305,12 @@ fn ensure_protocol(
             "WorkBuddy 自定义模型请使用 OpenAI Chat Completions 协议",
         ));
     }
+    if client == ClientKind::Workbuddy && provider.summary.auth_mode != "bearer" {
+        return Err(AppError::new(
+            "unsupported_auth",
+            "WorkBuddy 一键配置暂不支持 x-api-key 认证；请使用支持 Bearer 的供应商",
+        ));
+    }
     let same_family = (protocol == NativeProtocol::Messages)
         == (provider.summary.upstream_protocol() == CodexProtocol::Anthropic);
     for model in models {
@@ -340,21 +346,33 @@ fn object<'a>(value: &'a mut Value, key: &str) -> Result<&'a mut Value> {
     }
     Ok(field)
 }
-fn base(provider: &StoredProvider) -> String {
-    let mut base = provider.summary.base_url.trim_end_matches('/').to_owned();
-    for suffix in ["/chat/completions", "/responses", "/messages"] {
-        if let Some(trimmed) = base.strip_suffix(suffix) {
-            base = trimmed.to_owned();
-            break;
-        }
-    }
-    base
+// OpenAI SDKs append only the resource, while Anthropic SDKs own /v1.
+// A bare origin uses the standard OpenAI /v1 default. Explicit API prefixes
+// and full resource URLs remain authoritative (e.g. /api/paas/v4).
+fn base(provider: &StoredProvider, protocol: NativeProtocol) -> Result<String> {
+    let mut url = crate::types::validate_url(&provider.summary.base_url)?;
+    let path = url.path().trim_end_matches('/');
+    let resource_base = ["/chat/completions", "/responses", "/messages"]
+        .iter()
+        .find_map(|suffix| path.strip_suffix(suffix));
+    let api_path = resource_base.unwrap_or(path);
+    let api_path =
+        if protocol != NativeProtocol::Messages && api_path.is_empty() && resource_base.is_none() {
+            "/v1"
+        } else {
+            api_path
+        };
+    let api_path = api_path.to_owned();
+    url.set_path(&api_path);
+    Ok(url.as_str().trim_end_matches('/').to_owned())
 }
 fn headers(provider: &StoredProvider, protocol: NativeProtocol) -> Value {
-    if protocol == NativeProtocol::Messages && provider.summary.auth_mode == "bearer" {
-        json!({"Authorization":format!("Bearer {}", provider.api_key)})
-    } else {
-        json!({})
+    match provider.summary.auth_mode.as_str() {
+        "x-api-key" => json!({"x-api-key": provider.api_key}),
+        "bearer" if protocol == NativeProtocol::Messages => {
+            json!({"Authorization":format!("Bearer {}", provider.api_key)})
+        }
+        _ => json!({}),
     }
 }
 
@@ -366,6 +384,7 @@ pub fn plan(
 ) -> Result<Vec<Change>> {
     let models = enabled_models(provider)?;
     ensure_protocol(client, provider, protocol, &models)?;
+    let api_base = base(provider, protocol)?;
     let before: Vec<_> = specs
         .iter()
         .map(|(path, _)| {
@@ -391,7 +410,7 @@ pub fn plan(
                 NativeProtocol::ChatCompletions => "openai-chat-completions",
                 NativeProtocol::Responses => "openai-responses",
             };
-            let rule = json!({"providerId":"uni-switch", "providerName":provider.summary.name,"enabled":true,"config":{"group":"standard-personal","access":{"type":"api-key","apiKey":provider.api_key},"api":{"type":api_type,"baseUrl":base(provider),"headers":headers(provider,protocol)},"personalModelIds":ids,"modelOrder":ids,"visibility":"visible"}});
+            let rule = json!({"providerId":"uni-switch", "providerName":provider.summary.name,"enabled":true,"config":{"group":"standard-personal","access":{"type":"api-key","apiKey":provider.api_key},"api":{"type":api_type,"baseUrl":api_base,"headers":headers(provider,protocol)},"personalModelIds":ids,"modelOrder":ids,"visibility":"visible"}});
             if let Some(index) = rules.iter().position(|r| r["providerId"] == "uni-switch") {
                 rules[index] = rule;
             } else {
@@ -411,7 +430,7 @@ pub fn plan(
         ClientKind::Workbuddy => {
             let mut doc = json_object(before[0].as_deref())?;
             let entries = array(&mut doc, "models")?;
-            let url = format!("{}/chat/completions", base(provider));
+            let url = format!("{}/chat/completions", api_base);
             for model in &models {
                 let mut entry = entries
                     .iter()
@@ -542,7 +561,7 @@ pub fn plan(
                     v
                 })
                 .collect();
-            let base_url = base(provider);
+            let base_url = api_base;
             let base_url = if protocol == NativeProtocol::Messages {
                 base_url.strip_suffix("/v1").unwrap_or(&base_url).to_owned()
             } else {

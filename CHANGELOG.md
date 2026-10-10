@@ -1,5 +1,15 @@
 # 更新记录
 
+## 0.5.24 — 2026-10-10
+
+- ZCode、DSH、WorkBuddy 入口使用各自官网原始图标并本地打包，补齐新客户端标签页关联及窄窗口图标/文字挤压。
+- 修复原生客户端 OpenAI 裸站点地址缺少 /v1 与 x-api-key 认证头未导出的问题，保留显式 API 前缀和完整端点；WorkBuddy 非 Bearer 认证在写入前明确拒绝。
+- 增加 78 组真实 IPC 配置与原生 SDK 验收，覆盖多轮历史、工具续接、JSON/SSE、三种协议及认证。记录 ZCode/DSH 直连 Messages 的 assistant prefill 和 ZCode 中途 system 对旧网关的兼容边界；不将条件性复现误报为完整客户端已修复。
+
+- 修复 Claude Messages 供应商用于 Codex 时，历史以助手进度或回复结束而触发「This model does not support assistant message prefill」的问题。保留助手内容、思考签名和工具结果，生成请求按需追加 user 续接指令，不依赖模型名称。
+- 未完成工具调用在本地返回包含调用 ID 的 400，要求先提供工具结果；上下文压缩继续把未完成工具历史作为文本摘要，不添加普通生成续接指令。
+- 增加 JSON / SSE 的拒绝 prefill 上游回归，更新原生协议 QA 以适配当前表单；实际隔离 Codex app-server 和 CLI 验证进度续接、shell、apply_patch、思考回放、模型切换与压缩后对话。八档菜单及现有上下文同步规则保持不变。
+
 ## 0.5.23 — 2026-10-09
 
 ### Claude CLI 消息兼容

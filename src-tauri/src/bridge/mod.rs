@@ -411,7 +411,7 @@ async fn compact(
     body.as_object_mut().unwrap().remove("reasoning");
     body.as_object_mut().unwrap().remove("service_tier");
     let mut converted =
-        convert::request(&body, false).map_err(|e| error(StatusCode::BAD_REQUEST, e))?;
+        convert::compaction_request(&body).map_err(|e| error(StatusCode::BAD_REQUEST, e))?;
     converted.body.as_object_mut().unwrap().remove("tools");
     converted
         .body
