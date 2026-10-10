@@ -73,6 +73,9 @@ import {
 } from "./components/ProviderQuickSettings";
 import codexLogo from "./assets/brands/codex.png";
 import claudeLogo from "./assets/brands/claude.png";
+import zcodeLogo from "./assets/brands/zcode.png";
+import dshLogo from "./assets/brands/dsh.svg";
+import workbuddyLogo from "./assets/brands/workbuddy.svg";
 import {
   targetNames,
   clientNames,
@@ -697,8 +700,20 @@ export default function App() {
           ))}
           {(["zcode", "dsh", "workbuddy"] as const).map((item) => (
             <Tabs.Trigger key={item} value={item} disabled={busy}>
-              <span className="app-glyph extra-client-glyph" aria-hidden>
-                {item === "zcode" ? "Z" : item === "dsh" ? "DS" : "W"}
+              <span className="app-glyph" aria-hidden>
+                <img
+                  src={
+                    item === "zcode"
+                      ? zcodeLogo
+                      : item === "dsh"
+                        ? dshLogo
+                        : workbuddyLogo
+                  }
+                  alt=""
+                  width="28"
+                  height="28"
+                  draggable={false}
+                />
               </span>
               <span className="nav-copy">
                 <strong>{clientNames[item]}</strong>
@@ -738,22 +753,28 @@ export default function App() {
           </div>
         )}
         {extraClient ? (
-          <ExtraClientPanel
+          <Tabs.Content
+            value={extraClient}
             key={extraClient}
-            client={extraClient}
-            providers={providers}
-            onManage={() => switchFamily("codex")}
-            onBusy={setBusy}
-            onEdit={(value) =>
-              setPopup({ kind: "config-editor", client: value })
-            }
-            onWritten={(value, result) => {
-              setPopup({ kind: "config-restart", client: value, result });
-              void client.invalidateQueries({
-                queryKey: ["client-config", value],
-              });
-            }}
-          />
+            className="extra-client-workspace"
+          >
+            <ExtraClientPanel
+              key={extraClient}
+              client={extraClient}
+              providers={providers}
+              onManage={() => switchFamily("codex")}
+              onBusy={setBusy}
+              onEdit={(value) =>
+                setPopup({ kind: "config-editor", client: value })
+              }
+              onWritten={(value, result) => {
+                setPopup({ kind: "config-restart", client: value, result });
+                void client.invalidateQueries({
+                  queryKey: ["client-config", value],
+                });
+              }}
+            />
+          </Tabs.Content>
         ) : (
           <>
             <header className="workspace-header" data-tauri-drag-region>

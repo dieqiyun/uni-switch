@@ -4,6 +4,7 @@ import net from "node:net";
 import { spawn } from "node:child_process";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import AxeBuilder from "@axe-core/playwright";
 import { preview } from "vite";
 const root = path.resolve(".qa/client-config", String(Date.now()));
 const home = path.join(root, "home"),
@@ -133,6 +134,29 @@ try {
   page = browser.contexts()[0].pages()[0];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.getByRole("tab", { name: /ZCode/ }).waitFor();
+  for (const [name, extension] of [
+    ["ZCode", "png"],
+    ["DSH", "svg"],
+    ["WorkBuddy", "svg"],
+  ]) {
+    const image = page
+      .getByRole("tab", { name: new RegExp(name) })
+      .locator("img");
+    await image.evaluate((img) => img.decode());
+    assert.ok(
+      await image.evaluate((img) => img.complete && img.naturalWidth > 0),
+    );
+    const src = await image.getAttribute("src");
+    assert.ok(
+      src.startsWith("/assets/") || src.startsWith("data:image/"),
+      "brand must be bundled locally",
+    );
+    if (src.startsWith("/assets/"))
+      assert.ok(src.split("?")[0].endsWith("." + extension));
+  }
+  report.checks.push(
+    "ZCode / DSH / WorkBuddy official brand assets decode locally without broken images",
+  );
   for (const [client, directory] of Object.entries(clients))
     await invoke("set_client_config_directory", { client, directory });
   const provider = await invoke("save_provider", {
@@ -349,6 +373,179 @@ try {
     "Claude Code desktop: selected UUID profile inventory, editor and restart prompt",
   );
 
+  await page.getByRole("tab", { name: /WorkBuddy/ }).click();
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  assert.deepEqual(
+    accessibility.violations.filter((v) =>
+      ["serious", "critical"].includes(v.impact),
+    ),
+    [],
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(
+    await page.evaluate(() =>
+      [...document.querySelectorAll(".app-nav > button")].every((tab) => {
+        const box = tab.getBoundingClientRect();
+        const image = tab.querySelector("img").getBoundingClientRect();
+        const name = tab.querySelector("strong").getBoundingClientRect();
+        return (
+          image.left >= box.left &&
+          image.right <= name.left &&
+          name.right <= box.right
+        );
+      }),
+    ),
+    "narrow client labels and official icons must fit inside each tab without overlap",
+  );
+  for (const name of ["ZCode", "DSH", "WorkBuddy"]) {
+    await page.getByRole("tab", { name: new RegExp(name) }).click();
+    await page
+      .getByRole("heading", { name: "一键配置 " + name, exact: true })
+      .waitFor();
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    );
+    await page.screenshot({
+      path: path.join(root, name.toLowerCase() + "-narrow.png"),
+    });
+  }
+  report.checks.push(
+    "Three official icons render at desktop and 390px widths; no horizontal overflow or serious/critical accessibility findings",
+  );
+  if (process.argv.includes("--protocols")) {
+    const fixtures = [];
+    for (const client of ["zcode", "dsh", "workbuddy"]) {
+      for (const protocol of client === "workbuddy"
+        ? ["chat_completions"]
+        : ["messages", "chat_completions", "responses"]) {
+        const resource =
+          protocol === "messages"
+            ? "messages"
+            : protocol === "responses"
+              ? "responses"
+              : "chat/completions";
+        for (const auth of client === "workbuddy"
+          ? ["bearer"]
+          : ["bearer", "x-api-key"]) {
+          for (const [pathCase, suffix, apiPath] of [
+            ["origin", "", protocol === "messages" ? "" : "/v1"],
+            ["v1", "/v1/", "/v1"],
+            ["proxy-v1", "/proxy/v1", "/proxy/v1"],
+            ["custom-v4", "/api/paas/v4", "/api/paas/v4"],
+            ["custom-root", "/proxy", "/proxy"],
+            ["full-endpoint", "/proxy/v1/" + resource + "/", "/proxy/v1"],
+          ]) {
+            await invoke("save_provider", {
+              input: {
+                id: provider.id,
+                family: "codex",
+                name: "合成原生协议供应商",
+                baseUrl: "https://native-gateway.example" + suffix,
+                apiKey: "synthetic-native-protocol-key",
+                model: "qa-native-model",
+                authMode: auth,
+                reasoningEffort: null,
+                codexOptions: {
+                  upstreamProtocol:
+                    protocol === "messages" ? "anthropic" : "openai",
+                  models: [
+                    {
+                      id: "qa-native-model",
+                      enabled: true,
+                      contextWindow: 128000,
+                      profileOverrides: {
+                        endpoints: {
+                          messages: true,
+                          chatCompletions: true,
+                          responses: true,
+                        },
+                        toolCalls: true,
+                        maxOutputTokens: 8192,
+                      },
+                    },
+                  ],
+                },
+              },
+            });
+            await invoke("apply_client_config", {
+              client,
+              providerId: provider.id,
+              protocol,
+            });
+            const status = await invoke("get_client_config_status", { client });
+            const contents = await Promise.all(
+              status.files.map((f) => readFile(f.path, "utf8")),
+            );
+            const expectedEndpoint =
+              "https://native-gateway.example" +
+              (protocol === "messages" && !apiPath.endsWith("/v1")
+                ? apiPath + "/v1"
+                : apiPath) +
+              "/" +
+              resource;
+            fixtures.push({
+              client,
+              protocol,
+              auth,
+              pathCase,
+              expectedEndpoint,
+              contents,
+            });
+          }
+        }
+      }
+    }
+    const status = await invoke("get_client_config_status", {
+      client: "workbuddy",
+    });
+    const before = await readFile(status.files[0].path, "utf8");
+    await invoke("save_provider", {
+      input: {
+        id: provider.id,
+        family: "codex",
+        name: "合成不兼容认证",
+        baseUrl: "https://native-gateway.example/v1",
+        apiKey: "synthetic-native-protocol-key",
+        model: "qa-native-model",
+        authMode: "x-api-key",
+        reasoningEffort: null,
+        codexOptions: { upstreamProtocol: "openai" },
+      },
+    });
+    const failure = await page.evaluate(
+      async ({ providerId }) => {
+        try {
+          await window.__TAURI_INTERNALS__.invoke("apply_client_config", {
+            client: "workbuddy",
+            providerId,
+            protocol: "chat_completions",
+          });
+        } catch (e) {
+          return { code: e.code, message: e.message };
+        }
+        return null;
+      },
+      { providerId: provider.id },
+    );
+    assert.equal(failure?.code, "unsupported_auth");
+    assert.equal(await readFile(status.files[0].path, "utf8"), before);
+    const filename = path.join(root, "protocol-fixtures.json");
+    await writeFile(filename, JSON.stringify(fixtures, null, 2), "utf8");
+    const { runNativeClientProtocols } = await import(
+      "./qa-native-client-protocols.mjs"
+    );
+    report.nativeProtocols = await runNativeClientProtocols(fixtures);
+    await writeFile(
+      path.join(root, "native-protocol-report.json"),
+      JSON.stringify(report.nativeProtocols, null, 2),
+      "utf8",
+    );
+    report.checks.push(
+      "WorkBuddy unsupported x-api-key is rejected before modifying existing files",
+    );
+  }
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(root, "report.json"),

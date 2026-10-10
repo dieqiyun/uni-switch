@@ -18,8 +18,8 @@ The inventory includes development and build dependencies as well as runtime dep
 
 ## Brand images
 
-OpenAI and Anthropic client marks belong to their respective owners, are used to identify supported clients, and are not covered by uni-switch's AGPL license. Sources are documented in `src/assets/brands/README.md`.
+OpenAI, Anthropic, Z.ai, DeepSeek and Tencent WorkBuddy client marks belong to their respective owners, are used to identify supported clients, and are not covered by uni-switch's AGPL license. Sources are documented in `src/assets/brands/README.md`.
 
 The purple 蝶祈云 logo belongs to 蝶祈云 and identifies the service website. It is not covered by the application's AGPL license. The application's own black-and-white uni-switch switching mark is part of this project.
 
-No endorsement by OpenAI or Anthropic is implied.
+No endorsement by any of these client owners is implied.

@@ -39,6 +39,16 @@ uni-switch 内置的本机 HTTP 转换服务
 
 `/responses/compact` 使用 Claude 生成接续摘要，并返回本地可识别的 compaction 项。此记录用于后续请求重建摘要，工具历史转换为文本资料，避免摘要请求调用工具。摘要与思考签名保存在编码的 opaque 字段中，不宣称加密。真实 Codex 在当前验证环境中使用了本地压缩；单独验证了转换服务的 compact 接口和摘要回放。
 
+## assistant prefill 报错与续接
+
+如果 Codex 已输出进度后提示 `This model does not support assistant message prefill. The conversation must end with a user message.`，需要检查转换后的最后一条消息。Responses 的完整历史可以以助手回复结束；Claude Messages 会把这种结尾解释为回复预填，不支持 prefill 的模型会拒绝它。
+
+生成请求现在保留已有助手文本、思考签名和工具结果，仅在历史最后一条为 assistant 且没有待返回结果的工具调用时，补一条继续完成最近用户请求的 user 指令。这条指令由转换服务生成，不会写回 Codex 的对话或配置文件，也不依赖具体模型名称。原本以用户输入或工具结果结尾的请求保持原有消息内容。
+
+若最后一条助手消息包含未返回结果的工具调用，转换服务会返回包含调用 ID 的 400 提示，要求先提供工具结果；不会伪造结果或把工具调用删掉。上下文压缩使用自己的摘要指令，仍可将未完成工具调用转为历史文本进行摘要。
+
+这一兼容处理用于完整历史的接续生成，不保证实现 OpenAI 与 Claude 之间任意文本预填的逐字拼接语义。
+
 ## 边界
 
 - 转换模式自动关闭 Codex 内置网页搜索；OpenAI 托管搜索/电脑操作等工具、音频、文件输入和仅靠 `previous_response_id` 的服务端续聊尚未转换。Codex 本地工具与 MCP 暴露的函数工具可以经过函数转换链路，具体 MCP 服务未在本次验收中测试。

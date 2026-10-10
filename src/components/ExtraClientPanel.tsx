@@ -178,8 +178,8 @@ export function ExtraClientPanel({
           )}
           {client === "workbuddy" && (
             <p>
-              自定义模型使用 Chat Completions 接口。保存后需在 WorkBuddy
-              的模型选择器中选用。请确认下面目录与 WorkBuddy
+              自定义模型使用 Chat Completions 接口与 Bearer 认证。保存后需在
+              WorkBuddy 的模型选择器中选用。请确认下面目录与 WorkBuddy
               实际使用的位置一致；旧版使用 .codebuddy/models.json
               时可修改目录。项目级配置可能覆盖用户级配置。
             </p>
