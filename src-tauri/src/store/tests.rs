@@ -3875,3 +3875,337 @@ fn codex_effort_is_kept_on_edit_switch_and_confirmed_overwrite_but_explicit_over
         );
     }
 }
+
+#[test]
+fn claude_openai_routes_preserve_native_model_ids_and_legacy_aliases() {
+    let (temp, mut store) = fixture();
+    store.set_bridge_route(crate::bridge::Route {
+        port: 19872,
+        token: "b".repeat(64),
+    });
+    let mut value = input(Family::Claude, "Claude models through OpenAI");
+    value.codex_options.claude_protocol = ClaudeProtocol::Openai;
+    let ids = [
+        "claude-sonnet-4-6",
+        "anthropic/claude-opus-4-6",
+        "claude-haiku-4-5",
+        "claude-fable-5",
+        "gpt-5.4",
+    ];
+    value.codex_options.models = ids
+        .iter()
+        .map(|id| ProviderModel {
+            id: (*id).into(),
+            enabled: true,
+            ..Default::default()
+        })
+        .collect();
+    let provider = store.save(value).unwrap();
+    store.apply(Target::ClaudeDesktop, &provider.id).unwrap();
+    let profile = read_json(&temp.path().join(format!(
+        "claude_desktop/Claude-3p/configLibrary/{}.json",
+        adapters::PROFILE_UUID
+    )));
+    for (index, id) in ids.iter().enumerate().take(4) {
+        assert_eq!(profile["inferenceModels"][index]["name"], *id);
+    }
+    let preferences = adapters::read_model_preferences(
+        Target::ClaudeDesktop,
+        &temp.path().join("claude_desktop"),
+    )
+    .unwrap();
+    assert_eq!(
+        preferences
+            .codex_options
+            .models
+            .iter()
+            .map(|m| m.id.as_str())
+            .collect::<Vec<_>>(),
+        ids
+    );
+    let stored = store
+        .claude_bridge_provider(Target::ClaudeDesktop, &provider.id)
+        .unwrap();
+    assert_eq!(stored.summary.model, ids[0]);
+    assert_eq!(stored.summary.codex_options.models[4].id, "gpt-5.4");
+    // An already running Desktop may still send a pre-fix hashed route.
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(ids[1].as_bytes());
+    let hash: String = digest[..12].iter().map(|b| format!("{b:02x}")).collect();
+    let legacy = format!("claude-sonnet-4-6-uni-{hash}");
+    assert_eq!(
+        crate::bridge::reverse::resolve_model(&stored, &legacy).unwrap(),
+        ids[1]
+    );
+}
+
+#[test]
+fn claude_role_routes_do_not_silently_select_the_default_or_disabled_model() {
+    let (_temp, mut store) = fixture();
+    let mut value = input(Family::Claude, "Role routing");
+    value.codex_options.claude_protocol = ClaudeProtocol::Openai;
+    value.codex_options.models = [
+        "claude-sonnet-4-6",
+        "anthropic/claude-opus-4-6",
+        "claude-haiku-4-5",
+        "claude-opus-4-5",
+    ]
+    .iter()
+    .enumerate()
+    .map(|(index, id)| ProviderModel {
+        id: (*id).into(),
+        enabled: index != 3,
+        ..Default::default()
+    })
+    .collect();
+    let provider = store.save(value).unwrap();
+    let stored = store.provider(&provider.id).unwrap();
+    for (requested, expected) in [
+        ("opus", "anthropic/claude-opus-4-6"),
+        ("claude-haiku-4-5-20251001", "claude-haiku-4-5"),
+        (
+            "anthropic/claude-opus-4-6-20260205",
+            "anthropic/claude-opus-4-6",
+        ),
+        ("claude-fable-5", "anthropic/claude-opus-4-6"),
+        ("claude-haiku-4-5 [1M]", "claude-haiku-4-5"),
+    ] {
+        assert_eq!(
+            crate::bridge::reverse::resolve_model(&stored, requested).unwrap(),
+            expected,
+            "{requested}"
+        );
+    }
+    for requested in [
+        "claude-opus-4-5",
+        "claude-unknown-4-6",
+        "claude-sonnet-4-6-uni-unknown",
+        "unknown-model",
+    ] {
+        assert!(
+            crate::bridge::reverse::resolve_model(&stored, requested).is_err(),
+            "{requested}"
+        );
+    }
+    let mut mixed = stored.clone();
+    mixed.summary.model = "gpt-4.1".into();
+    mixed
+        .summary
+        .codex_options
+        .models
+        .retain(|m| m.id == "claude-haiku-4-5");
+    mixed.summary.codex_options.models.push(ProviderModel {
+        id: "gpt-4.1".into(),
+        enabled: true,
+        ..Default::default()
+    });
+    assert_eq!(
+        crate::bridge::reverse::resolve_model(&mixed, "claude-haiku-4-5-20251001").unwrap(),
+        "claude-haiku-4-5"
+    );
+    for role in ["sonnet", "opus", "fable"] {
+        assert_eq!(
+            crate::bridge::reverse::resolve_model(&mixed, role).unwrap(),
+            "gpt-4.1"
+        );
+    }
+}
+
+#[test]
+fn claude_cli_writes_fable_and_legacy_role_models_and_restores_them() {
+    let (temp, mut store) = fixture();
+    let path = temp.path().join("claude_cli/settings.json");
+    let original = json!({"env":{"ANTHROPIC_DEFAULT_FABLE_MODEL":"old-fable", "KEEP":"yes"},"hooks":{"Stop":[]}});
+    put(&path, &original.to_string());
+    let mut value = input(Family::Claude, "Legacy role models");
+    value.codex_options.models = [
+        "claude-sonnet-4-6",
+        "claude-3-5-haiku-20241022",
+        "anthropic/claude-opus-4-6",
+        "claude-fable-5",
+    ]
+    .iter()
+    .map(|id| ProviderModel {
+        id: (*id).into(),
+        enabled: true,
+        ..Default::default()
+    })
+    .collect();
+    let provider = store.save(value.clone()).unwrap();
+    store.apply(Target::ClaudeCli, &provider.id).unwrap();
+    let doc = read_json(&path);
+    assert_eq!(
+        doc["env"]["ANTHROPIC_DEFAULT_HAIKU_MODEL"],
+        "claude-3-5-haiku-20241022"
+    );
+    assert_eq!(
+        doc["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"],
+        "anthropic/claude-opus-4-6"
+    );
+    assert_eq!(
+        doc["env"]["ANTHROPIC_DEFAULT_FABLE_MODEL"],
+        "claude-fable-5"
+    );
+    value.id = Some(provider.id.clone());
+    value.codex_options.models[3].enabled = false;
+    store.save(value).unwrap();
+    store.apply(Target::ClaudeCli, &provider.id).unwrap();
+    assert_eq!(
+        read_json(&path)["env"]["ANTHROPIC_DEFAULT_FABLE_MODEL"],
+        "anthropic/claude-opus-4-6"
+    );
+    store.restore(Target::ClaudeCli).unwrap();
+    assert_eq!(read_json(&path), original);
+}
+
+#[test]
+fn claude_desktop_translates_client_context_markers_without_renaming_upstream_models() {
+    let (temp, mut store) = fixture();
+    for model in ["claude-sonnet-4-6[1m]", "claude-opus-4-6 [1M]"] {
+        let mut value = input(Family::Claude, "Context marker");
+        value.model = model.into();
+        let provider = store.save(value).unwrap();
+        store.apply(Target::ClaudeDesktop, &provider.id).unwrap();
+        let profile = read_json(&temp.path().join(format!(
+            "claude_desktop/Claude-3p/configLibrary/{}.json",
+            adapters::PROFILE_UUID
+        )));
+        let expected = model.split('[').next().unwrap().trim();
+        assert_eq!(profile["inferenceModels"][0]["name"], expected);
+        assert_eq!(profile["inferenceModels"][0]["supports1m"], true);
+        assert_eq!(store.provider(&provider.id).unwrap().summary.model, model);
+    }
+}
+
+#[test]
+fn legacy_claude_model_projections_offer_update_without_writing_or_masking_external_changes() {
+    for target in [Target::ClaudeDesktop, Target::ClaudeCli] {
+        let (temp, mut store) = fixture();
+        store.set_bridge_route(crate::bridge::Route {
+            port: 19872,
+            token: "b".repeat(64),
+        });
+        let mut value = input(Family::Claude, "Legacy Claude model projection");
+        value.codex_options.claude_protocol = ClaudeProtocol::Openai;
+        let provider = store.save(value).unwrap();
+        store.apply(target, &provider.id).unwrap();
+        let (_, _, baseline) = store.target_record(target).unwrap();
+        let mut baseline = baseline.unwrap();
+        let file = baseline
+            .iter_mut()
+            .find(|file| {
+                file.keys.iter().any(|key| {
+                    key == if target == Target::ClaudeDesktop {
+                        "inferenceModels"
+                    } else {
+                        "env.ANTHROPIC_MODEL"
+                    }
+                })
+            })
+            .unwrap();
+        let mut doc: Value = serde_json::from_str(file.expected.as_deref().unwrap()).unwrap();
+        if target == Target::ClaudeDesktop {
+            doc["inferenceModels"] = json!([{"name": crate::bridge::reverse::legacy_model_alias(&provider.model), "labelOverride": provider.model}]);
+        } else {
+            doc["env"]
+                .as_object_mut()
+                .unwrap()
+                .remove("ANTHROPIC_DEFAULT_FABLE_MODEL");
+            file.keys
+                .retain(|key| key != "env.ANTHROPIC_DEFAULT_FABLE_MODEL");
+        }
+        let legacy = doc.to_string();
+        put(&file.path, &legacy);
+        file.expected = Some(legacy.clone());
+        let path = file.path.clone();
+        store
+            .conn
+            .execute(
+                "UPDATE targets SET baseline=?1 WHERE id=?2",
+                params![json(&baseline).unwrap(), target.id()],
+            )
+            .unwrap();
+        let accepted = Store::source_signature(&store.provider(&provider.id).unwrap()).unwrap();
+        store
+            .conn
+            .execute(
+                "UPDATE targets SET accepted_source=?1 WHERE id=?2",
+                params![accepted, target.id()],
+            )
+            .unwrap();
+        let status = store.status(target).unwrap();
+        assert_eq!(status.state, "saved_changes");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), legacy);
+        let mut outside = doc.clone();
+        if target == Target::ClaudeDesktop {
+            outside["inferenceGatewayApiKey"] = json!("outside-key");
+        } else {
+            outside["env"]["ANTHROPIC_AUTH_TOKEN"] = json!("outside-key");
+        }
+        put(&path, &outside.to_string());
+        assert_eq!(store.status(target).unwrap().state, "external_change");
+        assert_eq!(
+            store.apply(target, &provider.id).unwrap_err().code,
+            "external_change"
+        );
+        put(&path, &legacy);
+        store.apply(target, &provider.id).unwrap();
+        assert_eq!(store.status(target).unwrap().state, "applied");
+        store.restore(target).unwrap();
+        assert!(!temp.path().join("codex/config.toml").exists());
+    }
+}
+
+#[test]
+fn claude_model_context_variants_share_routes_and_read_back_without_alias_pollution() {
+    let (temp, mut store) = fixture();
+    store.set_bridge_route(crate::bridge::Route {
+        port: 19872,
+        token: "b".repeat(64),
+    });
+    let mut value = input(Family::Claude, "Context variants");
+    value.codex_options.claude_protocol = ClaudeProtocol::Openai;
+    value.codex_options.models = [
+        "claude-sonnet-4-6",
+        "claude-sonnet-4-6 [1M]",
+        "gpt-4.1",
+        "gpt-4.1[1m]",
+    ]
+    .iter()
+    .map(|id| ProviderModel {
+        id: (*id).into(),
+        enabled: true,
+        ..Default::default()
+    })
+    .collect();
+    let provider = store.save(value).unwrap();
+    store.apply(Target::ClaudeDesktop, &provider.id).unwrap();
+    assert_eq!(
+        store.status(Target::ClaudeDesktop).unwrap().state,
+        "applied"
+    );
+    let directory = temp.path().join("claude_desktop");
+    let profile = read_json(&directory.join(format!(
+        "Claude-3p/configLibrary/{}.json",
+        adapters::PROFILE_UUID
+    )));
+    let models = profile["inferenceModels"].as_array().unwrap();
+    assert_eq!(models.len(), 2);
+    assert_eq!(models[0]["name"], "claude-sonnet-4-6");
+    assert_eq!(models[1]["labelOverride"], "gpt-4.1");
+    assert!(models.iter().all(|m| m["supports1m"] == true));
+    let preferences = adapters::read_model_preferences(Target::ClaudeDesktop, &directory).unwrap();
+    assert_eq!(
+        preferences.codex_options.models[0].id,
+        "claude-sonnet-4-6[1m]"
+    );
+    assert_eq!(preferences.codex_options.models[1].id, "gpt-4.1[1m]");
+    let stored = store.provider(&provider.id).unwrap();
+    for (index, expected) in ["claude-sonnet-4-6", "gpt-4.1"].iter().enumerate() {
+        assert_eq!(
+            crate::bridge::reverse::resolve_model(&stored, models[index]["name"].as_str().unwrap())
+                .unwrap(),
+            *expected
+        );
+    }
+}

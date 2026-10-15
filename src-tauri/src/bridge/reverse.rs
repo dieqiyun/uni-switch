@@ -7,44 +7,72 @@ use std::collections::{BTreeMap, BTreeSet};
 const REASONING_PREFIX: &str = "uni-openai-reasoning:";
 
 pub fn model_alias(model: &str) -> String {
+    let (name, _) = crate::claude_models::split_context_marker(model);
+    if crate::claude_models::desktop_model_valid(name) {
+        name.to_owned()
+    } else {
+        legacy_model_alias(name)
+    }
+}
+
+pub(crate) fn legacy_model_alias(model: &str) -> String {
     let digest = Sha256::digest(model.as_bytes());
     let hash: String = digest[..12].iter().map(|b| format!("{b:02x}")).collect();
     format!("claude-sonnet-4-6-uni-{hash}")
 }
 pub fn model_ids(provider: &crate::types::StoredProvider) -> Vec<String> {
-    let mut ids = vec![provider.summary.model.clone()];
-    for model in provider
-        .summary
-        .codex_options
-        .models
-        .iter()
-        .filter(|m| m.enabled)
-    {
-        if !ids.contains(&model.id) {
-            ids.push(model.id.clone());
-        }
-    }
-    ids
+    crate::claude_models::enabled_ids(&provider.summary)
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
 }
 pub fn resolve_model(
     provider: &crate::types::StoredProvider,
     requested: &str,
 ) -> ConversionResult<String> {
+    let (requested, _) = crate::claude_models::split_context_marker(requested);
     let ids = model_ids(provider);
+    let upstream_id = |id: &str| crate::claude_models::split_context_marker(id).0.to_owned();
+    // Exact upstream IDs win over generated routes, including a real ID that
+    // happens to resemble one of our old aliases.
     if let Some(id) = ids
         .iter()
-        .find(|id| id.as_str() == requested || model_alias(id) == requested)
+        .find(|id| id.as_str() == requested || upstream_id(id) == requested)
     {
-        return Ok(id.clone());
+        return Ok(upstream_id(id));
     }
-    // Claude's internal summarization/Haiku requests use the applied default GPT.
-    if matches!(requested, "sonnet" | "opus" | "haiku")
-        || requested.starts_with("claude-") && !requested.contains("-uni-")
+    if let Some(id) = ids
+        .iter()
+        .find(|id| model_alias(id) == requested || legacy_model_alias(id) == requested)
     {
-        return Ok(provider.summary.model.clone());
+        return Ok(upstream_id(id));
     }
-    Err("此 GPT 模型尚未启用，请同步并勾选后重新应用".into())
+    // Never reinterpret a disabled selection or an obsolete hashed route as
+    // a role fallback. That would silently call a different model.
+    if provider
+        .summary
+        .codex_options
+        .models
+        .iter()
+        .any(|m| upstream_id(&m.id) == requested)
+        || requested.starts_with("claude-sonnet-4-6-uni-")
+    {
+        return Err("此模型尚未启用或模型路由已失效，请同步并勾选后重新应用".into());
+    }
+    if let Some(role) = crate::claude_models::role(requested) {
+        let ids: Vec<_> = ids.iter().map(String::as_str).collect();
+        if let Some(id) = crate::claude_models::role_model(&ids, role) {
+            return Ok(upstream_id(id));
+        }
+        // A default without a Claude role still serves internal role requests
+        // when no enabled model of that role exists, matching the CLI env.
+        if crate::claude_models::role(&provider.summary.model).is_none() {
+            return Ok(upstream_id(&provider.summary.model));
+        }
+    }
+    Err("此模型未启用或未配置对应档位，请同步并勾选后重新应用".into())
 }
+
 fn reasoning_model(model: &str) -> bool {
     let model = model.rsplit('/').next().unwrap_or(model);
     model.starts_with("gpt-5")

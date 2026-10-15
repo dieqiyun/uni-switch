@@ -3,6 +3,7 @@ pub mod adapters;
 pub mod background;
 pub mod bridge;
 mod browser;
+mod claude_models;
 pub mod client_config;
 pub mod discovery;
 pub mod error;

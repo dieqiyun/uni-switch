@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -47,6 +48,8 @@ const server = http.createServer(async (request, response) => {
     "/gateway/v1/messages",
     "/gateway/v1/messages/count_tokens",
     "/gateway/v1/models",
+    "/gateway/v1/responses",
+    "/gateway/v1/chat/completions",
   ].includes(requestPath)
     ? 404
     : accepted
@@ -80,6 +83,41 @@ const server = http.createServer(async (request, response) => {
       last_id: models.at(-1),
     });
   if (requestPath.endsWith("/count_tokens")) return send({ input_tokens: 10 });
+  if (
+    requestPath.endsWith("/responses") ||
+    requestPath.endsWith("/chat/completions")
+  ) {
+    const chat = requestPath.endsWith("/chat/completions");
+    const responseBody = chat
+      ? { choices: [{ message: { content: reply }, finish_reason: "stop" }] }
+      : {
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [{ type: "output_text", text: reply }],
+            },
+          ],
+        };
+    if (!body.stream) return send(responseBody);
+    response.writeHead(200, { "content-type": "text/event-stream" });
+    const emit = (event) =>
+      response.write(`data: ${JSON.stringify(event)}\n\n`);
+    if (chat) {
+      emit({ choices: [{ delta: { content: reply }, finish_reason: "stop" }] });
+      response.end("data: [DONE]\n\n");
+    } else {
+      emit({
+        type: "response.output_text.delta",
+        output_index: 0,
+        content_index: 0,
+        delta: reply,
+      });
+      emit({ type: "response.completed", response: responseBody });
+      response.end();
+    }
+    return;
+  }
   const message = {
     id: "msg_native_base_qa",
     type: "message",
@@ -386,6 +424,125 @@ try {
     cliVerification =
       "Actual isolated Claude Code reproduces 404 before and completes streamed inference after using the generated configuration";
     checks.push(cliVerification);
+  }
+  for (const chat of [false, true]) {
+    const upstreamIds = [...models, "gpt-4.1"];
+    const converted = await invoke("save_provider", {
+      input: {
+        id: null,
+        family: "claude",
+        name: chat ? "Chat model routing QA" : "Responses model routing QA",
+        baseUrl,
+        apiKey: key,
+        model,
+        authMode: "bearer",
+        reasoningEffort: null,
+        codexOptions: {
+          upstreamProtocol: "openai",
+          claudeProtocol: "openai",
+          protocolDetectedAt: 1,
+          models: upstreamIds.map((id) => ({
+            id,
+            enabled: true,
+            profile: { endpoints: { responses: !chat, chatCompletions: chat } },
+          })),
+        },
+      },
+    });
+    for (const target of ["claude_desktop", "claude_cli"])
+      assert.equal(
+        (await invoke("apply_provider", { target, providerId: converted.id }))
+          .state,
+        "applied",
+      );
+    const routedProfile = JSON.parse(
+      await readFile(
+        path.join(
+          local,
+          "Claude-3p/configLibrary/e82de475-47fa-4c54-9000-13571c000001.json",
+        ),
+        "utf8",
+      ),
+    );
+    const routedSettings = JSON.parse(
+      await readFile(path.join(cli, "settings.json"), "utf8"),
+    );
+    assert.deepEqual(
+      routedProfile.inferenceModels
+        .slice(0, models.length)
+        .map((entry) => entry.name),
+      models,
+    );
+    assert.equal(routedSettings.env.ANTHROPIC_MODEL, model);
+    assert.equal(
+      routedSettings.env.ANTHROPIC_DEFAULT_FABLE_MODEL,
+      "claude-fable-5",
+    );
+    const headers = {
+      authorization: `Bearer ${routedProfile.inferenceGatewayApiKey}`,
+      "content-type": "application/json",
+    };
+    const catalogResponse = await fetch(
+      routedProfile.inferenceGatewayBaseUrl + "/v1/models",
+      { headers },
+    );
+    assert.equal(catalogResponse.status, 200);
+    const catalog = await catalogResponse.json();
+    assert.deepEqual(
+      catalog.data.map((entry) => entry.id),
+      routedProfile.inferenceModels.map((entry) => entry.name),
+    );
+    const oldAlias =
+      "claude-sonnet-4-6-uni-" +
+      createHash("sha256").update(models[2]).digest("hex").slice(0, 24);
+    const cases = [
+      ...routedProfile.inferenceModels.map((entry, index) => [
+        entry.name,
+        upstreamIds[index],
+      ]),
+      ["claude-haiku-5-5-20261001 [1M]", models[2]],
+      [oldAlias, models[2]],
+    ];
+    for (const [requestedModel, expectedModel] of cases) {
+      for (const stream of [false, true]) {
+        const start = requests.length;
+        const response = await fetch(
+          routedProfile.inferenceGatewayBaseUrl + "/v1/messages",
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              model: requestedModel,
+              stream,
+              max_tokens: 64,
+              messages: [{ role: "user", content: "Synthetic routing QA" }],
+            }),
+          },
+        );
+        const text = await response.text();
+        assert.equal(response.status, 200, text);
+        assert.ok(text.includes(reply), text);
+        const forwarded = requests
+          .slice(start)
+          .filter((entry) =>
+            entry.path.endsWith(chat ? "/chat/completions" : "/responses"),
+          );
+        assert.equal(forwarded.length, 1);
+        assert.equal(forwarded[0].model, expectedModel);
+        assert.equal(forwarded[0].authAccepted, true);
+      }
+    }
+    if (process.env.UNI_SWITCH_CLAUDE_BIN) {
+      const result = await runClaude(
+        routedSettings,
+        chat ? "chat-routes" : "responses-routes",
+      );
+      assert.equal(result.code, 0, result.output);
+      assert.ok(result.output.includes(reply), result.output);
+    }
+    checks.push(
+      `${chat ? "Chat Completions" : "Responses"}: native IDs preserved; all generated routes, dated role requests and legacy hashes forward the exact upstream model for JSON and SSE`,
+    );
   }
   for (const target of ["claude_desktop", "claude_cli"])
     await invoke("restore_original", { target });

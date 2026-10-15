@@ -399,12 +399,10 @@ impl Store {
                     let mut doc: serde_json::Value =
                         serde_json::from_str(file.expected.as_deref().unwrap_or("{}"))
                             .map_err(|_| AppError::new("invalid_state", "Claude 桌面配置无效"))?;
-                    doc["inferenceModels"] = serde_json::json!(ids
-                        .iter()
-                        .map(|id| serde_json::json!({
-                            "name":crate::bridge::reverse::model_alias(id),"labelOverride":id
-                        }))
-                        .collect::<Vec<_>>());
+                    doc["inferenceModels"] = adapters::desktop_inference_models(
+                        &ids.iter().map(String::as_str).collect::<Vec<_>>(),
+                        true,
+                    );
                     file.expected = Some(serde_json::to_string_pretty(&doc).unwrap());
                 }
             }
@@ -916,9 +914,10 @@ impl Store {
             [target.id()],
             |r| r.get(0),
         )?;
-        let applied_model = applied_summary
-            .map(|text| decode::<Provider>(&text).map(|p| p.model))
+        let applied_summary = applied_summary
+            .map(|text| decode::<Provider>(&text))
             .transpose()?;
+        let applied_model = applied_summary.as_ref().map(|p| p.model.clone());
         let mut state = if active.is_some() {
             "applied"
         } else {
@@ -960,6 +959,17 @@ impl Store {
             {
                 state = "saved_changes".into();
                 message = "Claude 接入地址需要更新以避免重复 /v1。点击「更新配置」，然后完全退出并重新打开客户端。".into();
+            }
+            if state == "applied" && target.family() == Family::Claude {
+                let applied_provider = applied_summary
+                    .clone()
+                    .or_else(|| self.bridge_record(target).ok().flatten().map(|p| p.summary));
+                if let Some(provider) = applied_provider {
+                    if adapters::claude_model_config_needs_update(files, target, &provider)? {
+                        state = "saved_changes".into();
+                        message = "Claude 模型映射需要更新。点击「更新配置」，然后完全退出并重新打开客户端。".into();
+                    }
+                }
             }
             if state == "applied" {
                 if let Some(id) = &active {

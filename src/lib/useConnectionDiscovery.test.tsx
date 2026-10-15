@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useConnectionDiscovery } from "./useConnectionDiscovery";
+import { modelAllowed, useConnectionDiscovery } from "./useConnectionDiscovery";
 import { api } from "./api";
 import type { ModelSyncResult, Provider } from "../types";
 
@@ -280,4 +280,23 @@ it("刷新完成前的手动图片能力保留；恢复自动立即采用最新�
   expect(hook.result.current.models[0].capabilities?.imageInput).toBe(false);
   act(() => hook.result.current.resetCapabilities("custom-model"));
   expect(hook.result.current.models[0].capabilityOverrides).toEqual({});
+});
+
+describe("Claude 桌面模型名称边界", () => {
+  it.each([
+    "claude-sonnet-4-6",
+    "anthropic/claude-opus-4-6",
+    "claude-fable-5",
+    "claude-haiku-4-5 [1M]",
+  ])("允许 %s 并保留原始 ID", (id) => {
+    expect(modelAllowed(id, "claude_desktop", "anthropic")).toBe(true);
+  });
+  it.each([
+    "claude-sonnet-",
+    "claude-3-5-sonnet-20241022",
+    "claude-sonnet-4-6[1m]-broken",
+    "claude-sonnet-[1m]",
+  ])("阻止桌面端无法识别的原生名称 %s", (id) => {
+    expect(modelAllowed(id, "claude_desktop", "anthropic")).toBe(false);
+  });
 });
