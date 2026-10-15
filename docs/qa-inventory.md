@@ -1,5 +1,7 @@
 > v0.5.18 已移除现有配置导入入口和原生命令。下列较早版本中关于导入的记录仅为历史验证；当前操作见[使用教程](tutorial.md)。
 
+2026-10-15，v0.5.25 Claude 模型 ID 与档位映射：前端 182 项、Rust 193 项通过（另 1 项环境辅助 ignored），新增混合模型列表的 18 项 Claude 定向回归通过；TypeScript/Vite、Windows 桌面 Clippy、QA 构建、格式与教程一致性通过。隔离原生 QA 六组检查通过：真实 Claude CLI 通过原生 Messages、Responses 和 Chat Completions 完成流式调用；生成 profile 的全部模型、日期后缀、旧 hash 在 JSON/SSE 回放中对应正确的上游模型 ID，恢复保留首次原值，Codex 测试文件不变，pageErrors 为 0。旧映射仅提示待更新，外部冲突仍受保护。全部使用合成密钥与本地模拟服务，没有操作用户真实客户端或真实付费上游。桌面推理由 profile 回放验证，未声称真实 Claude Desktop 会话完成验收。证据：`.qa/claude-native-base/results.json`；说明：[Claude 模型路由](claude-model-routing.md)。
+
 # 配置与界面验证清单
 
 2026-10-10，ZCode / DSH / WorkBuddy 官方图标与原生请求格式检查：三份官网原始图标本地打包、字节与下载原件一致；新客户端标签页补齐 ARIA 关联，390px 标签按实际宽度排列并可滚动。修复 OpenAI 裸站点 /v1 默认和 x-api-key 认证头导出，WorkBuddy 无法表示的认证在写入前拒绝，显式 API 前缀与完整端点保持。174 项前端、186 项 Rust 通过（另 1 项原有环境辅助 ignored），TypeScript/Vite、常规桌面 Clippy、Rust/脚本格式、教程一致性与 Windows QA 构建通过。scripts/qa-client-config.mjs --protocols 验证六客户端编辑、冲突确认、重启提示、三官方图标及窄窗口几何，页面错误为 0，Axe 无 serious/critical；真实 IPC 生成 78 组原生配置，ZCode/DSH 固定官方 SDK 版本捕获 238 次请求，230 次多轮/工具/JSON/SSE 正常，4 次 prefill 和 4 次 ZCode system-role 对旧网关拒绝均按预期复现。WorkBuddy 仅验证 6 组配置格式，未启动其程序；三个客户端完整 agent 循环和收费上游未验证。SDK 依赖仅存在 .qa，实际配置/客户端未改、未重启；未安装或发布。证据：.qa/client-config/1791626093771/report.json、native-protocol-report.json；说明：[多客户端配置与兼容边界](client-config-editor.md)。

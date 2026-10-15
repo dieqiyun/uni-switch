@@ -98,7 +98,38 @@ pub(super) async fn models(
 ) -> std::result::Result<Json<Value>, HttpError> {
     let provider = authorize_claude(&runtime, &headers, &target, &id)?;
     let ids = reverse::model_ids(&provider);
-    let list:Vec<_>=ids.iter().map(|id| { let fallback = crate::types::ProviderModel { id: id.clone(), ..Default::default() }; let m = provider.summary.codex_options.models.iter().find(|m| &m.id == id).unwrap_or(&fallback); let caps = crate::model_capabilities::resolve(m); json!({"id":if target=="claude_desktop"{reverse::model_alias(id)}else{id.clone()},"type":"model","display_name":id,"created_at":"2026-01-01T00:00:00Z","capabilities":{"image_input":{"supported":caps.image_input}}}) }).collect();
+    let mut list: Vec<Value> = Vec::new();
+    for id in &ids {
+        let fallback = crate::types::ProviderModel {
+            id: id.clone(),
+            ..Default::default()
+        };
+        let configured = provider
+            .summary
+            .codex_options
+            .models
+            .iter()
+            .find(|m| &m.id == id)
+            .unwrap_or(&fallback);
+        let caps = crate::model_capabilities::resolve(configured);
+        let (name, supports_1m) = crate::claude_models::split_context_marker(id);
+        let route_id = if target == "claude_desktop" {
+            reverse::model_alias(id)
+        } else {
+            id.clone()
+        };
+        if let Some(existing) = list.iter_mut().find(|m| m["id"] == route_id) {
+            if supports_1m {
+                existing["supports1m"] = json!(true);
+            }
+            continue;
+        }
+        let mut model = json!({"id":route_id,"type":"model","display_name":name,"created_at":"2026-01-01T00:00:00Z","capabilities":{"image_input":{"supported":caps.image_input}}});
+        if supports_1m {
+            model["supports1m"] = json!(true);
+        }
+        list.push(model);
+    }
     Ok(Json(
         json!({"data":list,"has_more":false,"first_id":list.first().map(|v|v["id"].clone()),"last_id":list.last().map(|v|v["id"].clone())}),
     ))
@@ -145,7 +176,7 @@ pub(super) async fn messages(
         .codex_options
         .models
         .iter()
-        .find(|m| m.id == model)
+        .find(|m| crate::claude_models::split_context_marker(&m.id).0 == model)
         .unwrap_or(&fallback);
     let capabilities = crate::model_capabilities::resolve(configured);
     let contains_image = body
@@ -615,6 +646,169 @@ mod tests {
             assert_eq!(actual_status, expected_status);
             assert_eq!(*paths.lock().unwrap(), expected_paths);
             server.abort();
+        }
+    }
+}
+
+#[cfg(test)]
+mod model_routing_tests {
+    use super::*;
+    use crate::types::{
+        ClaudeProtocol, CodexOptions, EndpointSupport, Family, ProviderInput, ProviderModel,
+    };
+
+    #[tokio::test]
+    async fn generated_profile_routes_reach_the_exact_upstream_model_for_both_openai_formats() {
+        for chat in [false, true] {
+            let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+            let upstream_capture = captured.clone();
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let base = format!("http://{}/v1", listener.local_addr().unwrap());
+            let router = Router::new().route(if chat { "/v1/chat/completions" } else { "/v1/responses" }, post(move |headers: HeaderMap, Json(body): Json<Value>| {
+                let captured = upstream_capture.clone();
+                async move {
+                    assert_eq!(headers[header::AUTHORIZATION], "Bearer synthetic-model-key");
+                    assert!(!body["model"].as_str().unwrap().contains("-uni-"));
+                    captured.lock().unwrap().push(body.clone());
+                    if body["stream"] == true {
+                        let wire = if chat {
+                            format!("data: {}\n\ndata: [DONE]\n\n", json!({"choices":[{"delta":{"content":"MODEL_OK"},"finish_reason":"stop"}]}))
+                        } else {
+                            format!("data: {}\n\ndata: {}\n\n", json!({"type":"response.output_text.delta","output_index":0,"content_index":0,"delta":"MODEL_OK"}), json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"MODEL_OK"}]}]}}))
+                        };
+                        ([(header::CONTENT_TYPE, "text/event-stream")], wire).into_response()
+                    } else if chat { Json(json!({"choices":[{"message":{"content":"MODEL_OK"},"finish_reason":"stop"}]})).into_response() }
+                    else { Json(json!({"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"MODEL_OK"}]}]})).into_response() }
+                }
+            }));
+            let upstream =
+                tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+            let temp = tempfile::tempdir().unwrap();
+            let mut store = Store::open(temp.path().join("data")).unwrap();
+            let directory = temp.path().join("isolated-desktop");
+            store
+                .set_directory(Target::ClaudeDesktop, directory.to_string_lossy().into())
+                .unwrap();
+            let token = "b".repeat(64);
+            store.set_bridge_route(Route {
+                port: 19872,
+                token: token.clone(),
+            });
+            let ids = [
+                "claude-sonnet-4-6",
+                "anthropic/claude-opus-4-6",
+                "claude-haiku-4-5",
+                "gpt-4.1",
+            ];
+            let configured_models = ids
+                .iter()
+                .map(|id| {
+                    let mut model = ProviderModel {
+                        id: (*id).into(),
+                        enabled: true,
+                        ..Default::default()
+                    };
+                    model.profile.endpoints = EndpointSupport {
+                        responses: Some(!chat),
+                        chat_completions: Some(chat),
+                        ..Default::default()
+                    };
+                    model
+                })
+                .collect();
+            let provider = store
+                .save(ProviderInput {
+                    id: None,
+                    family: Family::Claude,
+                    name: "Synthetic model routes".into(),
+                    base_url: base,
+                    api_key: Some("synthetic-model-key".into()),
+                    balance_access_token: None,
+                    model: ids[0].into(),
+                    auth_mode: "bearer".into(),
+                    reasoning_effort: None,
+                    codex_options: CodexOptions {
+                        claude_protocol: ClaudeProtocol::Openai,
+                        models: configured_models,
+                        ..Default::default()
+                    },
+                })
+                .unwrap();
+            store.apply(Target::ClaudeDesktop, &provider.id).unwrap();
+            let profile: Value = serde_json::from_str(
+                &std::fs::read_to_string(directory.join(format!(
+                    "Claude-3p/configLibrary/{}.json",
+                    crate::adapters::PROFILE_UUID
+                )))
+                .unwrap(),
+            )
+            .unwrap();
+            let runtime = Runtime {
+                store: Arc::new(Mutex::new(store)),
+                token: token.clone(),
+                client: reqwest::Client::builder().no_proxy().build().unwrap(),
+            };
+            let mut headers = HeaderMap::new();
+            headers.insert("x-api-key", token.parse().unwrap());
+            let route = ("claude_desktop".to_owned(), provider.id.clone());
+            let Json(catalog) =
+                models(State(runtime.clone()), Path(route.clone()), headers.clone())
+                    .await
+                    .unwrap();
+            for (index, expected) in ids.iter().enumerate() {
+                let requested = profile["inferenceModels"][index]["name"].as_str().unwrap();
+                assert_eq!(catalog["data"][index]["id"], requested);
+                for streaming in [false, true] {
+                    let reply = messages(State(runtime.clone()), Path(route.clone()), headers.clone(), Json(json!({"model":requested,"stream":streaming,"max_tokens":256,"messages":[{"role":"user","content":"synthetic model QA"}]}))).await.unwrap();
+                    let text = String::from_utf8(
+                        axum::body::to_bytes(reply.into_body(), 64 * 1024)
+                            .await
+                            .unwrap()
+                            .to_vec(),
+                    )
+                    .unwrap();
+                    assert!(text.contains("MODEL_OK"), "{text}");
+                    assert!(text.contains(requested));
+                    assert_eq!(captured.lock().unwrap().last().unwrap()["model"], *expected);
+                }
+            }
+            let legacy = reverse::legacy_model_alias(ids[1]);
+            for (requested, expected) in [
+                (legacy.as_str(), ids[1]),
+                ("claude-haiku-4-5-20251001 [1M]", ids[2]),
+                ("claude-fable-5", ids[1]),
+            ] {
+                let body = json!({"model":requested,"max_tokens":256,"messages":[{"role":"user","content":"synthetic role QA"}]});
+                count_tokens(
+                    State(runtime.clone()),
+                    Path(route.clone()),
+                    headers.clone(),
+                    Json(body.clone()),
+                )
+                .await
+                .unwrap();
+                let reply = messages(
+                    State(runtime.clone()),
+                    Path(route.clone()),
+                    headers.clone(),
+                    Json(body),
+                )
+                .await
+                .unwrap();
+                assert_eq!(reply.status(), StatusCode::OK);
+                assert_eq!(captured.lock().unwrap().last().unwrap()["model"], expected);
+            }
+            let sent = captured.lock().unwrap().len();
+            for requested in [
+                "claude-unknown-5",
+                "claude-sonnet-4-6-uni-missing",
+                "missing",
+            ] {
+                let result = messages(State(runtime.clone()), Path(route.clone()), headers.clone(), Json(json!({"model":requested,"max_tokens":256,"messages":[{"role":"user","content":"synthetic invalid QA"}]}))).await;
+                assert_eq!(result.unwrap_err().0, StatusCode::BAD_REQUEST);
+            }
+            assert_eq!(captured.lock().unwrap().len(), sent);
+            upstream.abort();
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::claude_models::{desktop_model_valid, split_context_marker};
 use crate::error::{AppError, Result};
 use crate::types::{StoredProvider, Target};
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,7 @@ const CLI_KEYS: &[&str] = &[
     "env.ANTHROPIC_DEFAULT_SONNET_MODEL",
     "env.ANTHROPIC_DEFAULT_OPUS_MODEL",
     "env.ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "env.ANTHROPIC_DEFAULT_FABLE_MODEL",
     "env.CLAUDE_CODE_USE_BEDROCK",
     "env.CLAUDE_CODE_USE_VERTEX",
     "env.CLAUDE_CODE_USE_FOUNDRY",
@@ -269,20 +271,17 @@ pub fn plan(
     {
         return Err(AppError::new("no_enabled_models", "请至少启用一个模型"));
     }
-    if target == Target::ClaudeDesktop && !desktop_model_valid(&provider.summary.model) {
+    if target == Target::ClaudeDesktop
+        && !desktop_model_valid(split_context_marker(&provider.summary.model).0)
+    {
         return Err(AppError::new("desktop_model", "Claude 桌面端需要可识别的完整 Claude 模型 ID，例如 claude-sonnet-4-6；其他协议的模型需要代理转换，当前版本不支持"));
     }
-    let mut enabled_models: Vec<&str> = provider
-        .summary
-        .codex_options
-        .models
-        .iter()
-        .filter(|m| m.enabled)
-        .map(|m| m.id.as_str())
-        .collect();
-    enabled_models.retain(|id| *id != provider.summary.model);
-    enabled_models.insert(0, &provider.summary.model);
-    if target == Target::ClaudeDesktop && enabled_models.iter().any(|id| !desktop_model_valid(id)) {
+    let enabled_models = crate::claude_models::enabled_ids(&provider.summary);
+    if target == Target::ClaudeDesktop
+        && enabled_models
+            .iter()
+            .any(|id| !desktop_model_valid(split_context_marker(id).0))
+    {
         return Err(AppError::new(
             "desktop_model",
             "启用列表中包含 Claude 桌面端不支持的模型，请取消勾选后再应用",
@@ -455,15 +454,12 @@ pub fn plan(
                     {
                         set_json(&mut doc, "env.ENABLE_TOOL_SEARCH", Some(json!("false")))?;
                     }
-                    for tier in ["SONNET", "OPUS", "HAIKU"] {
-                        let tier_model = enabled_models
-                            .iter()
-                            .find(|id| id.contains(&format!("claude-{}-", tier.to_lowercase())))
-                            .copied()
+                    for tier in crate::claude_models::ROLES {
+                        let tier_model = crate::claude_models::role_model(&enabled_models, tier)
                             .unwrap_or(&provider.summary.model);
                         set_json(
                             &mut doc,
-                            &format!("env.ANTHROPIC_DEFAULT_{tier}_MODEL"),
+                            &format!("env.ANTHROPIC_DEFAULT_{}_MODEL", tier.to_ascii_uppercase()),
                             Some(json!(tier_model)),
                         )?;
                     }
@@ -501,7 +497,7 @@ pub fn plan(
                     doc["inferenceGatewayApiKey"] = json!(provider.api_key);
                     doc["inferenceGatewayAuthScheme"] = json!(provider.summary.auth_mode);
                     doc["inferenceCredentialKind"] = json!("static");
-                    doc["inferenceModels"] = json!(enabled_models);
+                    doc["inferenceModels"] = desktop_inference_models(&enabled_models, false);
                     doc["modelDiscoveryEnabled"] = json!(false);
                     doc["disableDeploymentModeChooser"] = json!(true);
                 }
@@ -889,16 +885,84 @@ pub fn claude_client_base_needs_update(files: &[ManagedFile]) -> Result<bool> {
     Ok(false)
 }
 
-fn desktop_model_valid(model: &str) -> bool {
-    let tail = model.strip_prefix("anthropic/").unwrap_or(model);
-    [
-        "claude-sonnet-",
-        "claude-opus-",
-        "claude-haiku-",
-        "claude-fable-",
-    ]
-    .iter()
-    .any(|prefix| tail.starts_with(prefix) && tail.len() > prefix.len())
+pub(crate) fn desktop_inference_models(ids: &[&str], mapped: bool) -> Value {
+    let mut result: Vec<Value> = Vec::new();
+    for id in ids {
+        let (upstream_name, supports_1m) = split_context_marker(id);
+        let name = if mapped {
+            crate::bridge::reverse::model_alias(id)
+        } else {
+            upstream_name.to_owned()
+        };
+        if let Some(existing) = result
+            .iter_mut()
+            .find(|item| item.as_str().or_else(|| item["name"].as_str()) == Some(&name))
+        {
+            if supports_1m {
+                if existing.is_string() {
+                    *existing = json!({"name": name});
+                }
+                existing["supports1m"] = json!(true);
+            }
+        } else {
+            let mut item = if mapped {
+                json!({"name":name,"labelOverride":upstream_name})
+            } else if supports_1m {
+                json!({"name":name})
+            } else {
+                json!(name)
+            };
+            if supports_1m {
+                item["supports1m"] = json!(true);
+            }
+            result.push(item);
+        }
+    }
+    json!(result)
+}
+
+/// Detect old generated model projections without writing client files or
+/// treating the user's unrelated settings as ours. External conflicts are
+/// checked by the caller before offering this update.
+pub(crate) fn claude_model_config_needs_update(
+    files: &[ManagedFile],
+    target: Target,
+    provider: &crate::types::Provider,
+) -> Result<bool> {
+    let ids = crate::claude_models::enabled_ids(provider);
+    for file in files {
+        let Some(text) = file.expected.as_deref() else {
+            continue;
+        };
+        if target == Target::ClaudeDesktop && file.keys.iter().any(|key| key == "inferenceModels") {
+            let doc = parse_json(Some(text), &file.path)?;
+            if doc.get("inferenceModels")
+                != Some(&desktop_inference_models(
+                    &ids,
+                    provider.needs_conversion(target),
+                ))
+            {
+                return Ok(true);
+            }
+        } else if target == Target::ClaudeCli
+            && file.path.file_name().and_then(|name| name.to_str()) == Some("settings.json")
+        {
+            let doc = parse_json(Some(text), &file.path)?;
+            for tier in crate::claude_models::ROLES {
+                let model = crate::claude_models::role_model(&ids, tier).unwrap_or(&provider.model);
+                if get_json(
+                    &doc,
+                    &format!("env.ANTHROPIC_DEFAULT_{}_MODEL", tier.to_ascii_uppercase()),
+                )
+                .and_then(Value::as_str)
+                    != Some(model)
+                {
+                    return Ok(true);
+                }
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn get_json<'a>(doc: &'a Value, key: &str) -> Option<&'a Value> {
@@ -1346,13 +1410,31 @@ pub(crate) fn read_model_preferences(
             if let Some(models) = doc.get("inferenceModels").and_then(Value::as_array) {
                 codex_options.models = models
                     .iter()
-                    .filter_map(|m| m.as_str().or_else(|| m.get("name").and_then(Value::as_str)))
-                    .map(|id| crate::types::ProviderModel {
-                        id: id.into(),
-                        enabled: true,
-                        context_window: None,
-                        reasoning_efforts: Vec::new(),
-                        ..Default::default()
+                    .filter_map(|m| {
+                        let name = m
+                            .as_str()
+                            .or_else(|| m.get("name").and_then(Value::as_str))?;
+                        // Only reverse a label proven to match our generated route.
+                        // Arbitrary display labels are not upstream model IDs.
+                        let id = m
+                            .get("labelOverride")
+                            .and_then(Value::as_str)
+                            .filter(|label| {
+                                crate::bridge::reverse::legacy_model_alias(label) == name
+                            })
+                            .unwrap_or(name);
+                        let id = if m.get("supports1m").and_then(Value::as_bool) == Some(true)
+                            && !split_context_marker(id).1
+                        {
+                            format!("{id}[1m]")
+                        } else {
+                            id.to_owned()
+                        };
+                        Some(crate::types::ProviderModel {
+                            id,
+                            enabled: true,
+                            ..Default::default()
+                        })
                     })
                     .collect();
             }

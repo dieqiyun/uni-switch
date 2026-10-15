@@ -10,7 +10,14 @@ import type {
 } from "../types";
 
 export function desktopModelAllowed(id: string) {
-  return /^(anthropic\/)?claude-(sonnet|opus|haiku|fable)-.+$/.test(id);
+  const name = id
+    .trim()
+    .replace(/\s*\[1m\]$/i, "")
+    .trimEnd();
+  return (
+    !/\[1m\]/i.test(name) &&
+    /^(anthropic\/)?claude-(sonnet|opus|haiku|fable)-.+$/i.test(name)
+  );
 }
 export function useModelDiscovery(
   input: ConnectionInput,

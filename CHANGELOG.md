@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.5.25 — 2026-10-15
+
+- 修复 OpenAI 转 Claude 桌面接入对可识别的 Claude 模型无差别生成 `claude-sonnet-4-6-uni-…` 别名的问题，保留真实模型 ID，兼容旧别名请求和受管 profile 回读。
+- 修复 Opus / Haiku 等带日期后缀的档位请求错误落到默认模型；优先匹配已启用同档模型，拒绝已停用模型和失效路由，并保留非 Claude 默认模型的内部请求回退。
+- 补齐 Claude CLI Fable 档位及旧版模型名称识别；将 `[1m]` 标记转换为桌面上下文能力，合并同模型变体，保持 profile 与本地模型列表一致。
+- 旧受管模型映射显示“更新配置”，保留外部修改冲突检查、备份和原配置恢复；升级后请更新配置并完全退出、重开对应 Claude 客户端。
+- 对照 cc-switch v4.0.12 和 2026-10-15 main 实现。前端 182 项、Rust 193 项测试通过；隔离真实 Claude CLI 通过原生 Messages、Responses 与 Chat Completions 流式调用，桌面配置回放核对上游真实模型 ID。详见 [Claude 模型路由修复](docs/claude-model-routing.md)。
+
 ## 0.5.24 — 2026-10-10
 
 - ZCode、DSH、WorkBuddy 入口使用各自官网原始图标并本地打包，补齐新客户端标签页关联及窄窗口图标/文字挤压。

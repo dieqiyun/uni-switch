@@ -17,3 +17,5 @@ Claude Code 的 Anthropic 客户端会在 Base URL 后追加 `/v1/messages`；�
 Rust 回归覆盖根地址、尾斜杠、版本后缀、自定义路径及端口、Bearer/API Key、模型列表不变、上游地址不变和原值恢复。`scripts/qa-claude-native-base.mjs` 使用隔离 uni-switch、合成密钥和本地模拟网关，验证桌面 profile 的请求路径，并可通过 `UNI_SWITCH_CLAUDE_BIN` 验证实际 Claude Code CLI 的请求；不发送真实会话或计费推理。
 
 依据：[Anthropic SDK Messages 路径](https://github.com/anthropics/anthropic-sdk-typescript/blob/main/src/resources/messages/messages.ts)、[SDK URL 拼接](https://github.com/anthropics/anthropic-sdk-typescript/blob/main/src/client.ts)、[Claude Code 网关配置](https://code.claude.com/docs/en/llm-gateway-connect)。
+
+2026-10-15：同一隔离脚本新增 Claude 模型 ID 保留、旧 hash 兼容、档位后缀以及 Responses / Chat Completions 的 JSON/SSE 转发验证，说明见 [Claude 模型 ID 与档位映射](claude-model-routing.md)。
