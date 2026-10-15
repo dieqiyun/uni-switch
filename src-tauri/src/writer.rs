@@ -114,3 +114,32 @@ pub fn write(path: &Path, content: Option<&str>) -> Result<()> {
     }
     Ok(())
 }
+
+/// Restore every safe file even when another file conflicts. The journal must
+/// remain pending on any error so external edits are never silently accepted.
+pub(crate) fn rollback(
+    changes: &[crate::adapters::Change],
+    check_path: impl Fn(&Path) -> Result<()>,
+) -> Result<()> {
+    let mut failure = None;
+    for change in changes.iter().rev() {
+        let result = (|| {
+            check_path(&change.path)?;
+            let current = crate::adapters::read(&change.path)?;
+            if current == change.before {
+                return Ok(());
+            }
+            if current != change.after {
+                return Err(AppError::new(
+                    "recovery_conflict",
+                    "恢复时发现外部修改，已保留该文件和操作备份；已继续尝试恢复其他文件",
+                ));
+            }
+            write(&change.path, change.before.as_deref())
+        })();
+        if let Err(error) = result {
+            failure.get_or_insert(error);
+        }
+    }
+    failure.map_or(Ok(()), Err)
+}

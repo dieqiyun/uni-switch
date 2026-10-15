@@ -44,23 +44,7 @@ fn authorize_claude(
         .map_err(|e| claude_error(StatusCode::CONFLICT, e.message))
 }
 fn openai_endpoint(base: &str, chat: bool) -> String {
-    let mut base = base.trim_end_matches('/');
-    for suffix in ["/chat/completions", "/responses"] {
-        if let Some(root) = base.strip_suffix(suffix) {
-            base = root;
-            break;
-        }
-    }
-    let resource = if chat {
-        "chat/completions"
-    } else {
-        "responses"
-    };
-    if base.ends_with("/v1") {
-        format!("{base}/{resource}")
-    } else {
-        format!("{base}/v1/{resource}")
-    }
+    crate::api_endpoint::openai(base, chat)
 }
 async fn send(
     runtime: &Runtime,
@@ -294,7 +278,9 @@ pub(super) async fn messages(
                     Err(e)=>{failure=Some(e);break;}
                 },
                 Ok(None)=>{
-                    if chat && !translator.finished {
+                    if let Err(error) = decoder.finish() {
+                        failure = Some(error);
+                    } else if chat && !translator.finished {
                         match translator.finish_chat(){Ok(events)=>for e in events {yield Ok(sse(e));},Err(e)=>failure=Some(e)}
                     } else if !translator.finished {failure=Some("OpenAI 流在完成事件前断开".into());}
                     break;
@@ -321,6 +307,22 @@ pub(super) async fn messages(
 mod tests {
     use super::*;
     #[test]
+    fn usage_audit_custom_openai_prefix_is_authoritative() {
+        for base in [
+            "https://example.test/api/paas/v4",
+            "https://example.test/backend-api/codex",
+            "https://example.test/gateway/responses",
+        ] {
+            let expected = if let Some(root) = base.strip_suffix("/responses") {
+                format!("{root}/chat/completions")
+            } else {
+                format!("{base}/chat/completions")
+            };
+            assert_eq!(openai_endpoint(base, true), expected);
+        }
+    }
+
+    #[test]
     fn normalizes_openai_endpoints() {
         assert_eq!(
             openai_endpoint("https://example.test/v1/", false),
@@ -328,7 +330,7 @@ mod tests {
         );
         assert_eq!(
             openai_endpoint("https://example.test/openai", true),
-            "https://example.test/openai/v1/chat/completions"
+            "https://example.test/openai/chat/completions"
         );
         assert_eq!(
             openai_endpoint("https://example.test/v1/responses", true),
@@ -345,29 +347,41 @@ mod tests {
             ClaudeProtocol, CodexOptions, EndpointSupport, Family, ProviderInput, ProviderModel,
         };
         for target in [Target::ClaudeCli, Target::ClaudeDesktop] {
-            for chat in [false, true] {
+            for (chat, prefix) in [
+                (false, "/v1"),
+                (true, "/v1"),
+                (false, "/backend-api/codex"),
+                (true, "/api/paas/v4"),
+            ] {
                 let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
                 let captured_upstream = captured.clone();
                 let upstream = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-                let base = format!("http://{}/v1", upstream.local_addr().unwrap());
-                let endpoint = if chat {
-                    "/v1/chat/completions"
-                } else {
-                    "/v1/responses"
-                };
-                let router = Router::new().route(endpoint, post(move |Json(body): Json<Value>| {
+                let base = format!("http://{}{prefix}", upstream.local_addr().unwrap());
+                let endpoint = format!(
+                    "{prefix}/{}",
+                    if chat {
+                        "chat/completions"
+                    } else {
+                        "responses"
+                    }
+                );
+                let cr_lines = prefix != "/v1";
+                let router = Router::new().route(&endpoint, post(move |Json(body): Json<Value>| {
                     let captured = captured_upstream.clone();
                     async move {
                         captured.lock().unwrap().push(body.clone());
                         let text = "QA_SYSTEM_OK";
                         if body["stream"] == true {
-                            let wire = if chat {
+                            let wire = if chat && body.to_string().contains("QA_TRUNCATED_STREAM") {
+                                format!("data: {}\n\ndata: {{\"unfinished\":", json!({"choices":[{"delta":{"content":text},"finish_reason":"stop"}]}))
+                            } else if chat {
                                 format!("data: {}\n\ndata: [DONE]\n\n", json!({"choices":[{"delta":{"content":text},"finish_reason":"stop"}]}))
                             } else {
                                 format!("data: {}\n\ndata: {}\n\n",
                                     json!({"type":"response.output_text.delta","output_index":0,"content_index":0,"delta":text}),
                                     json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":text}]}]}}))
                             };
+                            let wire = if cr_lines { wire.replace('\n', "\r") } else { wire };
                             ([(header::CONTENT_TYPE, "text/event-stream")], wire).into_response()
                         } else if chat {
                             Json(json!({"choices":[{"message":{"content":text},"finish_reason":"stop"}]})).into_response()
@@ -537,6 +551,29 @@ mod tests {
                     2,
                     "Invalid inputs must not reach upstream"
                 );
+                if chat {
+                    let body = json!({"model":"gpt-5.4","stream":true,"max_tokens":256,"messages":[{"role":"user","content":"QA_TRUNCATED_STREAM"}]});
+                    let response = messages(
+                        State(runtime.clone()),
+                        Path(path.clone()),
+                        headers.clone(),
+                        Json(body),
+                    )
+                    .await
+                    .unwrap();
+                    let wire = String::from_utf8(
+                        axum::body::to_bytes(response.into_body(), 64 * 1024)
+                            .await
+                            .unwrap()
+                            .to_vec(),
+                    )
+                    .unwrap();
+                    assert!(wire.contains("event: error"), "{wire}");
+                    assert!(
+                        !wire.contains("event: message_stop"),
+                        "truncated SSE must not be reported as a successful message: {wire}"
+                    );
+                }
                 server.abort();
             }
         }

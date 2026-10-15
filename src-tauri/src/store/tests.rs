@@ -4209,3 +4209,44 @@ fn claude_model_context_variants_share_routes_and_read_back_without_alias_pollut
         );
     }
 }
+
+#[test]
+fn usage_audit_rollback_restores_other_files_despite_a_later_conflict() {
+    let (temp, store) = fixture();
+    let config = temp.path().join("codex/config.toml");
+    let catalog = temp.path().join("codex/uni-switch-models.json");
+    put(&config, "model='after'\n");
+    put(&catalog, "external content");
+    let pending = Pending {
+        target: Target::Codex,
+        changes: vec![
+            Change {
+                path: config.clone(),
+                before: Some("model='before'\n".into()),
+                after: Some("model='after'\n".into()),
+            },
+            Change {
+                path: catalog.clone(),
+                before: None,
+                after: Some("managed content".into()),
+            },
+        ],
+        baseline: None,
+        active: None,
+        provider_update: None,
+        applied_summary: None,
+        accepted_source: None,
+    };
+    assert_eq!(
+        store.rollback(&pending).unwrap_err().code,
+        "recovery_conflict"
+    );
+    assert_eq!(
+        adapters::read(&config).unwrap().as_deref(),
+        Some("model='before'\n")
+    );
+    assert_eq!(
+        adapters::read(&catalog).unwrap().as_deref(),
+        Some("external content")
+    );
+}

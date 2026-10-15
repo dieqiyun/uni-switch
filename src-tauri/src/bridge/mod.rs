@@ -188,14 +188,7 @@ fn authorize(
         .map_err(|e| error(StatusCode::CONFLICT, e.message))
 }
 fn endpoint(base: &str) -> String {
-    let base = base.trim_end_matches('/');
-    if base.ends_with("/messages") {
-        base.to_owned()
-    } else if base.ends_with("/v1") {
-        format!("{base}/messages")
-    } else {
-        format!("{base}/v1/messages")
-    }
+    crate::api_endpoint::messages(base)
 }
 fn redact(message: &str, key: &str) -> String {
     message
