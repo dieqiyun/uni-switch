@@ -2092,20 +2092,7 @@ impl Store {
     }
 
     fn rollback(&self, pending: &Pending) -> Result<()> {
-        for change in pending.changes.iter().rev() {
-            let current = adapters::read(&change.path)?;
-            if current == change.before {
-                continue;
-            }
-            if current != change.after {
-                return Err(AppError::new(
-                    "recovery_conflict",
-                    "恢复时发现外部修改，已保留备份",
-                ));
-            }
-            writer::write(&change.path, change.before.as_deref())?;
-        }
-        Ok(())
+        writer::rollback(&pending.changes, |_| Ok(()))
     }
 
     pub fn recover(&mut self) -> Result<()> {

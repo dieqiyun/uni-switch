@@ -737,7 +737,9 @@ fn client_config_native_endpoint_and_auth_matrix_uses_sdk_base_semantics() {
                         continue;
                     }
                     let specs = store.config_specs(client).unwrap();
-                    let changes = client_config::plan(client, &specs, &saved, protocol).unwrap();
+                    let changes = client_config::plan(client, &specs, &saved, protocol, None)
+                        .unwrap()
+                        .changes;
                     let doc: serde_json::Value = if client == ClientKind::Dsh {
                         serde_yaml_ng::from_str(changes[0].after.as_deref().unwrap()).unwrap()
                     } else {
@@ -851,4 +853,253 @@ fn client_config_workbuddy_unrepresentable_auth_is_rejected_without_writes() {
             .unwrap()
             .changed
     );
+}
+
+#[test]
+fn usage_audit_extra_client_rollback_restores_non_conflicting_files() {
+    let (temp, store) = fixture();
+    let patch = temp.path().join("dsh/cordis.patch.yml");
+    let credentials = temp.path().join("dsh/.credentials.yaml");
+    put(&patch, "after");
+    put(&credentials, "external");
+    let pending = ConfigPending {
+        client: ClientKind::Dsh,
+        changes: vec![
+            Change {
+                path: patch.clone(),
+                before: Some("before".into()),
+                after: Some("after".into()),
+            },
+            Change {
+                path: credentials.clone(),
+                before: None,
+                after: Some("managed".into()),
+            },
+        ],
+        state: None,
+        revision: 1,
+    };
+    assert_eq!(
+        store.rollback_config(&pending).unwrap_err().code,
+        "recovery_conflict"
+    );
+    assert_eq!(adapters::read(&patch).unwrap().as_deref(), Some("before"));
+    assert_eq!(
+        adapters::read(&credentials).unwrap().as_deref(),
+        Some("external")
+    );
+}
+
+#[test]
+fn usage_audit_workbuddy_switch_retires_old_routes_and_restores_shadowed_models() {
+    for shadowed in [false, true] {
+        let (temp, mut store) = fixture();
+        let path = temp.path().join("workbuddy/models.json");
+        let original = if shadowed {
+            json!({"models":[{"id":"qa-model","url":"https://personal.test/chat/completions","apiKey":"personal-fixture"},{"id":"keep","custom":42}],"availableModels":["keep","qa-model"],"other":true})
+        } else {
+            json!({"models":[{"id":"keep","custom":42}],"availableModels":["keep"],"other":true})
+        }.to_string();
+        put(&path, &original);
+        let first = provider(&mut store, Family::Codex);
+        store
+            .apply_client_config(
+                ClientKind::Workbuddy,
+                &first.id,
+                NativeProtocol::ChatCompletions,
+                None,
+            )
+            .unwrap();
+        let next = ProviderInput {
+            id: None,
+            family: Family::Codex,
+            name: "Second".into(),
+            base_url: "https://next.test/v1".into(),
+            api_key: Some("new-synthetic-key".into()),
+            balance_access_token: None,
+            model: "new-model".into(),
+            auth_mode: "bearer".into(),
+            reasoning_effort: None,
+            codex_options: CodexOptions::default(),
+        };
+        let second = store.save(next).unwrap();
+        store
+            .apply_client_config(
+                ClientKind::Workbuddy,
+                &second.id,
+                NativeProtocol::ChatCompletions,
+                None,
+            )
+            .unwrap();
+        let document: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let models = document["models"].as_array().unwrap();
+        let old = models.iter().find(|m| m["id"] == "qa-model");
+        if shadowed {
+            assert_eq!(old.unwrap()["apiKey"], "personal-fixture");
+        } else {
+            assert!(old.is_none(), "old supplier routing must be removed");
+        }
+        assert_eq!(
+            document["availableModels"],
+            if shadowed {
+                json!(["keep", "qa-model", "new-model"])
+            } else {
+                json!(["keep", "new-model"])
+            }
+        );
+        assert_eq!(
+            models.iter().find(|m| m["id"] == "keep").unwrap()["custom"],
+            42
+        );
+        assert_eq!(
+            models.iter().find(|m| m["id"] == "new-model").unwrap()["apiKey"],
+            "new-synthetic-key"
+        );
+        store.restore_client_config(ClientKind::Workbuddy).unwrap();
+        assert_eq!(std::fs::read_to_string(path).unwrap(), original);
+    }
+}
+
+#[test]
+fn usage_audit_workbuddy_same_model_does_not_inherit_old_supplier_capabilities() {
+    let (temp, mut store) = fixture();
+    let path = temp.path().join("workbuddy/models.json");
+    put(&path, "{\"models\":[],\"availableModels\":[]}");
+    let first = provider(&mut store, Family::Codex);
+    let mut saved = store.provider(&first.id).unwrap();
+    saved.summary.codex_options.models = vec![ProviderModel {
+        id: "qa-model".into(),
+        enabled: true,
+        context_window: Some(512_000),
+        capabilities: ModelCapabilities {
+            image_input: Some(true),
+            ..Default::default()
+        },
+        ..Default::default()
+    }];
+    store
+        .conn
+        .execute(
+            "UPDATE providers SET data=?1 WHERE id=?2",
+            params![json(&saved).unwrap(), first.id],
+        )
+        .unwrap();
+    store
+        .apply_client_config(
+            ClientKind::Workbuddy,
+            &first.id,
+            NativeProtocol::ChatCompletions,
+            None,
+        )
+        .unwrap();
+    let second = provider(&mut store, Family::Codex);
+    store
+        .apply_client_config(
+            ClientKind::Workbuddy,
+            &second.id,
+            NativeProtocol::ChatCompletions,
+            None,
+        )
+        .unwrap();
+    let doc: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    assert!(doc["models"][0].get("maxInputTokens").is_none());
+    assert!(doc["models"][0].get("supportsImages").is_none());
+    assert_eq!(
+        doc["availableModels"],
+        json!([]),
+        "an originally unrestricted list remains unrestricted"
+    );
+}
+
+#[test]
+fn usage_audit_workbuddy_preserves_later_personal_models_across_switches() {
+    for (editor, modified_route) in [(false, false), (true, false), (false, true), (true, true)] {
+        let (temp, mut store) = fixture();
+        let path = temp.path().join("workbuddy/models.json");
+        put(&path, r#"{"models":[],"availableModels":["keep"]}"#);
+        let first = provider(&mut store, Family::Codex);
+        store
+            .apply_client_config(
+                ClientKind::Workbuddy,
+                &first.id,
+                NativeProtocol::ChatCompletions,
+                None,
+            )
+            .unwrap();
+        let personal = json!({"id":"later-personal","url":"https://personal.test/chat/completions","apiKey":"synthetic-personal"});
+        let mut doc: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        if modified_route {
+            doc["models"][0]["url"] = json!("https://personal-override.test/chat/completions");
+        }
+        doc["models"].as_array_mut().unwrap().push(personal.clone());
+        doc["availableModels"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("later-personal"));
+        if editor {
+            let status = store.client_config_status(ClientKind::Workbuddy).unwrap();
+            let mut document = store
+                .read_client_config(ClientKind::Workbuddy, &status.files[0].id)
+                .unwrap();
+            document.content = doc.to_string();
+            store.save_client_config(document).unwrap();
+        } else {
+            put(&path, &doc.to_string());
+        }
+        drop(store);
+        let mut store = Store::open(temp.path().join("data")).unwrap();
+        for model in ["second-model", "third-model"] {
+            let next = store
+                .save(ProviderInput {
+                    id: None,
+                    family: Family::Codex,
+                    name: model.into(),
+                    base_url: format!("https://{model}.test/v1"),
+                    api_key: Some("synthetic-next".into()),
+                    balance_access_token: None,
+                    model: model.into(),
+                    auth_mode: "bearer".into(),
+                    reasoning_effort: None,
+                    codex_options: CodexOptions::default(),
+                })
+                .unwrap();
+            let revision = store
+                .client_config_status(ClientKind::Workbuddy)
+                .unwrap()
+                .revision;
+            store
+                .apply_client_config(
+                    ClientKind::Workbuddy,
+                    &next.id,
+                    NativeProtocol::ChatCompletions,
+                    Some(&revision),
+                )
+                .unwrap();
+            let doc: serde_json::Value =
+                serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            assert!(
+                doc["models"].as_array().unwrap().contains(&personal),
+                "personal model lost after {model}; editor={editor}"
+            );
+            assert!(doc["availableModels"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("later-personal")));
+            assert_eq!(
+                doc["models"].as_array().unwrap().len(),
+                if modified_route { 3 } else { 2 }
+            );
+            if modified_route {
+                assert!(doc["models"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|m| m["id"] == "qa-model"
+                        && m["url"] == "https://personal-override.test/chat/completions"));
+            }
+        }
+    }
 }

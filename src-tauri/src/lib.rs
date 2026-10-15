@@ -1,4 +1,5 @@
 pub mod adapters;
+mod api_endpoint;
 #[cfg(feature = "desktop")]
 pub mod background;
 pub mod bridge;

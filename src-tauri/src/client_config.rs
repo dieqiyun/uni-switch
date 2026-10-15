@@ -376,12 +376,18 @@ fn headers(provider: &StoredProvider, protocol: NativeProtocol) -> Value {
     }
 }
 
+pub struct ConfigPlan {
+    pub changes: Vec<Change>,
+    pub workbuddy_routes: Option<Change>,
+}
+
 pub fn plan(
     client: ClientKind,
     specs: &[(PathBuf, &'static str)],
     provider: &StoredProvider,
     protocol: NativeProtocol,
-) -> Result<Vec<Change>> {
+    previous: Option<&Change>,
+) -> Result<ConfigPlan> {
     let models = enabled_models(provider)?;
     ensure_protocol(client, provider, protocol, &models)?;
     let api_base = base(provider, protocol)?;
@@ -392,6 +398,7 @@ pub fn plan(
             crate::adapters::read(path)
         })
         .collect::<Result<_>>()?;
+    let mut workbuddy_before = None;
     let output = match client {
         ClientKind::Zcode => {
             let mut doc = json_object(before[0].as_deref())?;
@@ -429,6 +436,16 @@ pub fn plan(
         }
         ClientKind::Workbuddy => {
             let mut doc = json_object(before[0].as_deref())?;
+            let restricted = doc
+                .get("availableModels")
+                .and_then(Value::as_array)
+                .is_some_and(|v| !v.is_empty());
+            if let Some(snapshot) = previous.filter(|f| f.path == specs[0].0) {
+                retire_workbuddy_routes(&mut doc, snapshot)?;
+            }
+            // Track only this application's model changes, separately from the
+            // original restoration baseline and subsequent manual editor saves.
+            workbuddy_before = Some(pretty(&doc));
             let entries = array(&mut doc, "models")?;
             let url = format!("{}/chat/completions", api_base);
             for model in &models {
@@ -493,7 +510,7 @@ pub fn plan(
             }
             if doc.get("availableModels").is_some() {
                 let visible = array(&mut doc, "availableModels")?;
-                if !visible.is_empty() {
+                if restricted {
                     for model in &models {
                         if !visible.iter().any(|v| v == &model.id) {
                             visible.push(json!(model.id));
@@ -610,7 +627,7 @@ pub fn plan(
             ))
         }
     };
-    specs
+    let changes = specs
         .iter()
         .zip(before)
         .zip(output)
@@ -622,7 +639,16 @@ pub fn plan(
                 after: Some(after),
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    let workbuddy_routes = workbuddy_before.map(|before| Change {
+        path: changes[0].path.clone(),
+        before: Some(before),
+        after: changes[0].after.clone(),
+    });
+    Ok(ConfigPlan {
+        changes,
+        workbuddy_routes,
+    })
 }
 fn remove_managed_block(text: &str) -> Result<String> {
     let begin = "# uni-switch managed begin";
@@ -649,4 +675,44 @@ fn remove_managed_block(text: &str) -> Result<String> {
             "DSH 管理区块标记不完整，请先检查配置",
         )),
     }
+}
+
+// Undo only unchanged entries owned by the previous application before merging
+// the next catalog. Personal models shadowed by a managed ID reappear, and new
+// supplier entries cannot inherit the old supplier's limits/capability flags.
+fn retire_workbuddy_routes(doc: &mut Value, snapshot: &Change) -> Result<()> {
+    let original = json_object(snapshot.before.as_deref())?;
+    let applied = json_object(snapshot.after.as_deref())?;
+    let original_models = original.get("models").and_then(Value::as_array);
+    let applied_models = applied.get("models").and_then(Value::as_array);
+    let Some(applied_models) = applied_models else {
+        return Ok(());
+    };
+    let entries = array(doc, "models")?;
+    let mut retired = Vec::new();
+    for old in applied_models {
+        let Some(id) = old["id"].as_str() else {
+            continue;
+        };
+        let original = original_models.and_then(|models| models.iter().find(|m| m["id"] == id));
+        if original == Some(old) {
+            continue;
+        }
+        if let Some(index) = entries.iter().position(|entry| entry == old) {
+            if let Some(original) = original {
+                entries[index] = original.clone();
+            } else {
+                entries.remove(index);
+            }
+            retired.push(id);
+        }
+    }
+    if let Some(visible) = doc.get_mut("availableModels").and_then(Value::as_array_mut) {
+        let original_visible = original.get("availableModels").and_then(Value::as_array);
+        visible.retain(|id| {
+            !retired.iter().any(|old| id == old)
+                || original_visible.is_some_and(|items| items.contains(id))
+        });
+    }
+    Ok(())
 }

@@ -535,3 +535,53 @@ async fn responses_http_replays_assistant_history_without_prefill_for_json_and_s
     assert_eq!(messages[2]["content"].as_array().unwrap().len(), 1);
     server.abort();
 }
+
+#[test]
+fn usage_audit_sse_accepts_cr_line_endings_and_split_crlf() {
+    for wire in [
+        "data: {\"type\":\"ping\"}\r\r",
+        "data: {\"type\":\"ping\"}\r\n\r\n",
+        "data: {\"type\":\"ping\"}\r\n\n",
+        "data: {\"type\":\"ping\"}\n\r\n",
+        "data: {\rdata: \"type\":\"ping\"\rdata: }\r\r",
+    ] {
+        let mut decoder = stream::SseDecoder::default();
+        let mut events = Vec::new();
+        for byte in wire.as_bytes() {
+            events.extend(decoder.feed(&[*byte]).unwrap());
+        }
+        assert_eq!(events, vec![json!({"type":"ping"})]);
+        decoder.finish().unwrap();
+    }
+}
+
+#[test]
+fn usage_audit_sse_limits_whole_events_across_many_data_lines() {
+    let mut decoder = stream::SseDecoder::default();
+    let line = format!("data: \"{}\",\n", "a".repeat(512 * 1024));
+    assert!(decoder.feed(b"data: [\n").unwrap().is_empty());
+    let rejected = (0..9).any(|_| decoder.feed(line.as_bytes()).is_err());
+    assert!(
+        rejected,
+        "an unfinished multi-line event must not grow without a limit"
+    );
+}
+
+#[test]
+fn usage_audit_sse_handles_bom_batched_events_and_rejects_truncated_tail() {
+    let mut decoder = stream::SseDecoder::default();
+    let wire = "\u{feff}data: {\"type\":\"ping\"}\n\n";
+    let mut events = Vec::new();
+    for byte in wire.as_bytes() {
+        events.extend(decoder.feed(&[*byte]).unwrap());
+    }
+    assert_eq!(events.len(), 1);
+    decoder.finish().unwrap();
+    let event = "data: {\"type\":\"ping\"}\n\n";
+    let count = 4 * 1024 * 1024 / event.len() + 1;
+    let batched = event.repeat(count);
+    assert!(batched.len() > 4 * 1024 * 1024);
+    assert_eq!(decoder.feed(batched.as_bytes()).unwrap().len(), count);
+    decoder.feed(b"data: {\"choices\":").unwrap();
+    assert!(decoder.finish().is_err());
+}

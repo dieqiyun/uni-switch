@@ -15,6 +15,8 @@ struct ExtraState {
     #[serde(default)]
     manual: bool,
     source: Option<String>,
+    // Last generated WorkBuddy delta; manual saves must not acquire ownership.
+    workbuddy_routes: Option<Change>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 struct ConfigPending {
@@ -225,6 +227,16 @@ impl Store {
         }
         let state = if document.client.target().is_none() {
             let mut state = self.extra_state(document.client)?;
+            if document.client == ClientKind::Workbuddy
+                && state.workbuddy_routes.is_none()
+                && !state.manual
+            {
+                state.workbuddy_routes = state
+                    .baseline
+                    .as_ref()
+                    .and_then(|files| files.first())
+                    .cloned();
+            }
             state.manual = state.baseline.is_some();
             if let Some(files) = &mut state.baseline {
                 if let Some(file) = files.iter_mut().find(|f| f.path == path) {
@@ -327,8 +339,24 @@ impl Store {
             ));
         }
         let provider = self.provider(provider_id)?;
-        let changes =
-            client_config::plan(client, &self.config_specs(client)?, &provider, protocol)?;
+        let previous = state.workbuddy_routes.as_ref().or_else(|| {
+            // Older installations only have the baseline. A manually edited
+            // legacy snapshot cannot prove ownership, so retain its entries.
+            if state.manual {
+                None
+            } else {
+                state.baseline.as_ref().and_then(|files| files.first())
+            }
+        });
+        let plan = client_config::plan(
+            client,
+            &self.config_specs(client)?,
+            &provider,
+            protocol,
+            previous,
+        )?;
+        let changes = plan.changes;
+        state.workbuddy_routes = plan.workbuddy_routes;
         // Retain the exact original source; subsequent switches only advance expected contents.
         let baseline = changes
             .iter()
@@ -477,21 +505,7 @@ impl Store {
         Ok(())
     }
     fn rollback_config(&self, pending: &ConfigPending) -> Result<()> {
-        for change in pending.changes.iter().rev() {
-            client_config::check_path(&change.path)?;
-            let current = crate::adapters::read(&change.path)?;
-            if current == change.before {
-                continue;
-            }
-            if current != change.after {
-                return Err(AppError::new(
-                    "recovery_conflict",
-                    "恢复时发现外部修改。操作备份已保留，请检查应用数据目录中的 backups",
-                ));
-            }
-            writer::write(&change.path, change.before.as_deref())?;
-        }
-        Ok(())
+        writer::rollback(&pending.changes, client_config::check_path)
     }
     pub(super) fn recover_config_operations(&mut self) -> Result<()> {
         let rows = self

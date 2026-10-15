@@ -3,23 +3,51 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
 // SSE is decoded by complete byte lines: a network chunk may split a UTF-8 character.
+const MAX_EVENT_BYTES: usize = 4 * 1024 * 1024;
+
 #[derive(Default)]
 pub struct SseDecoder {
     buffer: Vec<u8>,
     data: Vec<String>,
+    data_bytes: usize,
+    skip_lf: bool,
+    started: bool,
 }
 impl SseDecoder {
-    pub fn feed(&mut self, bytes: &[u8]) -> ConversionResult<Vec<Value>> {
-        self.buffer.extend_from_slice(bytes);
-        if self.buffer.len() > 4 * 1024 * 1024 {
-            return Err("Claude 流式事件过大".into());
+    pub fn finish(&self) -> ConversionResult<()> {
+        if !self.buffer.is_empty() || !self.data.is_empty() {
+            return Err("流式连接在事件完整结束前断开".into());
         }
+        Ok(())
+    }
+    pub fn feed(&mut self, bytes: &[u8]) -> ConversionResult<Vec<Value>> {
         let mut events = Vec::new();
-        while let Some(end) = self.buffer.iter().position(|b| *b == b'\n') {
-            let line = self.buffer.drain(..=end).collect::<Vec<_>>();
-            let line = std::str::from_utf8(&line)
-                .map_err(|_| "Claude 流包含无效 UTF-8")?
-                .trim_end_matches(['\r', '\n']);
+        // Bound each unfinished line/event instead of a complete network chunk:
+        // one chunk may contain many small events, while one event may span chunks.
+        let mut remaining = bytes;
+        while !remaining.is_empty() {
+            if self.skip_lf {
+                self.skip_lf = false;
+                if remaining[0] == b'\n' {
+                    remaining = &remaining[1..];
+                    continue;
+                }
+            }
+            let end = remaining.iter().position(|b| matches!(b, b'\r' | b'\n'));
+            let length = end.unwrap_or(remaining.len());
+            if self.buffer.len() + length + self.data_bytes > MAX_EVENT_BYTES {
+                return Err("流式事件超过 4 MiB 大小限制".into());
+            }
+            self.buffer.extend_from_slice(&remaining[..length]);
+            let Some(end) = end else { break };
+            self.skip_lf = remaining[end] == b'\r';
+            remaining = &remaining[end + 1..];
+            let mut line =
+                std::str::from_utf8(&self.buffer).map_err(|_| "流式事件包含无效 UTF-8")?;
+            if !self.started {
+                line = line.strip_prefix('\u{feff}').unwrap_or(line);
+                self.started = true;
+            }
             if line.is_empty() {
                 if !self.data.is_empty() {
                     let data = self.data.join("\n");
@@ -29,11 +57,17 @@ impl SseDecoder {
                         serde_json::from_str(&data).map_err(|_| "流式事件不是有效 JSON")?
                     });
                     self.data.clear();
+                    self.data_bytes = 0;
                 }
             } else if let Some(data) = line.strip_prefix("data:") {
-                self.data
-                    .push(data.strip_prefix(' ').unwrap_or(data).to_owned());
+                let data = data.strip_prefix(' ').unwrap_or(data);
+                self.data_bytes += data.len() + 1;
+                if self.data_bytes > MAX_EVENT_BYTES {
+                    return Err("流式事件超过 4 MiB 大小限制".into());
+                }
+                self.data.push(data.to_owned());
             }
+            self.buffer.clear();
         }
         Ok(events)
     }

@@ -249,23 +249,12 @@ pub async fn verify(
             "验证的模型或认证方式无效",
         ));
     }
-    let mut url = crate::types::validate_url(base)?;
-    let root = url.path().trim_end_matches('/');
-    let root = ["/chat/completions", "/responses", "/messages"]
-        .iter()
-        .find_map(|suffix| root.strip_suffix(suffix))
-        .unwrap_or(root);
-    let resource = match endpoint {
-        Endpoint::Messages => "messages",
-        Endpoint::ChatCompletions => "chat/completions",
-        Endpoint::Responses => "responses",
+    crate::types::validate_url(base)?;
+    let url = match endpoint {
+        Endpoint::Messages => crate::api_endpoint::messages(base),
+        Endpoint::ChatCompletions => crate::api_endpoint::openai(base, true),
+        Endpoint::Responses => crate::api_endpoint::openai(base, false),
     };
-    let path = if root.ends_with("/v1") {
-        format!("{root}/{resource}")
-    } else {
-        format!("{root}/v1/{resource}")
-    };
-    url.set_path(&path);
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(Duration::from_secs(35))
@@ -366,6 +355,48 @@ pub fn save(directory: &Path, base: &str, result: &Observation) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn usage_audit_verification_preserves_custom_openai_api_prefixes() {
+        use axum::{routing::post, Json, Router};
+        for (endpoint, resource, result) in [
+            (
+                Endpoint::Responses,
+                "responses",
+                json!({"output":[{"type":"message","content":[{"type":"output_text","text":"QA_OK"}]}]}),
+            ),
+            (
+                Endpoint::ChatCompletions,
+                "chat/completions",
+                json!({"choices":[{"message":{"content":"QA_OK"}}]}),
+            ),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let base = format!("http://{}/api/paas/v4", listener.local_addr().unwrap());
+            let path = format!("/api/paas/v4/{resource}");
+            let router = Router::new().route(
+                &path,
+                post(move || {
+                    let result = result.clone();
+                    async move { Json(result) }
+                }),
+            );
+            let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+            let observed = verify(
+                &base,
+                "synthetic-key",
+                "bearer",
+                "qa-model",
+                endpoint,
+                Feature::Text,
+                true,
+            )
+            .await
+            .unwrap();
+            assert_eq!(observed.state, "verified", "{}", observed.message);
+            server.abort();
+        }
+    }
+
     #[test]
     fn success_requires_semantic_evidence() {
         assert!(!validate_response(
