@@ -4,6 +4,8 @@ use serde_json::{json, Value};
 pub type ConversionResult<T> = std::result::Result<T, String>;
 const THINKING_PREFIX: &str = "uni-anthropic-thinking:";
 const COMPACT_PREFIX: &str = "uni-anthropic-compaction:";
+const CONTINUATION_MARKER: &str = "uni-anthropic-continuation:1";
+const CONTINUATION_TEXT: &str = "Continue from the preceding assistant messages to fulfill the original user request. Do not repeat content that has already been provided.";
 
 #[derive(Clone, Debug)]
 pub struct Tool {
@@ -16,6 +18,35 @@ pub struct Tool {
 pub struct Converted {
     pub body: Value,
     pub tools: Vec<Tool>,
+    pub continuation: bool,
+}
+
+pub fn continuation_item() -> Value {
+    json!({"id":format!("item_{}",uuid::Uuid::new_v4().simple()),"type":"reasoning","summary":[],"encrypted_content":CONTINUATION_MARKER})
+}
+
+fn append_continuation(messages: &mut Vec<Value>) -> ConversionResult<()> {
+    let last = messages
+        .last()
+        .filter(|m| m["role"] == "assistant")
+        .ok_or("续接记录必须紧随完整的助手消息，请保留原始对话历史")?;
+    if let Some(call) = last["content"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|b| b["type"] == "tool_use")
+    {
+        return Err(format!(
+            "对话末尾的工具调用 {} 尚未提供工具结果，请先返回工具结果后继续生成",
+            call["id"].as_str().unwrap_or("（缺少 ID）")
+        ));
+    }
+    push(
+        messages,
+        "user",
+        vec![json!({"type":"text","text":CONTINUATION_TEXT})],
+    );
+    Ok(())
 }
 
 pub fn opaque_thinking(block: &Value) -> String {
@@ -162,29 +193,11 @@ pub fn request_with_model(
 ) -> ConversionResult<Converted> {
     let mut converted = history_with_model(request, stream, configured)?;
     let messages = converted.body["messages"].as_array_mut().unwrap();
-    if let Some(last) = messages.last().filter(|m| m["role"] == "assistant") {
-        // Responses replays complete assistant items when continuing a turn.
-        // Messages interprets a final assistant item as a literal prefill, which
-        // newer models reject. Preserve the history and request a new turn on
-        // every Messages model, including private aliases with unknown metadata.
-        if let Some(call) = last["content"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|b| b["type"] == "tool_use")
-        {
-            return Err(format!(
-                "对话末尾的工具调用 {} 尚未提供工具结果，请先返回工具结果后继续生成",
-                call["id"].as_str().unwrap_or("（缺少 ID）")
-            ));
-        }
-        push(
-            messages,
-            "user",
-            vec![
-                json!({"type":"text","text":"Continue from the preceding assistant messages to fulfill the original user request. Do not repeat content that has already been provided."}),
-            ],
-        );
+    if messages.last().is_some_and(|m| m["role"] == "assistant") {
+        // Record this bridge-generated turn in the response, so subsequent
+        // stateless replays preserve the prefix bound into thinking signatures.
+        append_continuation(messages)?;
+        converted.continuation = true;
     }
     Ok(converted)
 }
@@ -233,7 +246,13 @@ fn history_with_model(
                 let role = item["role"].as_str().ok_or("消息缺少 role")?;
                 let content = text(&item["content"])?;
                 match role {
-                    "system" | "developer" => system.extend(content),
+                    "system" | "developer" => {
+                        if messages.is_empty() || profile.mid_conversation_system != Some(true) {
+                            system.extend(content);
+                        } else {
+                            push(&mut messages, "system", content);
+                        }
+                    }
                     "user" | "assistant" => push(&mut messages, role, content),
                     _ => return Err(format!("不支持的消息角色：{role}")),
                 }
@@ -275,6 +294,16 @@ fn history_with_model(
                 );
             }
             "reasoning" => {
+                if let Some(marker) = item["encrypted_content"]
+                    .as_str()
+                    .filter(|s| s.starts_with("uni-anthropic-continuation:"))
+                {
+                    if marker != CONTINUATION_MARKER {
+                        return Err("不支持此续接记录版本，请更新 uni-switch 或新建对话".into());
+                    }
+                    append_continuation(&mut messages)?;
+                    continue;
+                }
                 if let Some(block) = item["encrypted_content"]
                     .as_str()
                     .and_then(|s| decode(s, THINKING_PREFIX))
@@ -307,6 +336,22 @@ fn history_with_model(
     if messages.is_empty() {
         return Err("请求没有可发送的对话内容".into());
     }
+    if profile.mid_conversation_system == Some(true) {
+        for (index, _) in messages
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| m["role"] == "system")
+        {
+            if index == 0
+                || messages[index - 1]["role"] != "user"
+                || messages
+                    .get(index + 1)
+                    .is_some_and(|next| next["role"] != "assistant")
+            {
+                return Err("中途 system/developer 指令必须位于 user（含工具结果）之后、assistant 之前或对话末尾；请保留历史顺序".into());
+            }
+        }
+    }
     let max_tokens = request["max_output_tokens"]
         .as_u64()
         .unwrap_or(8192)
@@ -315,9 +360,6 @@ fn history_with_model(
         json!({"model":model,"messages":messages,"max_tokens":max_tokens,"stream":stream});
     if !system.is_empty() {
         body["system"] = json!(system);
-    }
-    if !schemas.is_empty() && profile.tool_calls == Some(false) {
-        return Err("当前接入路径明确不支持工具调用".into());
     }
     if !schemas.is_empty() {
         body["tools"] = json!(schemas);
@@ -340,11 +382,27 @@ fn history_with_model(
         };
         body["tool_choice"] = value;
     }
+    if profile.forced_tool_choice == Some(false)
+        && matches!(body["tool_choice"]["type"].as_str(), Some("tool" | "any"))
+    {
+        return Err("此模型不支持强制工具选择，请使用 auto；不会静默更改必须调用工具的要求".into());
+    }
     if request["parallel_tool_calls"] == false && !schemas.is_empty() {
         if body.get("tool_choice").is_none() {
             body["tool_choice"] = json!({"type":"auto"});
         }
         body["tool_choice"]["disable_parallel_tool_use"] = json!(true);
+    }
+    let requested_effort = request.pointer("/reasoning/effort").and_then(Value::as_str);
+    if requested_effort == Some("none") && profile.thinking_always_on == Some(true) {
+        if profile.thinking_between_tools == Some(true) {
+            body["thinking"] = json!({"type":"between_tools"});
+            body["output_config"] = json!({"effort":"low"});
+        } else {
+            return Err("此模型始终启用自适应思考，无法使用 none；请选择 low 或更高档位".into());
+        }
+    } else if profile.thinking_always_on == Some(true) {
+        body["thinking"] = json!({"type":"adaptive","display":"summarized"});
     }
     if profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek)
         && request
@@ -372,7 +430,11 @@ fn history_with_model(
         {
             let format = profile.thinking_format;
             if format == Some(crate::types::ThinkingFormat::Adaptive) {
-                body["thinking"] = json!({"type":"adaptive"});
+                body["thinking"] = if profile.thinking_always_on == Some(true) {
+                    json!({"type":"adaptive","display":"summarized"})
+                } else {
+                    json!({"type":"adaptive"})
+                };
                 let effort = crate::model_capabilities::mapped_effort(&profile, effort)?;
                 body["output_config"] = json!({"effort":effort});
             } else if format == Some(crate::types::ThinkingFormat::Deepseek) {
@@ -409,6 +471,7 @@ fn history_with_model(
     Ok(Converted {
         body,
         tools: mapping,
+        continuation: false,
     })
 }
 

@@ -78,6 +78,7 @@ struct Block {
     output_index: usize,
     value: Value,
     arguments: String,
+    summary_started: bool,
     closed: bool,
 }
 pub struct Translator {
@@ -88,6 +89,7 @@ pub struct Translator {
     stop: String,
     pub finished: bool,
     sequence: u64,
+    continuation: Option<Value>,
 }
 impl Translator {
     pub fn new(model: &str, tools: Vec<Tool>) -> Self {
@@ -102,7 +104,12 @@ impl Translator {
             stop: String::new(),
             finished: false,
             sequence: 0,
+            continuation: None,
         }
+    }
+    pub fn with_continuation(mut self, enabled: bool) -> Self {
+        self.continuation = enabled.then(convert::continuation_item);
+        self
     }
     fn event(&mut self, mut event: Value) -> Value {
         event["sequence_number"] = json!(self.sequence);
@@ -110,10 +117,23 @@ impl Translator {
         event
     }
     pub fn started(&mut self) -> Vec<Value> {
-        vec![
+        let mut events = vec![
             self.event(json!({"type":"response.created","response":self.response})),
             self.event(json!({"type":"response.in_progress","response":self.response})),
-        ]
+        ];
+        if let Some(item) = self.continuation.clone() {
+            events.push(
+                self.event(
+                    json!({"type":"response.output_item.added","output_index":0,"item":item}),
+                ),
+            );
+            events.push(
+                self.event(
+                    json!({"type":"response.output_item.done","output_index":0,"item":item}),
+                ),
+            );
+        }
+        events
     }
     pub fn accept(&mut self, event: Value) -> ConversionResult<Vec<Value>> {
         let mut events = Vec::new();
@@ -130,8 +150,12 @@ impl Translator {
                     return Err("Claude 流重复内容索引".into());
                 }
                 let value = event["content_block"].clone();
+                let summary_started = value["type"] == "thinking"
+                    && value["thinking"]
+                        .as_str()
+                        .is_some_and(|text| !text.is_empty());
                 let id = format!("item_{}", uuid::Uuid::new_v4().simple());
-                let output_index = self.blocks.len();
+                let output_index = self.blocks.len() + usize::from(self.continuation.is_some());
                 let mut item = convert::item(&value, &self.tools, &id).or_else(|e| {
                     // Custom tool input normally starts as {} and arrives in deltas.
                     if value["type"] == "tool_use" {
@@ -154,6 +178,7 @@ impl Translator {
                 }
                 if item["type"] == "reasoning" {
                     item.as_object_mut().unwrap().remove("encrypted_content");
+                    item["summary"] = json!([]);
                 }
                 events.push(json!({"type":"response.output_item.added","output_index":output_index,"item":item}));
                 match value["type"].as_str() {
@@ -163,7 +188,10 @@ impl Translator {
                             events.push(json!({"type":"response.output_text.delta","item_id":id,"output_index":output_index,"content_index":0,"delta":s}));
                         }
                     }
-                    Some("thinking") => events.push(json!({"type":"response.reasoning_summary_part.added","item_id":id,"output_index":output_index,"summary_index":0,"part":{"type":"summary_text","text":""}})),
+                    Some("thinking") if summary_started => {
+                        events.push(json!({"type":"response.reasoning_summary_part.added","item_id":id,"output_index":output_index,"summary_index":0,"part":{"type":"summary_text","text":""}}));
+                        events.push(json!({"type":"response.reasoning_summary_text.delta","item_id":id,"output_index":output_index,"summary_index":0,"delta":value["thinking"]}));
+                    }
                     _ => {}
                 }
                 self.blocks.insert(
@@ -173,6 +201,7 @@ impl Translator {
                         output_index,
                         value,
                         arguments: String::new(),
+                        summary_started,
                         closed: false,
                     },
                 );
@@ -204,7 +233,7 @@ impl Translator {
                 let addition = delta[value].as_str().ok_or("Claude delta 缺少文本")?;
                 if field == "arguments" {
                     block.arguments.push_str(addition);
-                } else {
+                } else if !addition.is_empty() || block.value.get(field).is_some() {
                     let mut s = block.value[field].as_str().unwrap_or("").to_owned();
                     s.push_str(addition);
                     block.value[field] = json!(s);
@@ -214,7 +243,14 @@ impl Translator {
                         .tools
                         .iter()
                         .any(|t| t.upstream == block.value["name"] && t.custom);
-                if !event_type.is_empty() && !custom {
+                if field == "thinking" && !block.summary_started && !addition.is_empty() {
+                    events.push(json!({"type":"response.reasoning_summary_part.added","item_id":block.id,"output_index":block.output_index,"summary_index":0,"part":{"type":"summary_text","text":""}}));
+                    block.summary_started = true;
+                }
+                if !event_type.is_empty()
+                    && !custom
+                    && (field != "thinking" || block.summary_started)
+                {
                     let mut output = json!({"type":event_type,"item_id":block.id,"output_index":block.output_index,"delta":addition});
                     if field == "thinking" {
                         output["summary_index"] = json!(0);
@@ -248,7 +284,7 @@ impl Translator {
                         events.push(json!({"type":"response.custom_tool_call_input.delta","item_id":block.id,"output_index":block.output_index,"delta":item["input"]}));
                         events.push(json!({"type":"response.custom_tool_call_input.done","item_id":block.id,"output_index":block.output_index,"input":item["input"]}));
                     }
-                    Some("reasoning") if block.value["type"] == "thinking" => {
+                    Some("reasoning") if block.value["type"] == "thinking" && block.summary_started => {
                         item["summary"] = json!([{"type":"summary_text","text":block.value["thinking"]}]);
                         events.push(json!({"type":"response.reasoning_summary_text.done","item_id":block.id,"output_index":block.output_index,"summary_index":0,"text":block.value["thinking"]}));
                         events.push(json!({"type":"response.reasoning_summary_part.done","item_id":block.id,"output_index":block.output_index,"summary_index":0,"part":item["summary"][0]}));
@@ -272,11 +308,14 @@ impl Translator {
                 if self.blocks.values().any(|b| !b.closed) || self.stop.is_empty() {
                     return Err("Claude 流在内容完整结束前断开".into());
                 }
-                let output = self
+                let mut output = self
                     .blocks
                     .values()
                     .map(|b| convert::item(&b.value, &self.tools, &b.id))
                     .collect::<ConversionResult<Vec<_>>>()?;
+                if let Some(item) = &self.continuation {
+                    output.insert(0, item.clone());
+                }
                 self.response["output"] = json!(output);
                 self.response["usage"] = convert::usage(&self.tokens);
                 self.response["status"] = json!(if self.stop == "max_tokens" {

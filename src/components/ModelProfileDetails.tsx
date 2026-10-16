@@ -182,7 +182,7 @@ export function ModelProfileDetails({
             </select>
             <p id={`${id}-warning`}>
               仅发送一条合成请求，最多请求 256 个输出
-              Token，可能计费。不会发送会话、文件或执行工具；结果只代表本次条件，不自动覆盖设置。
+              Token，可能计费。始终思考的模型可能耗尽该预算而显示待确认。不会发送会话、文件或执行工具；结果只代表本次条件，不自动覆盖设置。
             </p>
             <label>
               <input

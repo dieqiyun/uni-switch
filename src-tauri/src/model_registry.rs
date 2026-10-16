@@ -100,6 +100,11 @@ pub fn entry(id: &str) -> Option<Entry> {
         .iter()
         .find_map(|prefix| normalized.strip_prefix(prefix))
         .unwrap_or(&normalized);
+    let normalized = if normalized.starts_with("claude-") {
+        crate::claude_models::split_context_marker(normalized).0
+    } else {
+        normalized
+    };
     current()
         .read()
         .unwrap_or_else(|e| e.into_inner())

@@ -1,7 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { RefreshCw, Search, Check, X } from "lucide-react";
 import type { Target } from "../types";
-import { capabilityFields, modelCapability } from "../lib/modelCapabilities";
 import type { useConnectionDiscovery } from "../lib/useConnectionDiscovery";
 import { ModelProfileDetails } from "./ModelProfileDetails";
 
@@ -94,6 +93,9 @@ export function ModelPicker({
           </button>
         )}
       </div>
+      <p className="model-selection-hint">
+        图片输入和并行工具调用默认开启，无需勾选；实际支持情况由上游接口决定。
+      </p>
       <p
         id={`${selectionId}-hint`}
         className="model-selection-hint"
@@ -236,70 +238,6 @@ export function ModelPicker({
                   >
                     {m.enabled ? "设为默认" : "启用并设为默认"}
                   </button>
-                )}
-              </div>
-              <div
-                className="model-capabilities"
-                role="group"
-                aria-label={`模型能力 ${m.id}`}
-              >
-                {capabilityFields
-                  .filter(
-                    (field) => target === "codex" || field.key === "imageInput",
-                  )
-                  .map((field) => {
-                    const capability = modelCapability(m, field.key);
-                    const sourceLabel = {
-                      manual: "手动",
-                      upstream: "上游返回",
-                      official: "自动匹配",
-                      unknown: "待确认",
-                    }[capability.source];
-                    return (
-                      <label
-                        key={field.key}
-                        className="model-capability"
-                        title={field.help}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={capability.value}
-                          disabled={!discovery.allowed(m.id)}
-                          aria-label={`${field.label} ${m.id}`}
-                          onChange={(e) =>
-                            discovery.setCapability(
-                              m.id,
-                              field.key,
-                              e.target.checked,
-                            )
-                          }
-                        />
-                        <span>{field.label}</span>
-                        <span
-                          className={`capability-source ${capability.source === "unknown" ? "is-unknown" : ""}`}
-                        >
-                          {sourceLabel}
-                        </span>
-                      </label>
-                    );
-                  })}
-                {(m.profileOverrides?.thinkingFormat != null ||
-                  Object.values(m.capabilityOverrides ?? {}).some(
-                    (v) => typeof v === "boolean",
-                  )) && (
-                  <button
-                    type="button"
-                    className="text-button capability-reset"
-                    aria-label={`恢复自动能力 ${m.id}`}
-                    onClick={() => discovery.resetCapabilities(m.id)}
-                  >
-                    恢复自动
-                  </button>
-                )}
-                {modelCapability(m, "imageInput").source === "unknown" && (
-                  <span className="capability-unknown-hint">
-                    未识别图片能力，请按上游说明勾选。
-                  </span>
                 )}
               </div>
               {discovery.invalidContexts.includes(m.id) && (

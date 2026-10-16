@@ -162,23 +162,6 @@ pub(super) async fn messages(
         .iter()
         .find(|m| crate::claude_models::split_context_marker(&m.id).0 == model)
         .unwrap_or(&fallback);
-    let capabilities = crate::model_capabilities::resolve(configured);
-    let contains_image = body
-        .get("messages")
-        .and_then(Value::as_array)
-        .is_some_and(|messages| {
-            messages.iter().any(|m| {
-                m.get("content")
-                    .and_then(Value::as_array)
-                    .is_some_and(|parts| parts.iter().any(|p| p["type"] == "image"))
-            })
-        });
-    if capabilities.image_input == Some(false) && contains_image {
-        return Err(claude_error(
-            StatusCode::BAD_REQUEST,
-            "此模型的图片输入已关闭，请在 uni-switch 模型配置中确认图片能力",
-        ));
-    }
     let streaming = body["stream"] == true;
     let converted = reverse::request_with_model(&body, &model, streaming, configured)
         .map_err(|e| claude_error(StatusCode::BAD_REQUEST, e))?;
@@ -732,8 +715,8 @@ mod model_routing_tests {
                 token: token.clone(),
             });
             let ids = [
-                "claude-sonnet-4-6",
-                "anthropic/claude-opus-4-6",
+                "claude-sonnet-5-5",
+                "anthropic/claude-opus-5-5",
                 "claude-haiku-4-5",
                 "gpt-4.1",
             ];
@@ -745,6 +728,8 @@ mod model_routing_tests {
                         enabled: true,
                         ..Default::default()
                     };
+                    model.capability_overrides.image_input = Some(false);
+                    model.capabilities.image_input = Some(false);
                     model.profile.endpoints = EndpointSupport {
                         responses: Some(!chat),
                         chat_completions: Some(chat),
@@ -795,8 +780,12 @@ mod model_routing_tests {
             for (index, expected) in ids.iter().enumerate() {
                 let requested = profile["inferenceModels"][index]["name"].as_str().unwrap();
                 assert_eq!(catalog["data"][index]["id"], requested);
+                assert_eq!(
+                    catalog["data"][index]["capabilities"]["image_input"]["supported"],
+                    true
+                );
                 for streaming in [false, true] {
-                    let reply = messages(State(runtime.clone()), Path(route.clone()), headers.clone(), Json(json!({"model":requested,"stream":streaming,"max_tokens":256,"messages":[{"role":"user","content":"synthetic model QA"}]}))).await.unwrap();
+                    let reply = messages(State(runtime.clone()), Path(route.clone()), headers.clone(), Json(json!({"model":requested,"stream":streaming,"max_tokens":256,"messages":[{"role":"user","content":[{"type":"text","text":"synthetic model QA"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"AAAA"}}]}]}))).await.unwrap();
                     let text = String::from_utf8(
                         axum::body::to_bytes(reply.into_body(), 64 * 1024)
                             .await
@@ -806,7 +795,10 @@ mod model_routing_tests {
                     .unwrap();
                     assert!(text.contains("MODEL_OK"), "{text}");
                     assert!(text.contains(requested));
-                    assert_eq!(captured.lock().unwrap().last().unwrap()["model"], *expected);
+                    let captured = captured.lock().unwrap();
+                    let body = captured.last().unwrap();
+                    assert_eq!(body["model"], *expected);
+                    assert!(body.to_string().contains("data:image/png;base64,AAAA"));
                 }
             }
             let legacy = reverse::legacy_model_alias(ids[1]);

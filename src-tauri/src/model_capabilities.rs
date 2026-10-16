@@ -48,27 +48,12 @@ pub fn mapped_effort(
         .map(|(_, level)| level.clone())
         .ok_or_else(|| "当前接入路径明确不支持思考档位".into())
 }
-pub fn resolve(model: &ProviderModel) -> ModelCapabilities {
-    let latest = known(&model.id);
-    let matched = ModelCapabilities {
-        image_input: latest
-            .image_input
-            .or(model.official_capabilities.image_input),
-        parallel_tool_calls: latest
-            .parallel_tool_calls
-            .or(model.official_capabilities.parallel_tool_calls),
-    };
+// Capabilities are enabled by policy. Observed metadata remains available for
+// diagnostics, but old switches and incomplete model lists cannot block use.
+pub fn resolve(_model: &ProviderModel) -> ModelCapabilities {
     ModelCapabilities {
-        image_input: model
-            .capability_overrides
-            .image_input
-            .or(model.capabilities.image_input)
-            .or(matched.image_input),
-        parallel_tool_calls: model
-            .capability_overrides
-            .parallel_tool_calls
-            .or(model.capabilities.parallel_tool_calls)
-            .or(matched.parallel_tool_calls),
+        image_input: Some(true),
+        parallel_tool_calls: Some(true),
     }
 }
 pub fn merge_profile(primary: &ModelProfile, fallback: &ModelProfile) -> ModelProfile {
@@ -85,6 +70,14 @@ pub fn merge_profile(primary: &ModelProfile, fallback: &ModelProfile) -> ModelPr
             .clone()
             .or_else(|| fallback.default_effort.clone()),
         thinking_format: primary.thinking_format.or(fallback.thinking_format),
+        thinking_always_on: primary.thinking_always_on.or(fallback.thinking_always_on),
+        thinking_between_tools: primary
+            .thinking_between_tools
+            .or(fallback.thinking_between_tools),
+        mid_conversation_system: primary
+            .mid_conversation_system
+            .or(fallback.mid_conversation_system),
+        forced_tool_choice: primary.forced_tool_choice.or(fallback.forced_tool_choice),
         sampling_parameters: primary.sampling_parameters.or(fallback.sampling_parameters),
         tool_calls: primary.tool_calls.or(fallback.tool_calls),
         structured_output: primary.structured_output.or(fallback.structured_output),
@@ -244,6 +237,22 @@ pub fn profile_from_upstream(item: &Value) -> ModelProfile {
         .map(str::to_owned),
         reasoning_efforts: levels,
         thinking_format,
+        thinking_always_on: boolean(&[
+            "/capabilities/thinking/always_on",
+            "/capabilities/thinking/always_on/supported",
+        ]),
+        thinking_between_tools: boolean(&[
+            "/capabilities/thinking/types/between_tools",
+            "/capabilities/thinking/types/between_tools/supported",
+        ]),
+        mid_conversation_system: boolean(&[
+            "/capabilities/mid_conversation_system_messages",
+            "/capabilities/mid_conversation_system_messages/supported",
+        ]),
+        forced_tool_choice: boolean(&[
+            "/capabilities/tool_use/forced/supported",
+            "/capabilities/tool_choice/forced/supported",
+        ]),
         sampling_parameters: boolean(&["/capabilities/sampling_parameters/supported"]),
         tool_calls: boolean(&[
             "/supports_tool_calls",
@@ -377,6 +386,39 @@ mod tests {
         assert_eq!(profile(&legacy).reasoning_efforts, Some(vec!["low".into()]));
     }
     #[test]
+    fn claude_55_protocol_constraints_merge_without_losing_explicit_false() {
+        assert_eq!(
+            known_profile("anthropic/claude-opus-5-5 [1M]").thinking_always_on,
+            Some(true)
+        );
+        assert_eq!(
+            known_profile("private/claude-opus-5-5 [1M]"),
+            ModelProfile::default()
+        );
+        let mut model = ProviderModel {
+            id: "claude-sonnet-5-5".into(),
+            ..Default::default()
+        };
+        let observed = profile_from_upstream(
+            &json!({"capabilities":{"thinking":{"always_on":{"supported":false},"types":{"between_tools":{"supported":false}}},"tool_choice":{"forced":{"supported":true}}}}),
+        );
+        assert_eq!(observed.thinking_always_on, Some(false));
+        assert_eq!(observed.thinking_between_tools, Some(false));
+        assert_eq!(observed.forced_tool_choice, Some(true));
+        model.profile = observed;
+        assert_eq!(profile(&model).thinking_always_on, Some(false));
+        assert_eq!(profile(&model).forced_tool_choice, Some(true));
+        model.profile_overrides.forced_tool_choice = Some(false);
+        assert_eq!(profile(&model).forced_tool_choice, Some(false));
+        assert_eq!(profile_from_upstream(&json!({"capabilities":{"thinking":{"always_on":true,"types":{"between_tools":true}},"tool_use":{"forced":{"supported":false}}}})).thinking_between_tools, Some(true));
+        assert_eq!(
+            profile_from_upstream(&json!({"capabilities":{"thinking":{"always_on":"false"}}}))
+                .thinking_always_on,
+            None
+        );
+    }
+
+    #[test]
     fn deepseek_metadata_and_effort_mapping_are_not_name_guesses() {
         let observed = profile_from_upstream(
             &json!({"context_window":1048576,"max_output_tokens":393216,"effort":{"supported_levels":["low","high","max"],"default_level":"high"},"api_capabilities":{"anthropic_messages":{"system_prompt_update":"leading-only"}}}),
@@ -433,7 +475,7 @@ mod tests {
         }
     }
     #[test]
-    fn upstream_false_and_manual_precedence() {
+    fn capabilities_are_open_despite_legacy_false_metadata() {
         let mut model = ProviderModel {
             id: "gpt-4o".into(),
             capabilities: from_upstream(
@@ -441,12 +483,14 @@ mod tests {
             ),
             ..Default::default()
         };
-        assert_eq!(resolve(&model).image_input, Some(false));
+        assert_eq!(resolve(&model).image_input, Some(true));
+        assert_eq!(resolve(&model).parallel_tool_calls, Some(true));
         model.capability_overrides.image_input = Some(true);
         assert_eq!(resolve(&model).image_input, Some(true));
         model.capability_overrides.image_input = Some(false);
         model.capabilities.image_input = Some(true);
-        assert_eq!(resolve(&model).image_input, Some(false));
+        assert_eq!(resolve(&model).image_input, Some(true));
+        assert_eq!(resolve(&model).parallel_tool_calls, Some(true));
         assert_eq!(
             from_upstream(&json!({"capabilities":{"vision":{"supported":true}}})).image_input,
             Some(true)
@@ -471,5 +515,50 @@ mod tests {
         assert!(m.enabled);
         assert!(m.capability_overrides.image_input.is_none());
         assert_eq!(resolve(&m).image_input, Some(true));
+    }
+}
+
+#[cfg(test)]
+mod inline_system_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn inline_system_metadata_merges_false_and_respects_model_boundaries() {
+        for id in [
+            "claude-opus-5-5",
+            "claude-sonnet-5-5",
+            "claude-fable-5-1",
+            "claude-fable-5",
+            "claude-haiku-5-5",
+        ] {
+            assert_eq!(
+                known_profile(id).mid_conversation_system,
+                Some(true),
+                "{id}"
+            );
+        }
+        for id in [
+            "claude-sonnet-4-5",
+            "private/claude-sonnet-5-5",
+            "claude-sonnet-5-5-custom",
+        ] {
+            assert_eq!(known_profile(id).mid_conversation_system, None, "{id}");
+        }
+        for metadata in [
+            json!({"capabilities":{"mid_conversation_system_messages":false}}),
+            json!({"capabilities":{"mid_conversation_system_messages":{"supported":false}}}),
+        ] {
+            let observed = profile_from_upstream(&metadata);
+            assert_eq!(observed.mid_conversation_system, Some(false));
+            let mut model = ProviderModel {
+                id: "claude-sonnet-5-5".into(),
+                profile: observed,
+                ..Default::default()
+            };
+            assert_eq!(profile(&model).mid_conversation_system, Some(false));
+            model.profile_overrides.mid_conversation_system = Some(true);
+            assert_eq!(profile(&model).mid_conversation_system, Some(true));
+        }
     }
 }

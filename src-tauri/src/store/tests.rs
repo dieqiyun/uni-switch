@@ -3350,7 +3350,7 @@ fn model_capabilities_write_repair_and_upgrade_preserve_client_choices() {
 }
 
 #[test]
-fn manual_image_capability_applies_to_unknown_models_and_survives_fast() {
+fn default_capabilities_ignore_legacy_false_and_survive_fast() {
     let (temp, mut store) = fixture();
     let mut value = input(Family::Codex, "Custom image model");
     value.codex_options.models = vec![ProviderModel {
@@ -3379,7 +3379,7 @@ fn manual_image_capability_applies_to_unknown_models_and_survives_fast() {
     store.quick_model_settings(input).unwrap();
     assert_eq!(
         read_json(&path)["models"][0]["input_modalities"],
-        json!(["text"])
+        json!(["text", "image"])
     );
 }
 
@@ -4018,11 +4018,12 @@ fn claude_cli_writes_fable_and_legacy_role_models_and_restores_them() {
     let original = json!({"env":{"ANTHROPIC_DEFAULT_FABLE_MODEL":"old-fable", "KEEP":"yes"},"hooks":{"Stop":[]}});
     put(&path, &original.to_string());
     let mut value = input(Family::Claude, "Legacy role models");
+    value.model = "claude-sonnet-5-5".into();
     value.codex_options.models = [
-        "claude-sonnet-4-6",
+        "claude-sonnet-5-5",
         "claude-3-5-haiku-20241022",
-        "anthropic/claude-opus-4-6",
-        "claude-fable-5",
+        "anthropic/claude-opus-5-5",
+        "claude-fable-5-1",
     ]
     .iter()
     .map(|id| ProviderModel {
@@ -4040,11 +4041,11 @@ fn claude_cli_writes_fable_and_legacy_role_models_and_restores_them() {
     );
     assert_eq!(
         doc["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"],
-        "anthropic/claude-opus-4-6"
+        "anthropic/claude-opus-5-5"
     );
     assert_eq!(
         doc["env"]["ANTHROPIC_DEFAULT_FABLE_MODEL"],
-        "claude-fable-5"
+        "claude-fable-5-1"
     );
     value.id = Some(provider.id.clone());
     value.codex_options.models[3].enabled = false;
@@ -4052,7 +4053,7 @@ fn claude_cli_writes_fable_and_legacy_role_models_and_restores_them() {
     store.apply(Target::ClaudeCli, &provider.id).unwrap();
     assert_eq!(
         read_json(&path)["env"]["ANTHROPIC_DEFAULT_FABLE_MODEL"],
-        "anthropic/claude-opus-4-6"
+        "anthropic/claude-opus-5-5"
     );
     store.restore(Target::ClaudeCli).unwrap();
     assert_eq!(read_json(&path), original);
@@ -4061,7 +4062,12 @@ fn claude_cli_writes_fable_and_legacy_role_models_and_restores_them() {
 #[test]
 fn claude_desktop_translates_client_context_markers_without_renaming_upstream_models() {
     let (temp, mut store) = fixture();
-    for model in ["claude-sonnet-4-6[1m]", "claude-opus-4-6 [1M]"] {
+    for model in [
+        "claude-sonnet-4-6[1m]",
+        "claude-opus-4-6 [1M]",
+        "claude-sonnet-5-5[1m]",
+        "claude-opus-5-5 [1M]",
+    ] {
         let mut value = input(Family::Claude, "Context marker");
         value.model = model.into();
         let provider = store.save(value).unwrap();

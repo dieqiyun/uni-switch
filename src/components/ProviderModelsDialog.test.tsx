@@ -201,8 +201,12 @@ describe("已保存配置自动同步后的模型计数", () => {
   });
 });
 
-it("图片能力自动匹配，未知模型可手动配置；取消不写入，刷新保留草稿并确认提交", async () => {
-  const custom = { ...models[0], id: "custom-vision" };
+it("能力默认开放且没有勾选项；取消不写入，保存清除旧开关", async () => {
+  const custom = {
+    ...models[0],
+    id: "custom-vision",
+    capabilityOverrides: { imageInput: false, parallelToolCalls: false },
+  };
   vi.mocked(api.discoverConnection).mockResolvedValue({
     models: [models[0], custom],
     protocol: "openai",
@@ -219,29 +223,18 @@ it("图片能力自动匹配，未知模型可手动配置；取消不写入，�
     await screen.findByText("已选择 2 / 2");
   };
   await open();
-  expect(screen.getByLabelText(`图片输入 ${ids[0]}`)).toBeChecked();
-  expect(screen.getByLabelText("图片输入 custom-vision")).not.toBeChecked();
-  await user.click(screen.getByLabelText("图片输入 custom-vision"));
+  expect(screen.getByText(/图片输入和并行工具调用默认开启/)).toBeVisible();
+  expect(screen.queryByLabelText("图片输入 custom-vision")).toBeNull();
+  expect(screen.queryByLabelText("并行工具调用 custom-vision")).toBeNull();
+  expect(screen.queryByRole("button", { name: /恢复自动能力/ })).toBeNull();
   await user.click(screen.getByRole("button", { name: "取消" }));
   expect(commit).not.toHaveBeenCalled();
   await open();
-  expect(screen.getByLabelText("图片输入 custom-vision")).not.toBeChecked();
-  await user.click(screen.getByLabelText("图片输入 custom-vision"));
-  await user.click(screen.getByRole("button", { name: "刷新模型列表" }));
-  await waitFor(() =>
-    expect(vi.mocked(api.discoverConnection)).toHaveBeenCalledTimes(3),
-  );
-  expect(screen.getByLabelText("图片输入 custom-vision")).toBeChecked();
-  await user.click(
-    screen.getByRole("button", { name: "恢复自动能力 custom-vision" }),
-  );
-  expect(screen.getByLabelText("图片输入 custom-vision")).not.toBeChecked();
-  await user.click(screen.getByLabelText("图片输入 custom-vision"));
   await user.click(screen.getByRole("button", { name: "保存并应用" }));
   await waitFor(() => expect(commit).toHaveBeenCalledOnce());
   expect(
     (commit.mock.calls[0][0] as QuickModelInput).models.find(
       (m) => m.id === "custom-vision",
-    )?.capabilityOverrides?.imageInput,
-  ).toBe(true);
+    )?.capabilityOverrides,
+  ).toEqual({});
 });

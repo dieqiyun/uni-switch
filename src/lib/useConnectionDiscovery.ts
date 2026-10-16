@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, desktopRuntime, errorMessage } from "./api";
 import { contextTokens, DEFAULT_MODEL_CONTEXT } from "./modelContext";
-import { preserveCapabilities, type CapabilityKey } from "./modelCapabilities";
+import { preserveCapabilities } from "./modelCapabilities";
 import { desktopModelAllowed } from "./useModelDiscovery";
 import { providerProtocol } from "./protocolConversion";
 import type {
@@ -359,38 +359,6 @@ export function useConnectionDiscovery(
           }
         : s,
     );
-  const setCapability = (id: string, key: CapabilityKey, value: boolean) =>
-    setState((s) =>
-      s.signature === current.current.signature
-        ? {
-            ...s,
-            models: s.models.map((m) =>
-              m.id === id
-                ? {
-                    ...m,
-                    capabilityOverrides: {
-                      ...m.capabilityOverrides,
-                      [key]: value,
-                    },
-                  }
-                : m,
-            ),
-          }
-        : s,
-    );
-  const resetCapabilities = (id: string) =>
-    setState((s) =>
-      s.signature === current.current.signature
-        ? {
-            ...s,
-            models: s.models.map((m) =>
-              m.id === id
-                ? { ...m, capabilityOverrides: {}, profileOverrides: {} }
-                : m,
-            ),
-          }
-        : s,
-    );
   const invalidContexts =
     target === "codex"
       ? visible.models
@@ -410,8 +378,6 @@ export function useConnectionDiscovery(
     toggle,
     selectDefault,
     setContext,
-    setCapability,
-    resetCapabilities,
     connection: input,
     setThinkingFormat: (id: string, format: ModelProfile["thinkingFormat"]) =>
       setState((s) =>

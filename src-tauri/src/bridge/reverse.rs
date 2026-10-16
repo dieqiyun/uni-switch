@@ -270,7 +270,7 @@ pub fn request_with_model(
     if max_tokens == 0 || max_tokens > maximum {
         return Err(format!("max_tokens 必须在 1–{maximum} 之间"));
     }
-    let mut result = json!({"model":model,"input":input,"max_output_tokens":max_tokens,"stream":streaming,"store":false,"parallel_tool_calls":false});
+    let mut result = json!({"model":model,"input":input,"max_output_tokens":max_tokens,"stream":streaming,"store":false,"parallel_tool_calls":true});
     if !system.is_empty() {
         result["instructions"] = json!(system.join("\n\n"));
     }
@@ -291,9 +291,6 @@ pub fn request_with_model(
         }
     }
     if !tools.is_empty() {
-        if profile.tool_calls == Some(false) {
-            return Err("当前接入路径明确不支持工具调用".into());
-        }
         result["tools"] = json!(tools);
     }
     if let Some(choice) = body.get("tool_choice") {
@@ -308,43 +305,55 @@ pub fn request_with_model(
         };
         result["parallel_tool_calls"] = json!(choice["disable_parallel_tool_use"] != true);
     }
-    let thinking = matches!(
-        body["thinking"]["type"].as_str(),
-        Some("enabled" | "adaptive")
-    );
-    if thinking
-        && profile.thinking_format != Some(crate::types::ThinkingFormat::None)
+    let mode = body["thinking"]["type"].as_str();
+    let thinking = matches!(mode, Some("enabled" | "adaptive"));
+    let lowest = matches!(mode, Some("disabled" | "between_tools"));
+    let deepseek = profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek);
+    let supports_effort = profile.thinking_format != Some(crate::types::ThinkingFormat::None)
         && (reasoning_model(model)
             || matches!(
                 profile.thinking_format,
-                Some(crate::types::ThinkingFormat::Openai | crate::types::ThinkingFormat::Deepseek)
-            ))
-    {
-        let effort = requested_effort.unwrap_or_else(|| {
+                Some(
+                    crate::types::ThinkingFormat::Openai
+                        | crate::types::ThinkingFormat::Deepseek
+                        | crate::types::ThinkingFormat::Adaptive
+                )
+            ));
+    if supports_effort && (thinking || lowest || requested_effort.is_some()) {
+        // between_tools has no exact OpenAI equivalent. Use the lowest declared
+        // target effort rather than silently falling back to its default.
+        let effort = if lowest {
+            "none"
+        } else if let Some(effort) = requested_effort {
+            effort
+        } else if mode == Some("adaptive") && profile.default_effort.is_some() {
+            profile.default_effort.as_deref().unwrap()
+        } else {
             match body["thinking"]["budget_tokens"].as_u64().unwrap_or(4096) {
                 0..=1024 => "low",
                 1025..=3072 => "medium",
                 _ => "high",
             }
-        });
-        let effort = if profile.reasoning_efforts.is_none()
-            && profile.thinking_format != Some(crate::types::ThinkingFormat::Deepseek)
-        {
+        };
+        let effort = if deepseek && effort == "none" {
+            // DeepSeek's disable control is separate from its enabled efforts.
+            "none".into()
+        } else if profile.reasoning_efforts.is_none() && !deepseek {
             match effort {
-                "minimal" | "low" => "low".into(),
+                "none" | "minimal" | "low" => "low".into(),
                 "medium" => "medium".into(),
                 _ => "high".into(),
             }
         } else {
             crate::model_capabilities::mapped_effort(&profile, effort)?
         };
-        if profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek) {
+        if deepseek || effort == "none" {
             result["reasoning"] = json!({"effort":effort});
         } else {
             result["reasoning"] = json!({"effort":effort,"summary":"auto"});
             result["include"] = json!(["reasoning.encrypted_content"]);
         }
-    } else if profile.thinking_format == Some(crate::types::ThinkingFormat::Deepseek) {
+    } else if deepseek {
         result["reasoning"] = json!({"effort":"none"});
     }
     if !reasoning_model(model)
@@ -361,9 +370,6 @@ pub fn request_with_model(
         .pointer("/output_config/format")
         .filter(|f| f["type"] == "json_schema")
     {
-        if profile.structured_output == Some(false) {
-            return Err("当前接入路径明确不支持结构化输出".into());
-        }
         result["text"] = json!({"format":{"type":"json_schema","name":"claude_output","schema":schema["schema"],"strict":true}});
     }
     Ok(result)

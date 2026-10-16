@@ -486,22 +486,8 @@ pub fn plan(
                 if let Some(n) = output.filter(|n| *n > 0) {
                     entry["maxOutputTokens"] = json!(n);
                 }
-                if let Some(v) = model
-                    .profile_overrides
-                    .tool_calls
-                    .or(model.profile.tool_calls)
-                    .or(model.official_profile.tool_calls)
-                {
-                    entry["supportsToolCall"] = json!(v);
-                }
-                if let Some(v) = model
-                    .capability_overrides
-                    .image_input
-                    .or(model.capabilities.image_input)
-                    .or(model.official_capabilities.image_input)
-                {
-                    entry["supportsImages"] = json!(v);
-                }
+                entry["supportsToolCall"] = json!(true);
+                entry["supportsImages"] = json!(true);
                 if let Some(index) = entries.iter().position(|e| e["id"] == model.id) {
                     entries[index] = entry;
                 } else {
@@ -567,14 +553,7 @@ pub fn plan(
                     {
                         v["maxTokens"] = json!(n);
                     }
-                    if m.capability_overrides
-                        .image_input
-                        .or(m.capabilities.image_input)
-                        .or(m.official_capabilities.image_input)
-                        == Some(true)
-                    {
-                        v["input"] = json!(["text", "image"]);
-                    }
+                    v["input"] = json!(["text", "image"]);
                     v
                 })
                 .collect();

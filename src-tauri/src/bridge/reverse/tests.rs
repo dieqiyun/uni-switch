@@ -351,3 +351,73 @@ fn reasoning_multiple_summary_parts_do_not_break_completed_stream() {
     assert!(translator.finished);
     assert_eq!(translator.content[0]["thinking"], "First\nSecond part");
 }
+
+#[test]
+fn reasoning_modes_keep_lowest_explicit_and_default_efforts() {
+    for (id, fields, expected) in [
+        (
+            "gpt-5.4",
+            json!({"thinking":{"type":"between_tools"},"output_config":{"effort":"high"}}),
+            "low",
+        ),
+        ("gpt-5.4", json!({"thinking":{"type":"disabled"}}), "low"),
+        ("gpt-5.4", json!({"output_config":{"effort":"low"}}), "low"),
+        (
+            "claude-opus-5-5",
+            json!({"thinking":{"type":"adaptive"}}),
+            "medium",
+        ),
+        (
+            "claude-sonnet-5-5",
+            json!({"thinking":{"type":"adaptive"},"output_config":{"effort":"max"}}),
+            "max",
+        ),
+        (
+            "claude-sonnet-5-5",
+            json!({"thinking":{"type":"between_tools"},"output_config":{"effort":"high"}}),
+            "low",
+        ),
+        (
+            "deepseek-flash",
+            json!({"thinking":{"type":"disabled"}}),
+            "none",
+        ),
+    ] {
+        let mut source = json!({"messages":[{"role":"user","content":"QA"}],"max_tokens":256});
+        source
+            .as_object_mut()
+            .unwrap()
+            .extend(fields.as_object().unwrap().clone());
+        let result = request(&source, id, false).unwrap();
+        assert_eq!(result["reasoning"]["effort"], expected, "{id}: {fields}");
+        if expected == "none" {
+            assert!(result.get("include").is_none());
+            assert!(result["reasoning"].get("summary").is_none());
+        }
+        let chat = chat_request_with_model(
+            &result,
+            &crate::types::ProviderModel {
+                id: id.into(),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        if id != "deepseek-flash" {
+            assert_eq!(chat["reasoning_effort"], expected);
+        }
+    }
+    let mut configured = crate::types::ProviderModel {
+        id: "gpt-5.4".into(),
+        ..Default::default()
+    };
+    configured.profile_overrides.reasoning_efforts =
+        Some(vec!["none".into(), "low".into(), "high".into()]);
+    for mode in ["disabled", "between_tools"] {
+        let result = request_with_model(&json!({"messages":[{"role":"user","content":"QA"}],"thinking":{"type":mode},"output_config":{"effort":"high"}}), &configured.id, false, &configured).unwrap();
+        assert_eq!(result["reasoning"], json!({"effort":"none"}));
+        assert!(result.get("include").is_none());
+    }
+    configured.profile_overrides.thinking_format = Some(crate::types::ThinkingFormat::None);
+    let result = request_with_model(&json!({"messages":[{"role":"user","content":"QA"}],"thinking":{"type":"adaptive"},"output_config":{"effort":"max"}}), &configured.id, false, &configured).unwrap();
+    assert!(result.get("reasoning").is_none());
+}
