@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-10-08",
+  "verifiedAt": "2026-10-16",
   "entries": [
     {
       "ids": ["gpt-6-astra"],
@@ -520,7 +520,25 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/fable-5-1/overview"
+      "source": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+      "profile": {
+        "midConversationSystem": true,
+        "contextWindow": 1000000,
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000,
+        "reasoningEfforts": ["low", "medium", "high", "xhigh", "max"],
+        "defaultEffort": "high",
+        "thinkingFormat": "adaptive",
+        "thinkingAlwaysOn": true,
+        "thinkingBetweenTools": false,
+        "forcedToolChoice": false,
+        "samplingParameters": false,
+        "toolCalls": true,
+        "structuredOutput": true,
+        "endpoints": {
+          "messages": true
+        }
+      }
     },
     {
       "ids": ["claude-opus-5-5"],
@@ -528,7 +546,25 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/opus-5-5/overview"
+      "source": "https://platform.claude.com/docs/en/models/opus-5-5/overview",
+      "profile": {
+        "midConversationSystem": true,
+        "contextWindow": 1000000,
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000,
+        "reasoningEfforts": ["low", "medium", "high", "xhigh", "max"],
+        "defaultEffort": "medium",
+        "thinkingFormat": "adaptive",
+        "thinkingAlwaysOn": true,
+        "thinkingBetweenTools": false,
+        "forcedToolChoice": false,
+        "samplingParameters": false,
+        "toolCalls": true,
+        "structuredOutput": true,
+        "endpoints": {
+          "messages": true
+        }
+      }
     },
     {
       "ids": ["claude-sonnet-5-5"],
@@ -536,7 +572,25 @@
         "imageInput": true,
         "parallelToolCalls": true
       },
-      "source": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
+      "source": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+      "profile": {
+        "midConversationSystem": true,
+        "contextWindow": 1000000,
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000,
+        "reasoningEfforts": ["low", "medium", "high", "xhigh", "max"],
+        "defaultEffort": "high",
+        "thinkingFormat": "adaptive",
+        "thinkingAlwaysOn": true,
+        "thinkingBetweenTools": true,
+        "forcedToolChoice": false,
+        "samplingParameters": false,
+        "toolCalls": true,
+        "structuredOutput": true,
+        "endpoints": {
+          "messages": true
+        }
+      }
     },
     {
       "ids": ["claude-haiku-4-5", "claude-haiku-4-5-20251001"],
@@ -545,13 +599,18 @@
         "parallelToolCalls": true
       },
       "source": "https://platform.claude.com/docs/en/models/haiku-4-5/overview",
-      "profile": { "thinkingFormat": "budget" }
+      "profile": {
+        "thinkingFormat": "budget"
+      }
     },
     {
       "ids": ["claude-fable-5"],
       "capabilities": {
         "imageInput": true,
         "parallelToolCalls": true
+      },
+      "profile": {
+        "midConversationSystem": true
       },
       "source": "https://platform.claude.com/docs/en/models/fable-5/overview"
     },
@@ -622,7 +681,9 @@
         "parallelToolCalls": true
       },
       "source": "https://platform.claude.com/docs/en/models/opus-4-5/overview",
-      "profile": { "thinkingFormat": "budget" }
+      "profile": {
+        "thinkingFormat": "budget"
+      }
     },
     {
       "ids": ["claude-sonnet-4-5", "claude-sonnet-4-5-20250929"],
@@ -631,7 +692,9 @@
         "parallelToolCalls": true
       },
       "source": "https://platform.claude.com/docs/en/models/sonnet-4-5/overview",
-      "profile": { "thinkingFormat": "budget" }
+      "profile": {
+        "thinkingFormat": "budget"
+      }
     },
     {
       "ids": [
@@ -665,7 +728,9 @@
     },
     {
       "ids": ["deepseek-v4-flash-vision-exp"],
-      "capabilities": { "imageInput": true },
+      "capabilities": {
+        "imageInput": true
+      },
       "source": "https://api-docs.deepseek.com/guides/vision/"
     },
     {
@@ -713,6 +778,7 @@
         "parallelToolCalls": true
       },
       "profile": {
+        "midConversationSystem": true,
         "contextWindow": 1000000,
         "maxInputTokens": 1000000,
         "maxOutputTokens": 128000,
@@ -726,5 +792,5 @@
     }
   ],
   "schemaVersion": 1,
-  "version": 2026100801
+  "version": 2026101601
 }

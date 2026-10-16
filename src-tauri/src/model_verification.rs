@@ -76,7 +76,14 @@ fn payload(model: &str, endpoint: Endpoint, feature: Feature) -> Value {
         match endpoint {
             Endpoint::Messages => {
                 body["tools"] = json!([{"name":"qa_echo","description":"Synthetic validation only; never executed","input_schema":schema}]);
-                body["tool_choice"] = json!({"type":"tool","name":"qa_echo"});
+                body["tool_choice"] = if crate::model_capabilities::known_profile(model)
+                    .forced_tool_choice
+                    == Some(false)
+                {
+                    json!({"type":"auto"})
+                } else {
+                    json!({"type":"tool","name":"qa_echo"})
+                };
             }
             Endpoint::Responses => {
                 body["tools"] =
@@ -327,7 +334,7 @@ pub async fn verify(
         Ok(Ok(true)) => {
             observation.state = "verified".into();
             observation.message =
-                "本次合成请求验证通过；仅代表该模型、接口及本次条件，不自动覆盖手动设置".into();
+                "本次合成请求验证通过；仅代表该模型、接口及本次条件，不改变默认开放策略".into();
         }
         Ok(Ok(false)) => {
             observation.message = "HTTP 成功，但回复未满足验证要求；能力仍待确认".into()
@@ -395,6 +402,33 @@ mod tests {
             assert_eq!(observed.state, "verified", "{}", observed.message);
             server.abort();
         }
+    }
+
+    #[test]
+    fn claude_55_tool_probes_use_auto_and_require_an_actual_tool_call() {
+        for model in [
+            "claude-opus-5-5",
+            "claude-sonnet-5-5",
+            "anthropic/claude-opus-5-5",
+        ] {
+            let body = payload(model, Endpoint::Messages, Feature::Tools);
+            assert_eq!(body["tool_choice"], json!({"type":"auto"}));
+            assert_eq!(body["model"], model);
+            assert!(!validate_response(
+                &json!({"content":[{"type":"text","text":"QA_OK"}]}),
+                Endpoint::Messages,
+                Feature::Tools
+            ));
+            assert!(validate_response(
+                &json!({"content":[{"type":"tool_use","name":"qa_echo","input":{"marker":"QA_OK"}}]}),
+                Endpoint::Messages,
+                Feature::Tools
+            ));
+        }
+        assert_eq!(
+            payload("claude-haiku-4-5", Endpoint::Messages, Feature::Tools)["tool_choice"]["type"],
+            "tool"
+        );
     }
 
     #[test]

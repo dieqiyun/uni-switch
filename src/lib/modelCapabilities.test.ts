@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  modelCapability,
   knownCapabilities,
   preserveCapabilities,
   effectiveProfile,
@@ -16,48 +15,43 @@ const model: ProviderModel = {
   reasoningEfforts: [],
 };
 describe("模型能力解析", () => {
-  it("按手动、上游、官方、未知顺序，明确 false 不被自动规则覆盖", () => {
-    expect(modelCapability(model, "imageInput")).toEqual({
-      value: true,
-      source: "official",
-    });
-    expect(
-      modelCapability(
-        { ...model, capabilities: { imageInput: false } },
-        "imageInput",
-      ),
-    ).toEqual({ value: false, source: "upstream" });
-    expect(
-      modelCapability(
-        {
-          ...model,
-          capabilities: { imageInput: true },
-          capabilityOverrides: { imageInput: false },
-        },
-        "imageInput",
-      ),
-    ).toEqual({ value: false, source: "manual" });
-    expect(
-      modelCapability({ ...model, id: "private/gpt-4o" }, "imageInput"),
-    ).toEqual({ value: false, source: "unknown" });
-    expect(knownCapabilities("openai/gpt-6.1-sol").imageInput).toBe(true);
+  it("官方能力资料仍如实记录纯文本与未知型号", () => {
+    expect(knownCapabilities("gpt-4o").imageInput).toBe(true);
     expect(knownCapabilities("o3-mini").imageInput).toBe(false);
     expect(knownCapabilities("gpt-4o-custom").imageInput).toBeUndefined();
   });
-  it("刷新更新上游能力，保留手动关闭，不把供应商返回字段当成用户设置", () => {
-    const old = { ...model, capabilityOverrides: { imageInput: false } };
-    const fresh = {
+  it("刷新清除旧能力开关，保留思考格式覆盖及上游观察值", () => {
+    const old = {
       ...model,
-      capabilities: { imageInput: true },
-      capabilityOverrides: { imageInput: true },
+      capabilityOverrides: { imageInput: false },
+      profileOverrides: { thinkingFormat: "budget" as const },
     };
-    const merged = preserveCapabilities(fresh, old);
-    expect(merged.capabilities?.imageInput).toBe(true);
-    expect(modelCapability(merged, "imageInput")).toEqual({
-      value: false,
-      source: "manual",
-    });
-    expect(preserveCapabilities(fresh).capabilityOverrides).toEqual({});
+    const merged = preserveCapabilities(
+      {
+        ...model,
+        capabilities: { imageInput: false },
+        capabilityOverrides: { imageInput: false },
+      },
+      old,
+    );
+    expect(merged.capabilities?.imageInput).toBe(false);
+    expect(merged.capabilityOverrides).toEqual({});
+    expect(merged.profileOverrides).toEqual(old.profileOverrides);
+  });
+  it("5.5 档案保留始终思考和强制工具限制", () => {
+    for (const id of [
+      "claude-opus-5-5",
+      "anthropic/claude-sonnet-5-5",
+      "claude-opus-5-5 [1M]",
+    ]) {
+      expect(effectiveProfile({ ...model, id })).toMatchObject({
+        thinkingFormat: "adaptive",
+        thinkingAlwaysOn: true,
+        forcedToolChoice: false,
+        samplingParameters: false,
+      });
+    }
+    expect(knownProfile("claude-sonnet-5-5").thinkingBetweenTools).toBe(true);
   });
   it("档案逐字段合并，保留明确 false、空档位和旧格式的上游档位", () => {
     const haiku = { ...model, id: "claude-haiku-5-5" };
@@ -148,5 +142,30 @@ describe("模型能力解析", () => {
       entries: [],
     });
     expect(knownCapabilities("new-qa-model").imageInput).toBe(true);
+  });
+});
+
+describe("inline system protocol metadata", () => {
+  it("keeps explicit false and manual overrides ahead of the bundled profile", () => {
+    const model = {
+      id: "claude-sonnet-5-5",
+      reasoningEfforts: [],
+    } as unknown as ProviderModel;
+    expect(effectiveProfile(model).midConversationSystem).toBe(true);
+    expect(
+      effectiveProfile({ ...model, profile: { midConversationSystem: false } })
+        .midConversationSystem,
+    ).toBe(false);
+    expect(
+      effectiveProfile({
+        ...model,
+        profile: { midConversationSystem: false },
+        profileOverrides: { midConversationSystem: true },
+      }).midConversationSystem,
+    ).toBe(true);
+    expect(
+      effectiveProfile({ ...model, id: "private/claude-sonnet-5-5" })
+        .midConversationSystem,
+    ).toBeUndefined();
   });
 });

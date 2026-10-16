@@ -248,7 +248,7 @@ describe("自动接入的模型默认选择", () => {
   });
 });
 
-it("刷新完成前的手动图片能力保留；恢复自动立即采用最新上游值", async () => {
+it("刷新完成前的思考格式覆盖保留，旧能力开关不再生效", async () => {
   vi.useFakeTimers();
   let finish!: (v: ModelSyncResult) => void;
   vi.spyOn(api, "discoverConnection")
@@ -266,7 +266,7 @@ it("刷新完成前的手动图片能力保留；恢复自动立即采用最新�
     pending = hook.result.current.refresh();
   });
   act(() => {
-    hook.result.current.setCapability("custom-model", "imageInput", true);
+    hook.result.current.setThinkingFormat("custom-model", "adaptive");
   });
   await act(async () => {
     const result = response(["custom-model"]);
@@ -274,16 +274,20 @@ it("刷新完成前的手动图片能力保留；恢复自动立即采用最新�
     finish(result);
     await pending;
   });
-  expect(hook.result.current.models[0].capabilityOverrides?.imageInput).toBe(
-    true,
+  expect(hook.result.current.models[0].profileOverrides?.thinkingFormat).toBe(
+    "adaptive",
   );
+  expect(hook.result.current.models[0].capabilityOverrides).toEqual({});
   expect(hook.result.current.models[0].capabilities?.imageInput).toBe(false);
-  act(() => hook.result.current.resetCapabilities("custom-model"));
+  act(() => hook.result.current.setThinkingFormat("custom-model", undefined));
   expect(hook.result.current.models[0].capabilityOverrides).toEqual({});
 });
 
 describe("Claude 桌面模型名称边界", () => {
   it.each([
+    "claude-opus-5-5",
+    "claude-sonnet-5-5 [1M]",
+    "anthropic/claude-sonnet-5-5",
     "claude-sonnet-4-6",
     "anthropic/claude-opus-4-6",
     "claude-fable-5",

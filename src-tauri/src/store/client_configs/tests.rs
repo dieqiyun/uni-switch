@@ -1005,7 +1005,8 @@ fn usage_audit_workbuddy_same_model_does_not_inherit_old_supplier_capabilities()
     let doc: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     assert!(doc["models"][0].get("maxInputTokens").is_none());
-    assert!(doc["models"][0].get("supportsImages").is_none());
+    assert_eq!(doc["models"][0]["supportsImages"], true);
+    assert_eq!(doc["models"][0]["supportsToolCall"], true);
     assert_eq!(
         doc["availableModels"],
         json!([]),

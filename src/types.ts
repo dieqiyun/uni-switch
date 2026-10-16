@@ -90,6 +90,10 @@ export interface ModelProfile {
     | "openai"
     | "none"
     | null;
+  thinkingAlwaysOn?: boolean | null;
+  thinkingBetweenTools?: boolean | null;
+  midConversationSystem?: boolean | null;
+  forcedToolChoice?: boolean | null;
   samplingParameters?: boolean | null;
   toolCalls?: boolean | null;
   structuredOutput?: boolean | null;
