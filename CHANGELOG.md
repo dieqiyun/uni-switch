@@ -7,6 +7,7 @@
 - 扩展为 74 个第三方客户端配置入口，支持文件、数据库、API 与凭据型配置方式；保留外部修改检测、确认覆盖、备份和恢复，覆盖范围见 [客户端清单](docs/magpie-client-support.md)。
 - 新增订阅账号与统一网关界面，接入 Claude、ChatGPT / Codex、Google / Gemini CLI / Antigravity、GitHub Copilot 的登录、账号选择和令牌续期路径。
 - Google / Antigravity 登录需自行填写已获对应服务授权的 OAuth 客户端信息，随账号保存在本机供续期使用；不内置第三方 Google Client ID/Secret，没有合适注册信息时可改用 Gemini API Key。
+- 修复 macOS 将系统 `/var`、`/tmp`、`/etc` 指向 `/private` 的固定链接误判为用户配置链接的问题；用户目录内的符号链接和 Windows 重解析点继续拒绝。
 - 统一网关增加 Gemini 原生接口，与 Chat Completions、Responses、Messages 共享协议转换；增加图片生成/编辑、视频任务及指定来源的厂商原生 HTTP/SSE 透传。
 - 模型资料采用 Go 解析、models.dev 补全、用户覆盖和最终合并；移除旧签名资料源及四维能力验证，连接测试改为用户确认后的一次受限请求。
 - 升级后重新应用客户端配置、完全退出并重开客户端。旧 Rust 签名续接记录不再兼容，遇到旧会话报错请新建会话；跨协议中途 system/developer 转为原位置的 system-reminder，独立转换 `/responses/compact` 不再提供。
