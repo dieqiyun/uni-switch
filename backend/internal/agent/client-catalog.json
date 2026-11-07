@@ -1,0 +1,671 @@
+[
+  {
+    "id": "zcode",
+    "name": "ZCode",
+    "protocols": [
+      "messages",
+      "chat_completions",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "dsh",
+    "name": "DSH",
+    "protocols": [
+      "messages",
+      "chat_completions",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "workbuddy",
+    "name": "WorkBuddy",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "opencode",
+    "name": "OpenCode",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "mimocode",
+    "name": "MiMo Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "deveco",
+    "name": "DevEco Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "pi",
+    "name": "Pi",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "omo",
+    "name": "OmO",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "primeagent",
+    "name": "Prime Agent",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "stepcode",
+    "name": "StepCode",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "mothx",
+    "name": "MothX",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "omp",
+    "name": "Oh My Pi",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "goose",
+    "name": "Goose",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "crush",
+    "name": "Crush",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "copilot",
+    "name": "Copilot CLI",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "hermes",
+    "name": "Hermes",
+    "protocols": [
+      "chat_completions",
+      "messages"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "morph",
+    "name": "Mister Morph",
+    "protocols": [
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "kimi",
+    "name": "Kimi Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "qwen",
+    "name": "Qwen Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "openclaw",
+    "name": "OpenClaw",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "jcode",
+    "name": "jcode",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "droid",
+    "name": "Droid",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "qoder",
+    "name": "Qoder",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "qodercn",
+    "name": "Qoder CN",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "pencil",
+    "name": "Pencil",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "openpencil",
+    "name": "OpenPencil",
+    "protocols": [
+      "chat_completions",
+      "messages"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "workbuddyai",
+    "name": "WorkBuddy AI",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "codebuddy",
+    "name": "CodeBuddy",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "liveagent",
+    "name": "LiveAgent",
+    "protocols": [
+      "chat_completions",
+      "messages",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "raycast",
+    "name": "Raycast",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "astrbot",
+    "name": "AstrBot",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "antigravity",
+    "name": "Antigravity Desktop",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "atomcode",
+    "name": "AtomCode",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "vscode",
+    "name": "VS Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "vscodeinsiders",
+    "name": "VS Code Insiders",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "vscodium",
+    "name": "VSCodium",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "copilotjetbrains",
+    "name": "Copilot JetBrains",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "snow",
+    "name": "Snow CLI",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "minimax",
+    "name": "MiniMax Code",
+    "protocols": [
+      "messages"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "cline",
+    "name": "Cline",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "qwenpaw",
+    "name": "QwenPaw",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "ante",
+    "name": "Ante",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "grok",
+    "name": "Grok Build",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "grokapp",
+    "name": "Grok App",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "dsbot",
+    "name": "DS Bot",
+    "protocols": [
+      "messages",
+      "chat_completions",
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "reasonix",
+    "name": "Reasonix Studio",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "air",
+    "name": "JetBrains Air",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "airide",
+    "name": "JetBrains IDE ACP",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "gemini",
+    "name": "Gemini CLI",
+    "protocols": [
+      "gemini"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "agy",
+    "name": "Antigravity CLI",
+    "protocols": [
+      "gemini"
+    ],
+    "mode": "launch",
+    "description": "生成专用启动脚本，运行该脚本启动客户端后生效。脚本只设置新进程的环境，不修改系统环境。"
+  },
+  {
+    "id": "claudescience",
+    "name": "Claude Science",
+    "protocols": [
+      "messages"
+    ],
+    "mode": "launch",
+    "description": "生成专用启动脚本；运行脚本时会停止旧 daemon，并以新连接启动。生成脚本本身不重启客户端。"
+  },
+  {
+    "id": "cursorlocal",
+    "name": "Cursor Private Inference",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "launch",
+    "description": "生成专用启动脚本，运行该脚本启动客户端后生效。脚本只设置新进程的环境，不修改系统环境。"
+  },
+  {
+    "id": "openchamber",
+    "name": "OpenChamber",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "penguin",
+    "name": "PenguinHarness",
+    "protocols": [
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "aside",
+    "name": "Aside",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入所选账户的模型和离线默认设置；请先退出 Aside，重新打开后生效。可修改目录选择其他账户。"
+  },
+  {
+    "id": "zed",
+    "name": "Zed",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入模型配置和系统凭据库。Linux 需要已解锁的 Secret Service 和 secret-tool。"
+  },
+  {
+    "id": "zoocode",
+    "name": "Zoo Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "commandcode",
+    "name": "Command Code",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "fx",
+    "name": "fx",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "muse",
+    "name": "Muse Code",
+    "protocols": [
+      "responses"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "empryo",
+    "name": "Empryo",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "openbot",
+    "name": "OpenBot",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "kirocrew",
+    "name": "Kiro Crew",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "file",
+    "description": "复用已配置的 Codex、Claude Code、OpenCode、Pi 或 Goose；请先给其中一个配置相同供应商。"
+  },
+  {
+    "id": "openmausbot",
+    "name": "OpenMausBot",
+    "protocols": [
+      "messages"
+    ],
+    "mode": "file",
+    "description": "写入独立供应商条目，保留其他配置。修改前退出客户端，保存后重新打开并选择模型。"
+  },
+  {
+    "id": "cindy",
+    "name": "Cindy",
+    "protocols": [
+      "messages",
+      "chat_completions",
+      "responses"
+    ],
+    "mode": "import",
+    "description": "生成导入链接；复制到系统打开后，需要在客户端中确认导入。"
+  },
+  {
+    "id": "aionui",
+    "name": "AionUi",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "import",
+    "description": "生成导入链接；复制到系统打开后，需要在客户端中确认导入。"
+  },
+  {
+    "id": "lody",
+    "name": "Lody",
+    "protocols": [
+      "messages",
+      "chat_completions",
+      "responses"
+    ],
+    "mode": "import",
+    "description": "生成导入链接；复制到系统打开后，需要在客户端中确认导入。"
+  },
+  {
+    "id": "t3code",
+    "name": "T3 Code",
+    "protocols": [
+      "messages"
+    ],
+    "mode": "file",
+    "description": "配置独立的 Claude Code 和 Codex 实例；在 T3 的模型选择器选择所需实例。"
+  },
+  {
+    "id": "newmax",
+    "name": "NewMax",
+    "protocols": [
+      "messages"
+    ],
+    "mode": "database",
+    "description": "请先打开 NewMax 一次，再退出客户端。通过 SQLite 事务更新供应商，重新打开后选择模型（最多 20 个）。"
+  },
+  {
+    "id": "alma",
+    "name": "Alma",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "api",
+    "description": "请保持 Alma 运行，通过本地 API 更新供应商、模型和默认选择。"
+  },
+  {
+    "id": "hanako",
+    "name": "OpenHanako",
+    "protocols": [
+      "chat_completions"
+    ],
+    "mode": "api",
+    "description": "请先在 OpenHanako 创建 agent。已加密配置需要保持客户端运行，通过本地 API 写入。"
+  }
+]

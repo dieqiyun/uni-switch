@@ -25,8 +25,7 @@ function discovery(baseUrl = "https://example.test/v1", preview = false) {
 const observation: ModelVerification = {
   model: model.id,
   endpoint: "messages",
-  feature: "text",
-  state: "verified",
+  state: "available",
   checkedAt: 1,
   message: "合成测试成功",
 };
@@ -49,7 +48,7 @@ describe("模型档案与显式验证", () => {
     expect(state.setThinkingFormat).toHaveBeenCalledWith(model.id, "budget");
     expect(verify).not.toHaveBeenCalled();
   });
-  it("未确认计费不能验证，确认后只发送所选接口和项目", async () => {
+  it("未确认计费不能验证，确认后只发送所选接口的连接测试", async () => {
     const verify = vi.spyOn(api, "verifyModel").mockResolvedValue(observation);
     const state = discovery();
     render(<ModelProfileDetails model={model} discovery={state} />);
@@ -60,7 +59,6 @@ describe("模型档案与显式验证", () => {
       screen.getByLabelText("验证接口"),
       "chat_completions",
     );
-    await userEvent.selectOptions(screen.getByLabelText("验证项目"), "tools");
     await userEvent.click(screen.getByRole("checkbox"));
     await userEvent.click(start);
     expect(verify).toHaveBeenCalledExactlyOnceWith(
@@ -68,7 +66,6 @@ describe("模型档案与显式验证", () => {
       model.id,
       "bearer",
       "chat_completions",
-      "tools",
       true,
     );
     expect(await screen.findByText("合成测试成功")).toBeVisible();

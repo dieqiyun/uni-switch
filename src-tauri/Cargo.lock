@@ -4204,6 +4204,7 @@ dependencies = [
  "libc",
  "mio",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.61.2",
@@ -4488,7 +4489,7 @@ dependencies = [
 
 [[package]]
 name = "uni-switch"
-version = "0.5.27"
+version = "0.5.28"
 dependencies = [
  "async-stream",
  "axum",

@@ -135,7 +135,7 @@ describe("精简供应商流程", () => {
             expect.objectContaining({
               id: "gpt-4.1",
               enabled: true,
-              contextWindow: 256000,
+              contextWindow: null,
             }),
             expect.objectContaining({ id: "gpt-5.4", enabled: true }),
           ]),

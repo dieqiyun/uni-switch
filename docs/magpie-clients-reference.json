@@ -1,0 +1,1232 @@
+{
+  "repository": "https://github.com/yetone/magpie",
+  "commit": "f13d5f16f474f9c3baa5081c6cae3934af291cfd",
+  "files": [
+    {
+      "path": "README.md",
+      "gitBlobSha1": "6994f9bac39c782c7694e7017b86174cfcea0986",
+      "sha256": "fb1882206390069004aafedecfff43ea64c6f9452d9ca6802fa8534463cc27f8"
+    },
+    {
+      "path": "docs/subsystems/agent-wiring.md",
+      "gitBlobSha1": "8ec5ef2cd0ef9355bf345d7190bb099d291a0686",
+      "sha256": "b5629e84a6ba383458213fe0387ec904d60b4769ebc9b23b05035e00d425fd61"
+    },
+    {
+      "path": "internal/agent/agent.go",
+      "gitBlobSha1": "8dd998481f64daba7368d7bdeb4ad587b4b8c7a8",
+      "sha256": "ec167f8119b7f7f237597d2406f0bbb69095fd3defc2b674a732671a96e4eb71"
+    },
+    {
+      "path": "internal/agent/agents.go",
+      "gitBlobSha1": "6c863275053d148dc760b93a76f06bd11d0beb09",
+      "sha256": "18c7b60eead66e1c71d72f86b6ff72f3b6d893a69bb8cf9ea2d17bdada511a08"
+    },
+    {
+      "path": "internal/agent/agy.go",
+      "gitBlobSha1": "ccaba10f751094a49662d7b818c024f784f78c04",
+      "sha256": "b6041c523c82dc8da5d178ef5ac7e820f84663119b2172cc876a5cfee52ee099"
+    },
+    {
+      "path": "internal/agent/aionui.go",
+      "gitBlobSha1": "8e79a7b823236a636065859dd6df6838ae5f42c9",
+      "sha256": "5d4ed6fedab663d0586271a591776f2e849fa9a4bdea5fdd3972e7cb41d12dba"
+    },
+    {
+      "path": "internal/agent/air.go",
+      "gitBlobSha1": "89f59cc4ffa34269a0864962a17f9fb61865eb23",
+      "sha256": "cf22c5bfd4b15850bc5eacf98e810a5abbd050de4f7c33a3477c7d8ebe34b573"
+    },
+    {
+      "path": "internal/agent/alma.go",
+      "gitBlobSha1": "df7cd6dc51ee4ccbd7b6a1d31313c9258c976c72",
+      "sha256": "9292f03c72e5f9d48d1353b9c7d0897d5a0218b8da4372e1d5453456d5b0b85d"
+    },
+    {
+      "path": "internal/agent/ante.go",
+      "gitBlobSha1": "07658d56dd277e80dda0ff8f1fc6d5cf939be129",
+      "sha256": "e84171e7f88f49371f321b54f8926101a1b76e7d2cad6c121508fba81456185e"
+    },
+    {
+      "path": "internal/agent/antigravity.go",
+      "gitBlobSha1": "0f3366f5af2799f72599fbfa1dea962a85152070",
+      "sha256": "d0d929d1772283eab522e3c4101ba8dc929554e2424e77b40973c0e13c8227f4"
+    },
+    {
+      "path": "internal/agent/applied.go",
+      "gitBlobSha1": "0b8fad061bdb8c79ecc3475a9cfd832ea6e81722",
+      "sha256": "c9d3741a9437b9c59fff2f56b7fb1cfb3c47aa43ec9ee671fc958cf0315130de"
+    },
+    {
+      "path": "internal/agent/applink.go",
+      "gitBlobSha1": "3479bbc04f9ae78a10408851dfb8cfe47112aecb",
+      "sha256": "8e255e239cf02b57301c7c9e1e869db5fb6079d419d99b889dae72b6735018b4"
+    },
+    {
+      "path": "internal/agent/applink_darwin.go",
+      "gitBlobSha1": "e98f3a701cf4e67d9212c6694700b92f5311a5ac",
+      "sha256": "a6ec8dd7a982ca3d861c6ab32377bdd8c3965b503e36745d577fe094ca67406c"
+    },
+    {
+      "path": "internal/agent/applink_other.go",
+      "gitBlobSha1": "9744ef21efaf08c8b22ef0f4d3fe7a7887c89e69",
+      "sha256": "4624e54f0c7c422e177282424c7bf0327d6a68056c4ccea27d07bdb5b7c23309"
+    },
+    {
+      "path": "internal/agent/applink_windows.go",
+      "gitBlobSha1": "7c7d3633917c8f90f92046f4fa774269c71f95bb",
+      "sha256": "94686e1cb1d2fb69dd113402b96e978ef86d9becce5c6266319672a510a06fd5"
+    },
+    {
+      "path": "internal/agent/apprestart.go",
+      "gitBlobSha1": "7ae8d0bf12ba8152b9eccfdfb0b63dcbdf94ba4d",
+      "sha256": "370792650ea7069cf77db4f70a1e61c4e523dc4000a8fba7c631e59912eef88c"
+    },
+    {
+      "path": "internal/agent/apprestart_other.go",
+      "gitBlobSha1": "ba8bf7f53dc9790c073f117d3de24447a2577fae",
+      "sha256": "87f3ca5494abe4178b48243041fd1d01745fe1851d3f3f47e74e1b5a37629e50"
+    },
+    {
+      "path": "internal/agent/apprestart_windows.go",
+      "gitBlobSha1": "f558e645a9b576fc9befe745d4275e1f16be7fc6",
+      "sha256": "937ff053c66dd3dbeb2e0fa436fbfde4820bce48aeb5885e48d57eb7df958a79"
+    },
+    {
+      "path": "internal/agent/aside.go",
+      "gitBlobSha1": "ff5aa170a98e032dff2e1a4a9e0c7d16be1a8390",
+      "sha256": "5b35e7dfbf635459ee6c0efce6a512982f7590bcbabb6c9f0a31c2b040762a6d"
+    },
+    {
+      "path": "internal/agent/aside_account.go",
+      "gitBlobSha1": "388cbfc907c1bcfbacf86dc56021dbe1af43c35b",
+      "sha256": "534ab6016e4914d2ec3c92690b1ca2222bca809a66f9adbd8d8e3154d64d9a1b"
+    },
+    {
+      "path": "internal/agent/aside_native.go",
+      "gitBlobSha1": "925d41e431134d2c2b6ee950a4bb0a45fef955d2",
+      "sha256": "0d047277afe30b893eb91968050b9944fc6d9295a6f9af7af5d170894da390a7"
+    },
+    {
+      "path": "internal/agent/aside_stage.go",
+      "gitBlobSha1": "587a06cafb9188cdb66ce2606966508d06d1d204",
+      "sha256": "3323c2d7ff927188ff80b51add332dad8cabeeb77efe744c9826aa4a05a59ffb"
+    },
+    {
+      "path": "internal/agent/astrbot.go",
+      "gitBlobSha1": "9ac48a261fcc5e5660bab6882bf6b63ccef40c02",
+      "sha256": "01d8cd5818973ff3019ce1ca528ab49c3e8bd3d28c481f54227f1e2369cac5a9"
+    },
+    {
+      "path": "internal/agent/atomcode.go",
+      "gitBlobSha1": "77c4f5ef4acd679776fffa6a912c600260ae8d48",
+      "sha256": "438d893f676c93a73d2e0552eb93b834fedd0a950f79a8aa9b08d9f1505a23af"
+    },
+    {
+      "path": "internal/agent/autoref.go",
+      "gitBlobSha1": "07843ca82243e81f6ffc2fe64a6a43d6a24bfb16",
+      "sha256": "50192a0d32856e3b0dc387a6ae64aa7fb43067ced29742346241e0933f6e0fd2"
+    },
+    {
+      "path": "internal/agent/cindy.go",
+      "gitBlobSha1": "8624b8002142c19f6f450811e45b3eab5687e0dc",
+      "sha256": "56669204d649fe39594772c1744887b7c59764b687534b67946ebc0004a9b8b2"
+    },
+    {
+      "path": "internal/agent/claude.go",
+      "gitBlobSha1": "6ca6b0c755f36a3dbb7b1927bbc3c8ac5db23f71",
+      "sha256": "b6d3c6af1d652f7535fb04019efc4bebe08f7b716a04b9de08fef291ea468e5a"
+    },
+    {
+      "path": "internal/agent/claude_budget.go",
+      "gitBlobSha1": "1412f78cbdc2968fde2be443f74b02ecfa66a39e",
+      "sha256": "933f22c125e0a494d213713a52532f0cc6239e63bc7c7d3d04d9337648137277"
+    },
+    {
+      "path": "internal/agent/claude_launch.go",
+      "gitBlobSha1": "90db7b58b7de7e6779dfd9f4923a6168ddaaf6d5",
+      "sha256": "1a9550b75937d357c2386fd5502ba784e30ee70253397bd6b760902e9bd1a384"
+    },
+    {
+      "path": "internal/agent/claude_statusline.go",
+      "gitBlobSha1": "c0a2075b2608b47468da082994a0e610db6f9b5c",
+      "sha256": "b3a923736b33bf94b3015811321d1c0ad1e2c2a7749ea2ae652b3eeb2ef4f96d"
+    },
+    {
+      "path": "internal/agent/claudedesktop.go",
+      "gitBlobSha1": "0a2d4fe96d1d626fa7a981966e0233f0940a9dc8",
+      "sha256": "3a03f115032c422db61b24d7ea773c132a332bd534a47549fcb23941eb4ad6b2"
+    },
+    {
+      "path": "internal/agent/claudedesktop_models.go",
+      "gitBlobSha1": "552fb6c722f40c5655f84c7d8b667146bde581ca",
+      "sha256": "1e3ad43c5456b21c3f731a74fe63696f7a3a87964939eedad892f2a3c1231f9b"
+    },
+    {
+      "path": "internal/agent/claudescience.go",
+      "gitBlobSha1": "8ea50f58210fa03a4620d89c79b5eb72c57c67e9",
+      "sha256": "5f0ff6aa352d9fa541baac6ad4e1ab3a31af5058d1e205c9ecffd940874b15fe"
+    },
+    {
+      "path": "internal/agent/cline.go",
+      "gitBlobSha1": "a924220c1c7382717ecda306ae40f7e183261627",
+      "sha256": "3edd4ac9d7d333f922fc68e08222051ef3dd09f39e6a723b7d750a999f466a49"
+    },
+    {
+      "path": "internal/agent/cliupdate.go",
+      "gitBlobSha1": "65a53c62b0f267cc10a68dd57142a5f0365752eb",
+      "sha256": "82ce9b2f1bfd1b1e35ce12a19055af9ff192ec1756255a2d9cb8687de61d4015"
+    },
+    {
+      "path": "internal/agent/cliupdate_shim.go",
+      "gitBlobSha1": "25881b5d5dc816d5e3faf7cf3b74feeeb38a3c80",
+      "sha256": "29355a36ac8b2436206ee3f326ca200288ff3f49b9ee233d1bdb1e9c40963a89"
+    },
+    {
+      "path": "internal/agent/codebuddy.go",
+      "gitBlobSha1": "84ba14a7107c7286c9427b9ab5fc6ba931116d5b",
+      "sha256": "bd0ca087f0c469dbabc62141e77d80e7bd902c066607ac1b7c1dda20725d49ed"
+    },
+    {
+      "path": "internal/agent/codex.go",
+      "gitBlobSha1": "d3de417b513e95f532c153b0a63a178b126484e2",
+      "sha256": "ae5e076598e135a29a43130306a1c1ac719bddad9c3abc2f9c91bdc14bd38b52"
+    },
+    {
+      "path": "internal/agent/codex_app.go",
+      "gitBlobSha1": "baaaead2e1f9d45c4bb8a0cb9bedd99a00b7ceff",
+      "sha256": "33da34c62521372c82c5fc128e1c93ab7a2f37c315336ed78d49d3e1c4b4cd4c"
+    },
+    {
+      "path": "internal/agent/codex_app_crash.go",
+      "gitBlobSha1": "475262a5b11bf2be9848b6b01230c7124f8ed128",
+      "sha256": "77f93ac4c0d7e343c88ac95f1c16bf295853c8114ed0cc3a3b870b3e132af235"
+    },
+    {
+      "path": "internal/agent/codex_async.go",
+      "gitBlobSha1": "a190ea1d20b3bccac3080967e34a27e2ef3bb57b",
+      "sha256": "688b7bb7cd83aed56251ac0c21e07692db051f72736b96abe179d50d77befa71"
+    },
+    {
+      "path": "internal/agent/codex_compact_held.go",
+      "gitBlobSha1": "ae7880af83b3b095ac1531f34a70cb7cb9c2540e",
+      "sha256": "112e24619e1b6bf55498539261bdea2540115f46aef170728ea403937e0b0834"
+    },
+    {
+      "path": "internal/agent/codex_daemon.go",
+      "gitBlobSha1": "e99c360a849dbd277b3b1b0b623bdb87dfb211fb",
+      "sha256": "2669d6856c49ca8823035f7a973b2ab6988191a4b34f483a04df4e7d72d02a01"
+    },
+    {
+      "path": "internal/agent/codex_portable.go",
+      "gitBlobSha1": "7390a6d703bddde2c6b94078d8c6dc80830c1a68",
+      "sha256": "49bd7fdd3607659398c294729c4d2aefabb50cb2d561f250c9f8198bf3f36d28"
+    },
+    {
+      "path": "internal/agent/codex_proxy.go",
+      "gitBlobSha1": "e1a789bc2403a36fe1b0159c0caa75ff0ee57de5",
+      "sha256": "74cce215e203f96765a0370e3e8b48bda8a34ab2b953d32b385b5b14af0c3926"
+    },
+    {
+      "path": "internal/agent/commandcode.go",
+      "gitBlobSha1": "fa624ba24815ea2f35f2cc3e35d0ba808ccaf9ac",
+      "sha256": "c2522932ee70cefe6809eb5dd4e961098bcc5c66585072597322483e20ea9bbd"
+    },
+    {
+      "path": "internal/agent/connectinfo.go",
+      "gitBlobSha1": "8c5f0c87b5e919feb56d8bf45ed6a983eb61f00c",
+      "sha256": "8b3748890de0e20ba22137a0d1ae9e39aa0dcfd00fb7f578983d5d587083fd53"
+    },
+    {
+      "path": "internal/agent/copilot_byok.go",
+      "gitBlobSha1": "1a4311f8b01723bf2a1a46c333e14f80a97fa282",
+      "sha256": "b610e391186291d853f356f17c0c58521aeb063570fde5a5b83b5c96c478b9f1"
+    },
+    {
+      "path": "internal/agent/copilotjetbrains.go",
+      "gitBlobSha1": "67c64fe995d90fcb621d2527281368e25f92a1bb",
+      "sha256": "e8158f8f4a5a72f1665e5517d909fa71bc26aaf1539b326af4537028f5cc4c54"
+    },
+    {
+      "path": "internal/agent/cursorlocal.go",
+      "gitBlobSha1": "152e48484c5631b6611acda35f3f014794703bcd",
+      "sha256": "ceba1799891ea1eb426d9947224b8331817d998a09da6e6f08272be4a39698b2"
+    },
+    {
+      "path": "internal/agent/cursorlocal_env_darwin.go",
+      "gitBlobSha1": "55db75e0888f6833df3c22d38625beaea5409447",
+      "sha256": "606d2e585980ec752e1de953baaec2b94ad7a2f8160cbe8943473a3eafdc438e"
+    },
+    {
+      "path": "internal/agent/cursorlocal_env_other.go",
+      "gitBlobSha1": "07f4f26b0c00dd817523268a7dff63b44ccd06a0",
+      "sha256": "578ba261d923aa6d5c95924fdb9c827cc89ebb2b4262742b856e8c51641bd059"
+    },
+    {
+      "path": "internal/agent/cursorlocal_env_windows.go",
+      "gitBlobSha1": "ea6f9d8662afeba071bb1a03bbed6abcb623cc9f",
+      "sha256": "d985ea6f13ae3f9a8dcd1b1dc5cfde69e8897a2bc30d7d6dee0186350b1485dc"
+    },
+    {
+      "path": "internal/agent/cursorlocal_installs_other.go",
+      "gitBlobSha1": "f5df22e58b39505cab1764df35f0d07fad4654ca",
+      "sha256": "dac4c651fe36350336a648b71efb2087378a1d38c67dedb1eb0aad7589403046"
+    },
+    {
+      "path": "internal/agent/cursorlocal_installs_windows.go",
+      "gitBlobSha1": "0b718c589fea7ed426dec208a2b8124f89f331ac",
+      "sha256": "b88f94af47bfaee7d18d38ef964cb1da1cd405b78adca7d5c3864cc03442d483"
+    },
+    {
+      "path": "internal/agent/desktopapp.go",
+      "gitBlobSha1": "b8085673de8c5c9c43af8847f3b41f16f4aa26a5",
+      "sha256": "022c9a0a4ab17889277e2fb5c414d567bcfc22f18caf4a788f27ac332395611b"
+    },
+    {
+      "path": "internal/agent/desktopapp_other.go",
+      "gitBlobSha1": "574484115f0982ccc02ae3e0b0f967000c2f54fd",
+      "sha256": "ed9d35c34d1c1eb5fa2ff68333b413d812cb206638196c234e0cdc61bdee55a0"
+    },
+    {
+      "path": "internal/agent/desktopapp_windows.go",
+      "gitBlobSha1": "9a0dff8f7564ae45fb632fd53d3f4c0ebfa9a450",
+      "sha256": "356df6fbf1e7d2f1b8950f248b821d3a774d3e0f5238bd7e699cfb39ae73c601"
+    },
+    {
+      "path": "internal/agent/desktopseal.go",
+      "gitBlobSha1": "ef52b110db3da36f2afdcd6da189f10b38242f67",
+      "sha256": "5faf3454249e71c4bd442f84d4eb0e811fe02fecae8b1c0cd2e0bd43b7b8eb28"
+    },
+    {
+      "path": "internal/agent/desktopseal_other.go",
+      "gitBlobSha1": "6a3e47b33fe52c4b97ba2354cd247b7fdfe5197b",
+      "sha256": "37bc75e1547d3f908fd7337740406da60473cc31a887aa1fc553af340941b36c"
+    },
+    {
+      "path": "internal/agent/desktopseal_windows.go",
+      "gitBlobSha1": "54cfc3b0b7f110dc068aa29efeb085b6c7453af5",
+      "sha256": "1de361463984a4dfd5e416e4c228bce6945ec0fe7cc361672ecd523b1622bad0"
+    },
+    {
+      "path": "internal/agent/devin.go",
+      "gitBlobSha1": "dfc284cc4e746f4fc0f1bf2ce07223511bba08f2",
+      "sha256": "1c993700b77e9b98f162d50c57ffd1a68018eff665923d4903d8483e89ff38c0"
+    },
+    {
+      "path": "internal/agent/droid.go",
+      "gitBlobSha1": "c2ce9c18f20c8d540ce606ea06d22fc29f47890b",
+      "sha256": "da7e8ca528fee092b88a48b47c82f6a318ceeb690a3bc42d660fe77d68763b1f"
+    },
+    {
+      "path": "internal/agent/dsbot.go",
+      "gitBlobSha1": "6071e4c0413c86247901588f90e10d5de5d24155",
+      "sha256": "d8a3c2591cb6b0ee9fe73131a2091ce38eb44d23f8b353fd401e286c1e16a9d6"
+    },
+    {
+      "path": "internal/agent/dsh.go",
+      "gitBlobSha1": "b557c41d2c5c4d8e714c3789de132a51bdd513bb",
+      "sha256": "2102577b440cdc183efee7f2e8cbd2e324895e510fa811c8808599ed8a498bb9"
+    },
+    {
+      "path": "internal/agent/dsh_search.go",
+      "gitBlobSha1": "84c1f6890702b6a4e48e3eda342f7e26770c19b4",
+      "sha256": "067a9f41fbabb6aec6f2b4c50b7dbe5bda307731a2f1c4c00f14bae5417988ca"
+    },
+    {
+      "path": "internal/agent/empryo.go",
+      "gitBlobSha1": "0e5c8648d4bfccbde23c1e55ed78205da75de2ab",
+      "sha256": "b74a712475ab9e39cae809daab6f3f1a857da65d36cce67a7979cc0a90868cb1"
+    },
+    {
+      "path": "internal/agent/fx.go",
+      "gitBlobSha1": "28d57944e60dc48f43eae77b6cc5f2a964ac1a61",
+      "sha256": "d61d2f0b50d55de40f863c0ac47aae837ef7b9b84a71c848d3930c6668b08981"
+    },
+    {
+      "path": "internal/agent/gatewaykey.go",
+      "gitBlobSha1": "518bd264bf879a1988100f88e136959fdb293ecb",
+      "sha256": "fe74e6a711da11e2d4cb4460ec66813f26544a146a5732394984418d9ae052cd"
+    },
+    {
+      "path": "internal/agent/gemini.go",
+      "gitBlobSha1": "7d91263303756335cd191d8cfbb27e8997f19171",
+      "sha256": "a1019e000ac49d09111b7ab1058ec2e82645f22b1b5d947d2329b422bd321546"
+    },
+    {
+      "path": "internal/agent/gone.go",
+      "gitBlobSha1": "c0d148c5681789db2e0af4f2f5f48fda1966632f",
+      "sha256": "f7cb231ed193382d90e06f22de7ab42ccee78337d9997c0747dcde56be837f32"
+    },
+    {
+      "path": "internal/agent/goose.go",
+      "gitBlobSha1": "58c7ecfe5da621cca114321c0e73dfe04b47cd85",
+      "sha256": "db4ae0f4da9a1cddd914de110fad37831df7a2a9ece4b5365a620d761765e1bb"
+    },
+    {
+      "path": "internal/agent/grok.go",
+      "gitBlobSha1": "a50322ab9a297a00708e7d1c0a927166d2ff0dd3",
+      "sha256": "0b09af0c810f69150c92a7622ee465152176450d6161e078095af156fe6f7ec9"
+    },
+    {
+      "path": "internal/agent/grokapp.go",
+      "gitBlobSha1": "33f7438c8e52b52eff0da70c5f74ea5734369955",
+      "sha256": "6d20fc781aace7414ab60c8fc29616c11a7a3b2237aaae2acf45207ed9bc647d"
+    },
+    {
+      "path": "internal/agent/hanako.go",
+      "gitBlobSha1": "d3950fce032536be4a4428f781de35e24b2706a9",
+      "sha256": "c7f56d2659fa7cfd0a66ee48f50af03354b3a7c1697fbe251b0aac32eda49452"
+    },
+    {
+      "path": "internal/agent/hermes.go",
+      "gitBlobSha1": "94ea7412cecfbd3c6b75066a58e7846ef8bc8d39",
+      "sha256": "0833ce2e9a5b0b0ddf87e07ad5bd1c4ea54a95099b38c7166df326030fe3f5d8"
+    },
+    {
+      "path": "internal/agent/icons.go",
+      "gitBlobSha1": "01a96684a3bb0d82b9ce2bb8bc5223b9fcc4c1b7",
+      "sha256": "bacbe58621035a8397a77f251ef73bd0a3fcb9cc60503f1598156f535ee87525"
+    },
+    {
+      "path": "internal/agent/install.go",
+      "gitBlobSha1": "8e8bfee4dec3acbbffa294b79bc96426a047334d",
+      "sha256": "78f65c900aed766136434c84924c520d6f0ed7253cd763fdaa2b7962f907ab56"
+    },
+    {
+      "path": "internal/agent/inuse.go",
+      "gitBlobSha1": "831d6007d714b3746b51aad9b323511c243bc1f2",
+      "sha256": "80f553ab1436e0b026f5b5267041fa6b9d11b1183cc2f2485694719269f552b4"
+    },
+    {
+      "path": "internal/agent/jcode.go",
+      "gitBlobSha1": "8fcc7efbdd4bffdcb95ede892a25435edaa7cbca",
+      "sha256": "a597b7f7058b23a162bc8c8046385318152c6932572b3a780ea1d7f5ca79c97c"
+    },
+    {
+      "path": "internal/agent/keptaway.go",
+      "gitBlobSha1": "39bd2b6a24bc4d726f250fedf842bee9719fb7ed",
+      "sha256": "d03a488be6516adf4d47f4ec955bce6e7dde73a8a6db7888f355fcf36b00728c"
+    },
+    {
+      "path": "internal/agent/kimi.go",
+      "gitBlobSha1": "768098183902bdbe62e003fa9ba0f54a0167ba4a",
+      "sha256": "486f4ba95781e1ec3be2ff0630600c2b133b1d81cf8f667224d04b458b63a032"
+    },
+    {
+      "path": "internal/agent/kirocrew.go",
+      "gitBlobSha1": "6ef9ddc74a6fea41793fd9aee286cdbacf675edd",
+      "sha256": "9cea1ebce05180e48ac0ba6aca38d1335246eaca263f981a00506d41da684c6c"
+    },
+    {
+      "path": "internal/agent/legacy.go",
+      "gitBlobSha1": "47e5ae0e29ab40bf8a2f967a99c8610f197bb452",
+      "sha256": "fd559b985b41fd02df503a8198f15e8d8a6bd81dfae8e550a4b94897fdbf3263"
+    },
+    {
+      "path": "internal/agent/liveagent.go",
+      "gitBlobSha1": "1362ee0a5f4b4c5bf49e11651c7e4f78f42bbfc7",
+      "sha256": "fb6d9c160a149d2b9ff6789f85793afe215e63a314b48e48189764d1feef28a5"
+    },
+    {
+      "path": "internal/agent/lody.go",
+      "gitBlobSha1": "6fc53b9150c5dfacc32e5804092d324505c1bad7",
+      "sha256": "0b37068b8d5dda5101b559762e0bd8d40093f25d2a47f7b682f1564ea564c87d"
+    },
+    {
+      "path": "internal/agent/mark.go",
+      "gitBlobSha1": "78b2beccc46e25cdc7e30bf9ea2419c0b990153c",
+      "sha256": "fbff35d656110d9d77c8485da79558c9452b7a1482fabaf2893e50a49aee0efe"
+    },
+    {
+      "path": "internal/agent/minimax.go",
+      "gitBlobSha1": "c84e612b74cc5467cd2f45dca6e93a84c99e1825",
+      "sha256": "9b6a37098719b328c1b900c5a2b3d58f66ae6aacacf23b2b076629ab56f65f56"
+    },
+    {
+      "path": "internal/agent/morph.go",
+      "gitBlobSha1": "5ff53494186c0650aa4098ab6c36c145697ea810",
+      "sha256": "26251847c72f196d7ad3294c1c266fcef53106a7251d7f38e0fcaa7761fde50b"
+    },
+    {
+      "path": "internal/agent/mothx.go",
+      "gitBlobSha1": "1b42444e95ebb0c5601b61e8d90750c9234dc32e",
+      "sha256": "38af0ea55e70fcde6594e16f079bb86578ae4664f7b4f7ce606089caa943fd25"
+    },
+    {
+      "path": "internal/agent/muse.go",
+      "gitBlobSha1": "5c551c7a670de44928a6426e0be1ab8582028832",
+      "sha256": "d5d687395c561b71c5dea38545f073eff1e57a35e5560e9f800c21e547989ec8"
+    },
+    {
+      "path": "internal/agent/native.go",
+      "gitBlobSha1": "6e6f21662fa911c312dfe05bd0c25b2f67793529",
+      "sha256": "c6c673ae87e5db31d6238c8d774c9c58d9d9b76c79099d9c6c6ba93e2dc2588c"
+    },
+    {
+      "path": "internal/agent/nativemodels.go",
+      "gitBlobSha1": "7549f5541253d5009d736c623a8cd8fd407ffbf9",
+      "sha256": "f02b294e7de6e6a0be04577b86d431080c3fec17328f56c4e0fd11b74abe5490"
+    },
+    {
+      "path": "internal/agent/newmax.go",
+      "gitBlobSha1": "9bce00a60ee85bfc0312bf22c4afd53208eee69f",
+      "sha256": "6626b89f3441271458e86e3e770b652288eb94e1e205428df4f98ee2e625d866"
+    },
+    {
+      "path": "internal/agent/notice.go",
+      "gitBlobSha1": "ad683086e3995c2852757f44e06e6abe7d2c8f90",
+      "sha256": "66c069f78b8d41851fe9c9791820125303456992d10360a07aaf2e12541a9f04"
+    },
+    {
+      "path": "internal/agent/omo.go",
+      "gitBlobSha1": "e91f0b39b6ec92e7911b75379e59a7e7de2b793b",
+      "sha256": "382aad05212f04a168dfde907ab7cfaf207c38fb23b8b693e28931ec8a6f3dc9"
+    },
+    {
+      "path": "internal/agent/omp.go",
+      "gitBlobSha1": "c1ad0e00813c9063b10d9040defa359b68a1d636",
+      "sha256": "115710537bd268d16c593fb88bb01b291cd2911f087968477a80c2f2cfdfa8b7"
+    },
+    {
+      "path": "internal/agent/omp_scope.go",
+      "gitBlobSha1": "08d85b4ceb52c3cccd662eaf534c819a0c8431a7",
+      "sha256": "f3767155e29fe9432e30ba8bba90b0fb343425213fef81884ef919d5278403f9"
+    },
+    {
+      "path": "internal/agent/openbot.go",
+      "gitBlobSha1": "381ac339baa19a42549414f2028267def3e43f87",
+      "sha256": "c5d92c06c20a2003b283231aa1b665969d96e8332d41fd0b8e2246c5cec1f7be"
+    },
+    {
+      "path": "internal/agent/openchamber.go",
+      "gitBlobSha1": "8e1d054cb74068de71f156c69606f7fa00ccab62",
+      "sha256": "45c035dd889d2a7bf2bd4b43c676614626dc3966d04b5b621117cbc0dbcfdd64"
+    },
+    {
+      "path": "internal/agent/openclaw.go",
+      "gitBlobSha1": "932c1ba083411d7a999904fffcb053e11f8c8afb",
+      "sha256": "dab8a801562ac1468c474734aa02e7c4339a79c8fac61f537c32f916253fe518"
+    },
+    {
+      "path": "internal/agent/opencode_providers.go",
+      "gitBlobSha1": "1f9a5ca930adaf2ebbe0238426e6d202a6213826",
+      "sha256": "3195e565b7d4271823da3c9452daa3608eda20ba309522b792da663bd328f46d"
+    },
+    {
+      "path": "internal/agent/openmausbot.go",
+      "gitBlobSha1": "8e87e6755cb512cb5ebf89513d13123e209b97e9",
+      "sha256": "4050d8c1cdb09bd84aa4afe8223482b69a0acb81c1b53042af4c51c836166067"
+    },
+    {
+      "path": "internal/agent/openpencil.go",
+      "gitBlobSha1": "cdcb2e653e96ac7c9e58a149341ea3e25e4fb228",
+      "sha256": "60bdafba5262e202bdf5e7f3e248b04bbbdc6974b60b1e45a6c83c814efe0583"
+    },
+    {
+      "path": "internal/agent/pencil.go",
+      "gitBlobSha1": "fcb1183b496928177e5ef27f0bd18ac6e82f0058",
+      "sha256": "e8dabeff72a85fbe59db11b193247729b6f3b73314db5430b5074a207e79ee35"
+    },
+    {
+      "path": "internal/agent/penguin.go",
+      "gitBlobSha1": "11d5352db93768d762790606af2538cdeae064a4",
+      "sha256": "eb8e2cf08a10306b05d42d9cc56740216f4a997134ea7f348f87b464b41789d0"
+    },
+    {
+      "path": "internal/agent/pi.go",
+      "gitBlobSha1": "03a87ce5686ace69d940b8561791d1705530d9a5",
+      "sha256": "aea27c1c1812fe44111224bdb4944ed6462f96fb72ec34c7c15a54c05a43c2f3"
+    },
+    {
+      "path": "internal/agent/pi_extension.go",
+      "gitBlobSha1": "31f2f546be3c7495b8b280678e846a87e30242c6",
+      "sha256": "1323ea44abce0d76b82804af2fc3b6458709520e4a2c8a829d5abb94f91ae4f6"
+    },
+    {
+      "path": "internal/agent/plugged.go",
+      "gitBlobSha1": "9aa2fdb5ff9e47dc2e17df4b783490a6ee791ed7",
+      "sha256": "56d5e4a1778c446d95318ef0b92b806ef10a32b5068d46f37d94a8e7107079e5"
+    },
+    {
+      "path": "internal/agent/plugged_gone.go",
+      "gitBlobSha1": "dd6c7057d35ed69599ae473b1112cc30af49ce50",
+      "sha256": "1822a6a88a330e86377244850bcd39f4298c7f723509667da236f46bc0932c60"
+    },
+    {
+      "path": "internal/agent/preview.go",
+      "gitBlobSha1": "5ff9da0e227869b4897ed7326f6f4cbd7ab61fbf",
+      "sha256": "34b74f053d13ae9890a4f8bbf18be7ac3e597246e52a352467511cc71793a248"
+    },
+    {
+      "path": "internal/agent/primeagent.go",
+      "gitBlobSha1": "e5e95551f0af7496d0bfb8f446181710009ab3d5",
+      "sha256": "99f6fadb6d79c0dcc7df98b42a965da9576290897a93d39f1c8c40977da63a11"
+    },
+    {
+      "path": "internal/agent/qoder.go",
+      "gitBlobSha1": "a85de4b4e07a69f39ca7277262134a8828db4f0f",
+      "sha256": "a0c9e3eea34ed9fb7ef3756a86f266373f06a112e998bb49891669bc73c8e7df"
+    },
+    {
+      "path": "internal/agent/qwen.go",
+      "gitBlobSha1": "9aa1b997f9db12dd2ad5e8a9f381a80ec454df68",
+      "sha256": "c3eb21b7bab677ab4d0fad6599d26a82fbb2fc96afb069761ee3a2f43b9b9de2"
+    },
+    {
+      "path": "internal/agent/qwenpaw.go",
+      "gitBlobSha1": "4cf8150e49f8ba09300372b52fe82e405790bde0",
+      "sha256": "6d69d1089e90ac830b3fc1e0a900141276e0da2eb4845294bb5dfe1882acec12"
+    },
+    {
+      "path": "internal/agent/raycast.go",
+      "gitBlobSha1": "f6a5304e9e8cf0a7af2f09fd5d2d8cf8a078803d",
+      "sha256": "f7e312c9b4c142441323f9653f3ff235b511541d18254460b8970116f1cfacd5"
+    },
+    {
+      "path": "internal/agent/reach.go",
+      "gitBlobSha1": "7e95668d384cd99f2c31a4fac18dcfc1bd8f7220",
+      "sha256": "1060ad82765aeb1759bfed7546c1d2126561a83a6e00a77d4f16734200d3669a"
+    },
+    {
+      "path": "internal/agent/reasonix.go",
+      "gitBlobSha1": "a7a7c7fbb09f6b8ab2e04dce5b5626ffd0a22ed4",
+      "sha256": "a0e110d189c7a2022afa74c491e6e5173829c76a542b19c0c753310eb934b828"
+    },
+    {
+      "path": "internal/agent/reasonix_detect.go",
+      "gitBlobSha1": "88c7edb9c63dbdc4ec6d47dcb16c7553898e37e2",
+      "sha256": "b08a29306c64d4285318ebd564b822f00b57d1d91518314d057f405d2093bd6c"
+    },
+    {
+      "path": "internal/agent/reasonix_detect_other.go",
+      "gitBlobSha1": "13fc62016127333b6ce4cdd44da21ef38a46ce14",
+      "sha256": "a11e9e5172d1c5c35bf256e71c570098f7a129812508578d52b2f64315541f23"
+    },
+    {
+      "path": "internal/agent/reasonix_detect_windows.go",
+      "gitBlobSha1": "fc7d023e1efee9d6906e3546fcd77ccb34affd2d",
+      "sha256": "ea281331bd6fab3a53122f29b02b90caa1c3b57b0de03bd226b59c82d396dc82"
+    },
+    {
+      "path": "internal/agent/reasonix_studio.go",
+      "gitBlobSha1": "5a0f1cf6c547ad7385e823e1013086cc3258defe",
+      "sha256": "b09bbb132eb358a4a19db3945bb8ec67d3ea21a0e372db9459b0eeeb502da4ea"
+    },
+    {
+      "path": "internal/agent/rename.go",
+      "gitBlobSha1": "2d364c9869b3900d10ee3472265ee45e498569c6",
+      "sha256": "d9d825504b5d18b30b961a40276843d9eed743b72c7c619a37f9bd8611f96b66"
+    },
+    {
+      "path": "internal/agent/rescan.go",
+      "gitBlobSha1": "92ba53ece032844b425cd8218e0414bd6c26fac7",
+      "sha256": "fa511223be0bd32e102b6688d6cbff4ede4a9c37fd3e9b09ff37b1b47a3031c6"
+    },
+    {
+      "path": "internal/agent/reseat.go",
+      "gitBlobSha1": "5bf7f020ed056c768f368a0dae6a069a673d1849",
+      "sha256": "d92443ea5cdb3eece30ab4ed966acf56d51f0bee92515101df58a8ba467b65ff"
+    },
+    {
+      "path": "internal/agent/rewire.go",
+      "gitBlobSha1": "477853112d7dc76587e4629a534f1288d657ec1f",
+      "sha256": "d7f1e23bc97a848edf8e76c4fb57fb54828b41bfe96398d7572002f829767354"
+    },
+    {
+      "path": "internal/agent/route.go",
+      "gitBlobSha1": "6271f73091efaaf76139f4b9c1e7647361b56486",
+      "sha256": "fbcd0a65bb79c5f3b869bc17d4f649a749398ef905b63e97799afcab05276e82"
+    },
+    {
+      "path": "internal/agent/running_darwin.go",
+      "gitBlobSha1": "f6c54c2dc5bd866a2d4cdd3918246dd50b4af32e",
+      "sha256": "c4746d68064a9aeab0fad6bb2e1493c0d5129071dde6fe556848c7af7af8f8a0"
+    },
+    {
+      "path": "internal/agent/running_other.go",
+      "gitBlobSha1": "eadbecb57a22ddf9a208dc30d08b1c4571788fd5",
+      "sha256": "0e9417b93980c92ffede3b8bcb794c521cb025bd5493608dff5ac921d5ac6e67"
+    },
+    {
+      "path": "internal/agent/runninglately.go",
+      "gitBlobSha1": "42f8278c7be050b4e4d03464079f95cef115d680",
+      "sha256": "dd45d623e76f302688de205107e0a8936be331f0cba279e285dbe54741e9c3e2"
+    },
+    {
+      "path": "internal/agent/scope_gone.go",
+      "gitBlobSha1": "b71da2034daf99ddeaa62c99214846c1beed74fb",
+      "sha256": "5eb38f86eeeddffd3cf16875422e5b38657d6fd36515b008df7fc85c98d27e41"
+    },
+    {
+      "path": "internal/agent/snow.go",
+      "gitBlobSha1": "53bdfa917e449d6a84ac6dd58306037c17b6961e",
+      "sha256": "cefc2e8a39689f1c2559c100a37ea2615f646623cddd2bd87f9ebeee81d239be"
+    },
+    {
+      "path": "internal/agent/stash.go",
+      "gitBlobSha1": "1ff6d06a1372751de701c351fe02cbd529887b6e",
+      "sha256": "9c6a4431e84d81ab3bb604e9b482f9af1e7784e10b34096e73c855c98cfa1757"
+    },
+    {
+      "path": "internal/agent/stepcode.go",
+      "gitBlobSha1": "7262fa6bae836e6622fe383099435e7e71266fc9",
+      "sha256": "f0e008564273d509e877f46dad909c5cf01fec15bd19e40640607529605873b0"
+    },
+    {
+      "path": "internal/agent/sync.go",
+      "gitBlobSha1": "e6eff154e2ea8537be565569d1cdf2e851440a40",
+      "sha256": "241f7d53fbf5206c26dc5c07b488e0c2aa3e2365d84a2ca4e881684a0016e1b0"
+    },
+    {
+      "path": "internal/agent/t3code.go",
+      "gitBlobSha1": "00726d2130ed6caedd1ee37575cef226aa424ea3",
+      "sha256": "76d0bad142e9ab751736f04e954477acd00014141e098d124b8e4e6921d2d163"
+    },
+    {
+      "path": "internal/agent/tune.go",
+      "gitBlobSha1": "886b3122636f0202e5e48c866d2657afb069b9fa",
+      "sha256": "27d18ea88993e13c56477748c2f22488f2af95f5f332ea7902b0e3712ace2303"
+    },
+    {
+      "path": "internal/agent/vscode.go",
+      "gitBlobSha1": "9b14542e6e398045cc18d789d229751e6b7babd3",
+      "sha256": "f2cfe0718bbb21c1768353232ff28591466899f130b7a97bbe8ee7824317777d"
+    },
+    {
+      "path": "internal/agent/workbuddy.go",
+      "gitBlobSha1": "54664013d58a5cb82766b0b38cf7a37bda634389",
+      "sha256": "947b34aeaf4afdd6adc005f7e59e84b0a96e465635cd16e632dd6e0e2444e17d"
+    },
+    {
+      "path": "internal/agent/writable_other.go",
+      "gitBlobSha1": "80692a53e9623bbcc21bc98f3f300830a14b8122",
+      "sha256": "06f0cd4d1994da0a888dab418e414f95c788b69068f6d3421d20c1bdfbb5d544"
+    },
+    {
+      "path": "internal/agent/writable_windows.go",
+      "gitBlobSha1": "7f2377c51d67855ec864edb58e1065ba61dea053",
+      "sha256": "d8ea2eabe56677a12f8e137fd140560b0583bbc24e49f5e27115ba80a651340a"
+    },
+    {
+      "path": "internal/agent/wsl.go",
+      "gitBlobSha1": "7bcc3f6fd313b5e03774b24f8d462b395241dcf3",
+      "sha256": "289eee305411f75c274477a7070d9bdd1bc2f165f35165e36099d892d3cfcd3a"
+    },
+    {
+      "path": "internal/agent/wsl_fake.go",
+      "gitBlobSha1": "e544fa9e0aeca55bcda569fa3a8f16a899a5703b",
+      "sha256": "5e674d60f4941378aba882977f9b0f06808a2d30a5d81991a000b601d482c888"
+    },
+    {
+      "path": "internal/agent/wsl_links.go",
+      "gitBlobSha1": "7d058185761e2eca46ec0eb35fa5f3c2d6f4f197",
+      "sha256": "1fa8e6d23a730cf150d6d589e8bf097100a9de482a9eb409607a38de86413601"
+    },
+    {
+      "path": "internal/agent/zcode.go",
+      "gitBlobSha1": "746922728647074014d1af962a6a6f5c6273b9da",
+      "sha256": "d61dded9094beb7474e4c38a3d25bfad364b0984bb33e0bf73ce162aa020f49a"
+    },
+    {
+      "path": "internal/agent/zed.go",
+      "gitBlobSha1": "4d9df1c51be432e027f1339fc0a3d10f90c932c7",
+      "sha256": "39766055bc798821bfc791fd07becf43f9ee1164b661ce0e1df3eabc2133562e"
+    },
+    {
+      "path": "internal/agent/zed_credential_other.go",
+      "gitBlobSha1": "0f9e28c20a2827f0b8e35bf3cfedc8467442115d",
+      "sha256": "bedcb5bfa072ac36df5f4168808727e88f2a3a2f818c4c31abb6b39e29679057"
+    },
+    {
+      "path": "internal/agent/zed_credential_windows.go",
+      "gitBlobSha1": "40a6ebf7223ff6bed91cb5a9cf8292ea37b92c18",
+      "sha256": "a56519b30fe9e48b2a8953c02385cba38282cff6a92d34a96e43ee60edbf5098"
+    },
+    {
+      "path": "internal/agent/zoocode.go",
+      "gitBlobSha1": "71ae9c1dbeb748fbd0e1f8f8af38ba180a01d17a",
+      "sha256": "b5f15eeffb095ac324b47ab66d2ceee0fba749e746ca1231d81998ef3b136a1b"
+    },
+    {
+      "path": "internal/gateway/muse.go",
+      "gitBlobSha1": "4f523ab1f85fdf023a907ba1ae62fe348b75f138",
+      "sha256": "bcdfc4d0537c108f1319d20a969f18cdc3664d00b65999ed6be3b7949c9dd2ff"
+    },
+    {
+      "path": "internal/provider/flat.go",
+      "gitBlobSha1": "db672432b628e0ce7f374dfae5c5c1e9aea91aac",
+      "sha256": "2ee32beb5680c8e21016ff9db8574f04eb5da3484dfc2d15a047542def492e00"
+    },
+    {
+      "path": "internal/gateway/gateway.go",
+      "gitBlobSha1": "db8dcc00f0f9f653c17c98e43555f9c1ab3a0d5a",
+      "sha256": "2b59ed0ce8b58963d51d4d6d46f373bfbb5fe6af6e384c2c01100d5df50e6b4e"
+    },
+    {
+      "path": "internal/gateway/cursor_local_models_test.go",
+      "gitBlobSha1": "843005225764a42ba79e3216b3d24ece2976fee7",
+      "sha256": "fd0ecfcb01cea884031a767d55d7d24f36f3694cefea9b5c7804d4c338e90144"
+    }
+  ],
+  "registrations": [
+    {
+      "function": "claude",
+      "source": "internal/agent/claude.go",
+      "line": 618,
+      "clientId": "claude_cli"
+    },
+    {
+      "function": "claudeDesktop",
+      "source": "internal/agent/claudedesktop.go",
+      "line": 117,
+      "clientId": "claude_desktop"
+    },
+    {
+      "function": "claudeScience",
+      "source": "internal/agent/claudescience.go",
+      "line": 370,
+      "clientId": "claudescience"
+    },
+    {
+      "function": "codex",
+      "source": "internal/agent/codex.go",
+      "line": 93,
+      "clientId": "codex"
+    },
+    {
+      "function": "gemini",
+      "source": "internal/agent/gemini.go",
+      "line": 23,
+      "clientId": "gemini"
+    },
+    {
+      "function": "agy",
+      "source": "internal/agent/agy.go",
+      "line": 205,
+      "clientId": "agy"
+    },
+    {
+      "function": "antigravity",
+      "source": "internal/agent/antigravity.go",
+      "line": 85,
+      "clientId": "antigravity"
+    },
+    {
+      "function": "opencode",
+      "source": "internal/agent/agents.go",
+      "line": 1262,
+      "clientId": "opencode"
+    },
+    {
+      "function": "openChamber",
+      "source": "internal/agent/openchamber.go",
+      "line": 162,
+      "clientId": "openchamber"
+    },
+    {
+      "function": "mimocode",
+      "source": "internal/agent/agents.go",
+      "line": 1302,
+      "clientId": "mimocode"
+    },
+    {
+      "function": "deveco",
+      "source": "internal/agent/agents.go",
+      "line": 1322,
+      "clientId": "deveco"
+    },
+    {
+      "function": "pi",
+      "source": "internal/agent/agents.go",
+      "line": 1337,
+      "clientId": "pi"
+    },
+    {
+      "function": "stepcode",
+      "source": "internal/agent/stepcode.go",
+      "line": 27,
+      "clientId": "stepcode"
+    },
+    {
+      "function": "mothx",
+      "source": "internal/agent/mothx.go",
+      "line": 47,
+      "clientId": "mothx"
+    },
+    {
+      "function": "penguin",
+      "source": "internal/agent/penguin.go",
+      "line": 118,
+      "clientId": "penguin"
+    },
+    {
+      "function": "aside",
+      "source": "internal/agent/aside.go",
+      "line": 12,
+      "clientId": "aside"
+    },
+    {
+      "function": "omo",
+      "source": "internal/agent/omo.go",
+      "line": 20,
+      "clientId": "omo"
+    },
+    {
+      "function": "primeAgent",
+      "source": "internal/agent/primeagent.go",
+      "line": 25,
+      "clientId": "primeagent"
+    },
+    {
+      "function": "goose",
+      "source": "internal/agent/agents.go",
+      "line": 1607,
+      "clientId": "goose"
+    },
+    {
+      "function": "cursor",
+      "source": "internal/agent/agents.go",
+      "line": 1702,
+      "clientId": null,
+      "reason": "仅原生账号模型设置，没有第三方 endpoint 配置"
+    },
+    {
+      "function": "cursorLocal",
+      "source": "internal/agent/cursorlocal.go",
+      "line": 282,
+      "clientId": "cursorlocal"
+    },
+    {
+      "function": "zed",
+      "source": "internal/agent/zed.go",
+      "line": 25,
+      "clientId": "zed"
+    },
+    {
+      "function": "vscode",
+      "source": "internal/agent/vscode.go",
+      "line": 128,
+      "clientId": "vscode"
+    },
+    {
+      "function": "vscodeInsidersAgent",
+      "source": "internal/agent/vscode.go",
+      "line": 130,
+      "clientId": "vscodeinsiders"
+    },
+    {
+      "function": "vscodium",
+      "source": "internal/agent/vscode.go",
+      "line": 132,
+      "clientId": "vscodium"
+    },
+    {
+      "function": "zooCode",
+      "source": "internal/agent/zoocode.go",
+      "line": 60,
+      "clientId": "zoocode"
+    },
+    {
+      "function": "copilotJetBrains",
+      "source": "internal/agent/copilotjetbrains.go",
+      "line": 69,
+      "clientId": "copilotjetbrains"
+    },
+    {
+      "function": "air",
+      "source": "internal/agent/air.go",
+      "line": 139,
+      "clientId": "air"
+    },
+    {
+      "function": "airIDE",
+      "source": "internal/agent/air.go",
+      "line": 170,
+      "clientId": "airide"
+    },
+    {
+      "function": "copilot",
+      "source": "internal/agent/agents.go",
+      "line": 1740,
+      "clientId": "copilot"
+    },
+    {
+      "function": "crush",
+      "source": "internal/agent/agents.go",
+      "line": 1895,
+      "clientId": "crush"
+    },
+    {
+      "function": "dsh",
+      "source": "internal/agent/dsh.go",
+      "line": 90,
+      "clientId": "dsh"
+    },
+    {
+      "function": "dsbot",
+      "source": "internal/agent/dsbot.go",
+      "line": 95,
+      "clientId": "dsbot"
+    },
+    {
+      "function": "reasonix",
+      "source": "internal/agent/reasonix.go",
+      "line": 80,
+      "clientId": "reasonix"
+    },
+    {
+      "function": "commandCode",
+      "source": "internal/agent/commandcode.go",
+      "line": 24,
+      "clientId": "commandcode"
+    },
+    {
+      "function": "fx",
+      "source": "internal/agent/fx.go",
+      "line": 28,
+      "clientId": "fx"
+    },
+    {
+      "function": "omp",
+      "source": "internal/agent/omp.go",
+      "line": 142,
+      "clientId": "omp"
+    },
+    {
+      "function": "devin",
+      "source": "internal/agent/devin.go",
+      "line": 24,
+      "clientId": null,
+      "reason": "仅原生账号模型设置，没有第三方 endpoint 配置"
+    },
+    {
+      "function": "hermes",
+      "source": "internal/agent/hermes.go",
+      "line": 50,
+      "clientId": "hermes"
+    },
+    {
+      "function": "morph",
+      "source": "internal/agent/morph.go",
+      "line": 34,
+      "clientId": "morph"
+    },
+    {
+      "function": "kimi",
+      "source": "internal/agent/kimi.go",
+      "line": 234,
+      "clientId": "kimi"
+    },
+    {
+      "function": "qwen",
+      "source": "internal/agent/qwen.go",
+      "line": 150,
+      "clientId": "qwen"
+    },
+    {
+      "function": "muse",
+      "source": "internal/agent/muse.go",
+      "line": 33,
+      "clientId": "muse"
+    },
+    {
+      "function": "empryo",
+      "source": "internal/agent/empryo.go",
+      "line": 33,
+      "clientId": "empryo"
+    },
+    {
+      "function": "ante",
+      "source": "internal/agent/ante.go",
+      "line": 87,
+      "clientId": "ante"
+    },
+    {
+      "function": "astrbot",
+      "source": "internal/agent/astrbot.go",
+      "line": 111,
+      "clientId": "astrbot"
+    },
+    {
+      "function": "qwenpaw",
+      "source": "internal/agent/qwenpaw.go",
+      "line": 211,
+      "clientId": "qwenpaw"
+    },
+    {
+      "function": "openClaw",
+      "source": "internal/agent/openclaw.go",
+      "line": 217,
+      "clientId": "openclaw"
+    },
+    {
+      "function": "jcode",
+      "source": "internal/agent/jcode.go",
+      "line": 179,
+      "clientId": "jcode"
+    },
+    {
+      "function": "miniMax",
+      "source": "internal/agent/minimax.go",
+      "line": 83,
+      "clientId": "minimax"
+    },
+    {
+      "function": "droid",
+      "source": "internal/agent/droid.go",
+      "line": 378,
+      "clientId": "droid"
+    },
+    {
+      "function": "cline",
+      "source": "internal/agent/cline.go",
+      "line": 55,
+      "clientId": "cline"
+    },
+    {
+      "function": "qoder",
+      "source": "internal/agent/qoder.go",
+      "line": 41,
+      "clientId": "qoder"
+    },
+    {
+      "function": "qoderCN",
+      "source": "internal/agent/qoder.go",
+      "line": 45,
+      "clientId": "qodercn"
+    },
+    {
+      "function": "grok",
+      "source": "internal/agent/grok.go",
+      "line": 163,
+      "clientId": "grok"
+    },
+    {
+      "function": "grokApp",
+      "source": "internal/agent/grokapp.go",
+      "line": 170,
+      "clientId": "grokapp"
+    },
+    {
+      "function": "zcode",
+      "source": "internal/agent/zcode.go",
+      "line": 66,
+      "clientId": "zcode"
+    },
+    {
+      "function": "workbuddy",
+      "source": "internal/agent/workbuddy.go",
+      "line": 48,
+      "clientId": "workbuddy"
+    },
+    {
+      "function": "workbuddyAI",
+      "source": "internal/agent/workbuddy.go",
+      "line": 59,
+      "clientId": "workbuddyai"
+    },
+    {
+      "function": "codebuddy",
+      "source": "internal/agent/codebuddy.go",
+      "line": 39,
+      "clientId": "codebuddy"
+    },
+    {
+      "function": "pencil",
+      "source": "internal/agent/pencil.go",
+      "line": 34,
+      "clientId": "pencil"
+    },
+    {
+      "function": "openPencil",
+      "source": "internal/agent/openpencil.go",
+      "line": 81,
+      "clientId": "openpencil"
+    },
+    {
+      "function": "openBot",
+      "source": "internal/agent/openbot.go",
+      "line": 81,
+      "clientId": "openbot"
+    },
+    {
+      "function": "newMax",
+      "source": "internal/agent/newmax.go",
+      "line": 85,
+      "clientId": "newmax"
+    },
+    {
+      "function": "liveAgent",
+      "source": "internal/agent/liveagent.go",
+      "line": 94,
+      "clientId": "liveagent"
+    },
+    {
+      "function": "raycast",
+      "source": "internal/agent/raycast.go",
+      "line": 52,
+      "clientId": "raycast"
+    },
+    {
+      "function": "kiroCrew",
+      "source": "internal/agent/kirocrew.go",
+      "line": 359,
+      "clientId": "kirocrew"
+    },
+    {
+      "function": "t3code",
+      "source": "internal/agent/t3code.go",
+      "line": 81,
+      "clientId": "t3code"
+    },
+    {
+      "function": "openMausBot",
+      "source": "internal/agent/openmausbot.go",
+      "line": 130,
+      "clientId": "openmausbot"
+    },
+    {
+      "function": "hanako",
+      "source": "internal/agent/hanako.go",
+      "line": 75,
+      "clientId": "hanako"
+    },
+    {
+      "function": "atomcode",
+      "source": "internal/agent/atomcode.go",
+      "line": 52,
+      "clientId": "atomcode"
+    },
+    {
+      "function": "snow",
+      "source": "internal/agent/snow.go",
+      "line": 56,
+      "clientId": "snow"
+    },
+    {
+      "function": "alma",
+      "source": "internal/agent/alma.go",
+      "line": 739,
+      "clientId": "alma"
+    },
+    {
+      "function": "cindy",
+      "source": "internal/agent/cindy.go",
+      "line": 128,
+      "clientId": "cindy"
+    },
+    {
+      "function": "aionui",
+      "source": "internal/agent/aionui.go",
+      "line": 106,
+      "clientId": "aionui"
+    },
+    {
+      "function": "lody",
+      "source": "internal/agent/lody.go",
+      "line": 106,
+      "clientId": "lody"
+    }
+  ],
+  "scope": "Third-party client endpoint configuration coverage. No claim of full Magpie feature or native application verification."
+}

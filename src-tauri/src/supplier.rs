@@ -1,9 +1,6 @@
 use crate::error::{AppError, Result};
-use crate::types::{
-    valid_effort, validate_balance, validate_url, BalanceQuery, ModelSyncResult, ProviderModel,
-};
+use crate::types::{validate_balance, validate_url, BalanceQuery, ModelSyncResult, ProviderModel};
 use serde_json::Value;
-use std::collections::HashSet;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 fn now() -> u64 {
@@ -120,78 +117,8 @@ async fn read_json_with_auth(
 }
 
 pub fn parse_models(value: &Value) -> Result<Vec<ProviderModel>> {
-    let items = value
-        .get("data")
-        .or_else(|| value.get("models"))
-        .and_then(Value::as_array)
-        .ok_or_else(|| AppError::new("model_response", "模型接口需返回 data 或 models 数组"))?;
-    if items.len() > 500 {
-        return Err(AppError::new(
-            "model_limit",
-            "供应商返回了超过 500 个模型，请缩小模型列表",
-        ));
-    }
-    let mut seen = HashSet::new();
-    let mut models = Vec::new();
-    for item in items {
-        let id = item
-            .as_str()
-            .or_else(|| {
-                item.get("id")
-                    .or_else(|| item.get("slug"))
-                    .and_then(Value::as_str)
-            })
-            .unwrap_or("")
-            .trim();
-        if id.is_empty() || id.len() > 256 || id.chars().any(char::is_control) {
-            return Err(AppError::new(
-                "model_response",
-                "模型接口返回了无效的模型 ID",
-            ));
-        }
-        if !seen.insert(id.to_owned()) {
-            continue;
-        }
-        let context_window = ["context_window", "context_length", "max_context_length"]
-            .iter()
-            .find_map(|key| item.get(key).and_then(Value::as_i64))
-            .filter(|v| (1..=100_000_000).contains(v));
-        let reasoning_efforts = item
-            .get("supported_reasoning_levels")
-            .or_else(|| item.get("reasoning_efforts"))
-            .and_then(Value::as_array)
-            .map(|a| {
-                a.iter()
-                    .filter_map(|e| {
-                        e.as_str()
-                            .or_else(|| e.get("effort").and_then(Value::as_str))
-                    })
-                    .filter(|e| valid_effort(e))
-                    .map(str::to_owned)
-                    .collect()
-            })
-            .unwrap_or_default();
-        let mut model = ProviderModel {
-            id: id.to_owned(),
-            context_window,
-            reasoning_efforts,
-            capabilities: crate::model_capabilities::from_upstream(item),
-            enabled: true,
-            profile: crate::model_capabilities::profile_from_upstream(item),
-            metadata_updated_at: Some(now()),
-            ..Default::default()
-        };
-        crate::model_capabilities::enrich(&mut model);
-        models.push(model);
-    }
-    if models.is_empty() {
-        return Err(AppError::new(
-            "no_models",
-            "此密钥没有返回可用模型，原模型列表已保留",
-        ));
-    }
-    models.sort_by(|a, b| a.id.cmp(&b.id));
-    Ok(models)
+    let value = crate::metadata_transport::call("metadata.parseModels", value.clone())?;
+    serde_json::from_value(value).map_err(|_| AppError::new("go_metadata", "Go 模型列表结构不匹配"))
 }
 
 pub async fn sync_models(base_url: &str, key: &str, auth_mode: &str) -> Result<ModelSyncResult> {
@@ -765,11 +692,12 @@ mod tests {
     }
     #[test]
     fn discovery_deduplicates_and_preserves_capabilities_without_inventing_them() {
-        let models = parse_models(&json!({"data":[{"id":"b"},{"id":"a","context_window":128000,"reasoning_efforts":["high","invalid"]},{"id":"b"}]})).unwrap();
+        let models = parse_models(&json!({"data":[{"id":"b"},{"id":"a","context_length":128000,"supported_reasoning_levels":["high",{}]},{"id":"b"}]})).unwrap();
         assert_eq!(models.len(), 2);
-        assert_eq!(models[0].context_window, Some(128000));
-        assert_eq!(models[0].reasoning_efforts, vec!["high"]);
-        assert!(models[1].reasoning_efforts.is_empty());
+        assert_eq!(models[1].profile.context_window, Some(128000));
+        assert_eq!(models[1].context_window, None);
+        assert_eq!(models[1].reasoning_efforts, vec!["high"]);
+        assert!(models[0].reasoning_efforts.is_empty());
         assert!(parse_models(&json!({"data":[]})).is_err());
         assert!(parse_models(&json!({"data":[{"id":"bad\nmodel"}]})).is_err());
     }

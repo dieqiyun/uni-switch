@@ -11,10 +11,12 @@ import {
 } from "../types";
 import { clientConfigApi } from "../lib/clientConfigApi";
 import { errorMessage } from "../lib/api";
+import { clientDefinition } from "../content/clients";
 import { Modal } from "./Modal";
 
 const protocolNames: Record<NativeProtocol, string> = {
   messages: "Claude Messages",
+  gemini: "Gemini GenerateContent",
   chat_completions: "OpenAI Chat Completions",
   responses: "OpenAI Responses",
 };
@@ -22,13 +24,16 @@ function nativeProtocol(
   provider: Provider,
   client: ExtraClient,
 ): NativeProtocol {
-  if (client === "workbuddy") return "chat_completions";
+  const allowed = clientDefinition(client)
+    .protocols as readonly NativeProtocol[];
+  if (allowed.length === 1) return allowed[0];
   const upstream =
     provider.codexOptions?.upstreamProtocol ??
     (provider.family === "codex"
       ? (provider.codexOptions?.protocol ?? "openai")
       : (provider.codexOptions?.claudeProtocol ?? "anthropic"));
-  if (upstream === "anthropic") return "messages";
+  if (upstream === "anthropic" && allowed.includes("messages"))
+    return "messages";
   const selected = provider.codexOptions?.models.find(
     (m) => m.id === provider.model,
   );
@@ -40,7 +45,11 @@ function nativeProtocol(
     selected?.profileOverrides?.endpoints?.chatCompletions ??
     selected?.profile?.endpoints?.chatCompletions ??
     selected?.officialProfile?.endpoints?.chatCompletions;
-  return responses === true && chat !== true ? "responses" : "chat_completions";
+  return responses === true && chat !== true && allowed.includes("responses")
+    ? "responses"
+    : allowed.includes("chat_completions")
+      ? "chat_completions"
+      : allowed[0];
 }
 export function ExtraClientPanel({
   client,
@@ -64,6 +73,7 @@ export function ExtraClientPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [importLink, setImportLink] = useState("");
   const [directory, setDirectory] = useState<string | null>(null);
   const [restore, setRestore] = useState(false);
   const [confirmation, setConfirmation] = useState<{
@@ -75,6 +85,19 @@ export function ExtraClientPanel({
   const [protocols, setProtocols] = useState<Record<string, NativeProtocol>>(
     {},
   );
+  const definition = clientDefinition(client);
+  const importing = definition.mode === "import";
+  const editableFiles =
+    status.data?.files.filter(
+      (f) =>
+        ![
+          "newmax",
+          "alma",
+          "zed_credential",
+          "hanako_provider",
+          "hanako_chat",
+        ].includes(f.format),
+    ) ?? [];
   useEffect(() => {
     onBusy(busy || directory !== null || restore || !!confirmation);
     return () => onBusy(false);
@@ -95,8 +118,11 @@ export function ExtraClientPanel({
         expectedRevision,
       );
       setConfirmation(null);
+      if (result.importLink) setImportLink(result.importLink);
       await status.refetch();
-      if (result.changed) onWritten(client, result);
+      if (result.importLink)
+        setNotice("请复制链接并在系统中打开，然后在客户端确认导入。");
+      else if (result.changed) onWritten(client, result);
       else setNotice("配置内容已是最新，无需写入或重启。");
     } catch (e) {
       if ((e as { code?: string }).code === "config_conflict") {
@@ -119,10 +145,16 @@ export function ExtraClientPanel({
     setError("");
     try {
       const result = await clientConfigApi.restore(client);
+      setImportLink("");
       setRestore(false);
       await status.refetch();
       if (result.changed) onWritten(client, result);
-      else setNotice("文件内容未变化，无需重启。");
+      else
+        setNotice(
+          importing
+            ? "本地连接已停用；已导入条目请在客户端内移除。"
+            : "配置内容未变化，无需重启。",
+        );
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -160,8 +192,7 @@ export function ExtraClientPanel({
         <section className="extra-config-card" aria-label="客户端配置">
           <h2>一键配置 {clientNames[client]}</h2>
           <p>
-            使用已保存的供应商，写入客户端实际使用的配置文件。供应商与
-            Codex、Claude Code 共用。
+            使用已保存的供应商连接此客户端。供应商与 Codex、Claude Code 共用。
           </p>
           {client === "zcode" && (
             <p>
@@ -184,6 +215,33 @@ export function ExtraClientPanel({
               时可修改目录。项目级配置可能覆盖用户级配置。
             </p>
           )}
+          <p>{clientDefinition(client).description}</p>
+          {!!status.data?.profiles?.length && (
+            <div className="extra-profile-choice">
+              <label htmlFor="client-profile">配置档案 / 账户</label>
+              <select
+                id="client-profile"
+                value={status.data.profile ?? ""}
+                disabled={busy || status.data.canRestore}
+                onChange={(e) => {
+                  setBusy(true);
+                  setError("");
+                  void clientConfigApi
+                    .profile(client, e.target.value)
+                    .then(() => status.refetch())
+                    .catch((e) => setError(errorMessage(e)))
+                    .finally(() => setBusy(false));
+                }}
+              >
+                <option value="">默认 / 当前使用</option>
+                {status.data.profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.directory}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {status.isPending && <p role="status">正在读取配置位置…</p>}
           {status.error && (
             <p className="error-notice" role="alert">
@@ -199,7 +257,7 @@ export function ExtraClientPanel({
           <div className="extra-config-actions">
             <button
               className="button secondary"
-              disabled={busy || !status.data}
+              disabled={busy || !editableFiles.length}
               onClick={() => onEdit(client)}
             >
               <FileCode2 size={17} />
@@ -207,10 +265,15 @@ export function ExtraClientPanel({
             </button>
             <button
               className="button secondary"
-              disabled={busy || !status.data || status.data.canRestore}
+              disabled={
+                busy ||
+                status.data?.canRestore ||
+                importing ||
+                client === "alma"
+              }
               onClick={() => {
                 setError("");
-                setDirectory(status.data!.directory);
+                setDirectory(status.data?.directory ?? "");
               }}
             >
               <SlidersHorizontal size={17} />
@@ -224,7 +287,7 @@ export function ExtraClientPanel({
                 setRestore(true);
               }}
             >
-              恢复原配置
+              {importing ? "停用本地连接" : "恢复原配置"}
             </button>
           </div>
           {status.data?.canRestore && (
@@ -237,6 +300,30 @@ export function ExtraClientPanel({
           </p>
         )}
         {notice && <p role="status">{notice}</p>}
+        {importLink && (
+          <section className="extra-config-card">
+            <label htmlFor="client-import-link">
+              客户端导入链接（包含本地连接凭据）
+            </label>
+            <textarea
+              id="client-import-link"
+              readOnly
+              value={importLink}
+              rows={4}
+            />
+            <button
+              className="button secondary"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(importLink)
+                  .then(() => setNotice("已复制导入链接。"))
+                  .catch(() => setError("复制失败，请手动选择并复制链接。"))
+              }
+            >
+              复制导入链接
+            </button>
+          </section>
+        )}
         <section className="extra-provider-list" aria-label="已保存供应商">
           {!providers.length && (
             <div className="extra-config-card">
@@ -270,7 +357,9 @@ export function ExtraClientPanel({
                   value={
                     protocols[provider.id] ?? nativeProtocol(provider, client)
                   }
-                  disabled={busy || client === "workbuddy"}
+                  disabled={
+                    busy || clientDefinition(client).protocols.length === 1
+                  }
                   onChange={(e) =>
                     setProtocols((p) => ({
                       ...p,
@@ -278,9 +367,9 @@ export function ExtraClientPanel({
                     }))
                   }
                 >
-                  {(client === "workbuddy"
-                    ? (["chat_completions"] as const)
-                    : (["messages", "chat_completions", "responses"] as const)
+                  {(
+                    clientDefinition(client)
+                      .protocols as readonly NativeProtocol[]
                   ).map((p) => (
                     <option key={p} value={p}>
                       {protocolNames[p]}
@@ -298,7 +387,9 @@ export function ExtraClientPanel({
                     )
                   }
                 >
-                  一键配置
+                  {clientDefinition(client).mode === "import"
+                    ? "生成导入链接"
+                    : "一键配置"}
                 </button>
               </div>
             </article>
@@ -357,14 +448,20 @@ export function ExtraClientPanel({
       )}
       {restore && (
         <Modal
-          title="恢复原配置"
-          description="将接管的配置文件恢复到首次一键配置前的备份。外部修改会阻止自动恢复，以保留当前文件。"
+          title={importing ? "停用本地连接" : "恢复原配置"}
+          description={
+            importing
+              ? "停止此客户端使用本地连接。已经导入的供应商条目需要在客户端内移除。"
+              : "将接管的配置恢复到首次一键配置前的备份。外部修改会阻止自动恢复，以保留当前配置。"
+          }
           busy={busy}
           onClose={() => setRestore(false)}
         >
-          <p>
-            文件写入成功后会提示重启。手动保存过的内容也可能被本次恢复替换，请先保留所需修改。
-          </p>
+          {!importing && (
+            <p>
+              文件写入成功后会提示重启。手动保存过的内容也可能被本次恢复替换，请先保留所需修改。
+            </p>
+          )}
           {error && (
             <p className="error-notice" role="alert">
               {error}

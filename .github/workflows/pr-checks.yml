@@ -36,6 +36,10 @@ jobs:
         run: python scripts/audit-source.py
       - name: Verify shared tutorial
         run: corepack pnpm docs:check
+      - name: Verify client coverage and generated bindings
+        run: |
+          python scripts/check-client-reference.py
+          python scripts/sync-client-catalog.py --check
       - name: Frontend tests
         run: corepack pnpm test
       - name: TypeScript and production build
@@ -64,6 +68,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
         with:
           components: clippy
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.26.8'
+          cache: false
+      - name: Go core tests and vet
+        run: |
+          go -C backend test ./...
+          go -C backend vet ./...
+      - name: Go race detector
+        if: runner.os == 'Linux'
+        run: go -C backend test -race ./...
+      - name: Build own Go core
+        run: node scripts/build-go.mjs
       - name: Linux desktop dependencies
         if: runner.os == 'Linux'
         run: |
@@ -71,6 +91,10 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev
       - name: Rust tests with isolated fixtures
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
+      - name: Rust to Go isolated contract
+        run: |
+          cargo build --locked --manifest-path src-tauri/Cargo.toml --no-default-features --example go_core_fixture
+          python scripts/test-go-bridge.py
       - name: Clippy including desktop targets
         run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 

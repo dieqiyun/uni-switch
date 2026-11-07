@@ -201,7 +201,7 @@ describe("已保存配置自动同步后的模型计数", () => {
   });
 });
 
-it("能力默认开放且没有勾选项；取消不写入，保存清除旧开关", async () => {
+it("能力由资料管理且没有勾选项；取消不写入，不接纳上游伪造的用户覆盖", async () => {
   const custom = {
     ...models[0],
     id: "custom-vision",
@@ -223,7 +223,9 @@ it("能力默认开放且没有勾选项；取消不写入，保存清除旧开�
     await screen.findByText("已选择 2 / 2");
   };
   await open();
-  expect(screen.getByText(/图片输入和并行工具调用默认开启/)).toBeVisible();
+  expect(
+    screen.getByText(/图片输入和并行工具调用按模型资料配置/),
+  ).toBeVisible();
   expect(screen.queryByLabelText("图片输入 custom-vision")).toBeNull();
   expect(screen.queryByLabelText("并行工具调用 custom-vision")).toBeNull();
   expect(screen.queryByRole("button", { name: /恢复自动能力/ })).toBeNull();

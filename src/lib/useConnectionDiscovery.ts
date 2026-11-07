@@ -92,21 +92,13 @@ export function useConnectionDiscovery(
   }
   const initialModels = (provider?.codexOptions?.models || []).map((m) => ({
     ...m,
-    contextWindow:
-      target === "codex"
-        ? (provider?.codexOptions?.contextWindow ??
-          m.contextWindow ??
-          DEFAULT_MODEL_CONTEXT)
-        : m.contextWindow,
+    contextWindow: m.contextWindow,
   }));
   if (provider?.model && !initialModels.some((m) => m.id === provider.model))
     initialModels.unshift({
       id: provider.model,
       enabled: true,
-      contextWindow:
-        target === "codex"
-          ? (provider.codexOptions?.contextWindow ?? DEFAULT_MODEL_CONTEXT)
-          : null,
+      contextWindow: null,
       reasoningEfforts: [],
     });
   const [state, setState] = useState({
@@ -116,7 +108,12 @@ export function useConnectionDiscovery(
     contexts: Object.fromEntries(
       initialModels.map((m) => [
         m.id,
-        String((m.contextWindow ?? DEFAULT_MODEL_CONTEXT) / 1000),
+        String(
+          (m.contextWindow ??
+            m.metadata?.profile.contextWindow ??
+            provider?.codexOptions?.contextWindow ??
+            DEFAULT_MODEL_CONTEXT) / 1000,
+        ),
       ]),
     ),
     model: provider?.model || "",
@@ -208,6 +205,22 @@ export function useConnectionDiscovery(
           selected.find((m) => m.id === previousState.model)?.id ||
           selected.find((m) => previous.get(m.id)?.enabled)?.id ||
           recommendedModel(selected, resolved);
+        const mergedModels = result.models.map((m) => ({
+          ...preserveCapabilities(m, previous.get(m.id)),
+          contextWindow: previous.get(m.id)?.contextWindow ?? null,
+          enabled:
+            allows(m.id, resolved) && (previous.get(m.id)?.enabled ?? true),
+        }));
+        const resolvedModels = await api.resolveModelProfiles(
+          result.baseUrl || params.input.baseUrl,
+          mergedModels,
+          provider?.codexOptions?.contextWindow ?? null,
+        );
+        if (
+          request !== generation.current ||
+          current.current.signature !== params.signature
+        )
+          return null;
         const next = {
           signature: params.signature,
           baseUrl: result.baseUrl || params.input.baseUrl,
@@ -230,18 +243,13 @@ export function useConnectionDiscovery(
               m.id,
               Object.hasOwn(previousState.contexts, m.id)
                 ? previousState.contexts[m.id]
-                : "256",
+                : String(
+                    (resolvedModels.find((x) => x.id === m.id)?.metadata
+                      ?.profile.contextWindow ?? DEFAULT_MODEL_CONTEXT) / 1000,
+                  ),
             ]),
           ),
-          models: result.models.map((m) => ({
-            ...preserveCapabilities(m, previous.get(m.id)),
-            contextWindow:
-              target === "codex"
-                ? (previous.get(m.id)?.contextWindow ?? DEFAULT_MODEL_CONTEXT)
-                : (previous.get(m.id)?.contextWindow ?? m.contextWindow),
-            enabled:
-              allows(m.id, resolved) && (previous.get(m.id)?.enabled ?? true),
-          })),
+          models: resolvedModels,
         };
         stateRef.current = next;
         setState(next);

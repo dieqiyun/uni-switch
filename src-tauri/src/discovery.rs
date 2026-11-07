@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet, VecDeque},
     path::{Path, PathBuf},
-    time::{Duration, Instant, UNIX_EPOCH},
+    time::{Duration, Instant},
 };
 
 #[cfg(windows)]
@@ -180,24 +180,7 @@ impl Context {
         })
     }
     fn default_path(&self, target: Target) -> PathBuf {
-        match target {
-            Target::Codex => self.home.join(".codex"),
-            Target::ClaudeCli => self.home.join(".claude"),
-            Target::ClaudeDesktop => self.local.clone().unwrap_or_else(|| {
-                #[cfg(target_os = "macos")]
-                {
-                    self.home.join("Library/Application Support")
-                }
-                #[cfg(all(not(windows), not(target_os = "macos")))]
-                {
-                    self.home.join(".config")
-                }
-                #[cfg(windows)]
-                {
-                    self.home.join("AppData/Local")
-                }
-            }),
-        }
+        crate::adapters::call("discoveryDefault",serde_json::json!({"client":target.id(),"home":self.home,"local":self.local.as_ref().map(|p|p.to_string_lossy()).unwrap_or_default()})).expect("Go client path service unavailable")
     }
 }
 
@@ -211,16 +194,6 @@ pub fn client_runtime(target: Target, directory: &Path, applied_at_ms: u64) -> (
         let _ = (target, directory, applied_at_ms);
         (false, false)
     }
-}
-fn read_bounded(path: &Path) -> std::result::Result<String, String> {
-    let info = std::fs::metadata(path).map_err(|_| "文件无法读取或没有访问权限".to_owned())?;
-    if info.len() > 2 * 1024 * 1024 {
-        return Err("配置文件超过 2 MB，未解析".into());
-    }
-    let bytes = std::fs::read(path).map_err(|_| "配置文件无法读取".to_owned())?;
-    String::from_utf8(bytes)
-        .map(|s| s.trim_start_matches('\u{feff}').to_owned())
-        .map_err(|_| "配置文件不是 UTF-8".into())
 }
 fn backup_path(path: &Path) -> bool {
     path.components()
@@ -281,84 +254,19 @@ fn is_project(context: &Context, path: &Path, target: Target) -> bool {
     .any(|m| parent.join(m).exists())
 }
 fn inspect(context: &Context, target: Target, path: &Path, explicit: bool) -> DirectoryCandidate {
-    let paths: Vec<PathBuf> = match target {
-        Target::Codex => vec![path.join("config.toml")],
-        Target::ClaudeCli => vec![path.join("settings.json")],
-        Target::ClaudeDesktop
-            if !explicit
-                && !desktop_marker(path)
-                && !desktop_marker(&path.join("Claude"))
-                && !desktop_marker(&path.join("Claude-3p")) =>
-        {
-            vec![]
-        }
-        Target::ClaudeDesktop => crate::adapters::specifications(target, path)
-            .into_iter()
-            .map(|f| f.0)
-            .filter(|p| {
-                p.file_name().and_then(|s| s.to_str())
-                    != Some(format!("{}.json", crate::adapters::PROFILE_UUID).as_str())
-            })
-            .collect(),
-    };
-    let mut files = Vec::new();
-    let mut modified = None;
-    let mut issues = Vec::new();
-    for file in paths.into_iter().filter(|p| p.is_file()) {
-        if let Ok(info) = std::fs::metadata(&file) {
-            let time = info
-                .modified()
-                .ok()
-                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-                .map(|d| d.as_secs());
-            modified = modified.into_iter().chain(time).max();
-        }
-        files.push(file.to_string_lossy().into_owned());
-        match read_bounded(&file) {
-            Ok(text) => {
-                let valid = if target == Target::Codex {
-                    text.parse::<toml_edit::DocumentMut>().is_ok()
-                } else {
-                    serde_json::from_str::<serde_json::Value>(&text).is_ok_and(|v| v.is_object())
-                };
-                if !valid {
-                    issues.push("配置格式无效，需要修复后再应用".to_owned());
-                }
-                // Inspect only structural metadata; never expose model keys or
-                // credential fields to the UI, command line or diagnostic log.
-                if target == Target::ClaudeDesktop
-                    && file.file_name().and_then(|n| n.to_str()) == Some("_meta.json")
-                {
-                    if let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) {
-                        if let Some(id) = value["appliedId"].as_str().filter(|id| !id.is_empty()) {
-                            if id.contains(['/', '\\', ':'])
-                                || id == "."
-                                || id == ".."
-                                || id.len() > 100
-                            {
-                                issues.push("配置库当前选中的 profile ID 无效".into());
-                                continue;
-                            }
-                            let profile = file.parent().unwrap().join(format!("{id}.json"));
-                            if profile.is_file() {
-                                files.push(profile.to_string_lossy().into_owned());
-                                match read_bounded(&profile) {
-                                    Ok(text)
-                                        if serde_json::from_str::<serde_json::Value>(&text)
-                                            .is_ok_and(|v| v.is_object()) => {}
-                                    _ => issues
-                                        .push("配置库当前选中的 profile 无法读取或格式无效".into()),
-                                }
-                            } else {
-                                issues.push("配置库当前选中的 profile 文件缺失".into());
-                            }
-                        }
-                    }
-                }
-            }
-            Err(issue) => issues.push(issue),
-        }
+    #[derive(Deserialize)]
+    struct Inspection {
+        files: Vec<String>,
+        issues: Vec<String>,
+        modified: Option<u64>,
     }
+    let (files, issues, modified) = match crate::adapters::call::<Inspection>(
+        "inspect",
+        serde_json::json!({"client":target.id(),"directory":path,"explicit":explicit}),
+    ) {
+        Ok(v) => (v.files, v.issues, v.modified),
+        Err(e) => (vec![], vec![e.message], None),
+    };
     let kind = if backup_path(path) {
         "backup"
     } else if !explicit && is_project(context, path, target) {

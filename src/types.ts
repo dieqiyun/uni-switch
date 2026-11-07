@@ -1,23 +1,40 @@
 export type Family = "codex" | "claude";
 export type Target = "codex" | "claude_desktop" | "claude_cli";
-export type ExtraClient = "zcode" | "dsh" | "workbuddy";
+import { extraClientNames, type ExtraClient } from "./content/clients";
+export type { ExtraClient } from "./content/clients";
 export type ClientKind = Target | ExtraClient;
-export type NativeProtocol = "messages" | "chat_completions" | "responses";
+export type NativeProtocol =
+  | "messages"
+  | "chat_completions"
+  | "responses"
+  | "gemini";
 export const clientNames: Record<ClientKind, string> = {
   codex: "Codex",
   claude_desktop: "Claude Code 桌面端",
   claude_cli: "Claude Code CLI",
-  zcode: "ZCode",
-  dsh: "DSH",
-  workbuddy: "WorkBuddy",
+  ...extraClientNames,
 };
 export interface ConfigFile {
   id: string;
   path: string;
-  format: "json" | "toml" | "yaml";
+  format:
+    | "json"
+    | "toml"
+    | "yaml"
+    | "jsonc"
+    | "jsonc_array"
+    | "env"
+    | "script"
+    | "newmax"
+    | "alma"
+    | "zed_credential"
+    | "hanako_provider"
+    | "hanako_chat";
   exists: boolean;
 }
 export interface ClientConfigStatus {
+  profiles?: { id: string; name: string; directory: string }[];
+  profile?: string;
   client: ClientKind;
   directory: string;
   files: ConfigFile[];
@@ -37,6 +54,7 @@ export interface ConfigDocument {
   exists: boolean;
 }
 export interface ConfigWriteResult {
+  importLink?: string;
   changed: boolean;
   backupPath: string | null;
   configurationRevision: number;
@@ -81,6 +99,11 @@ export interface ModelProfile {
   contextWindow?: number | null;
   maxInputTokens?: number | null;
   maxOutputTokens?: number | null;
+  maxContextWindow?: number | null;
+  inputModalities?: string[] | null;
+  outputModalities?: string[] | null;
+  reasoning?: boolean | null;
+  dynamicTools?: boolean | null;
   reasoningEfforts?: string[] | null;
   defaultEffort?: string | null;
   thinkingFormat?:
@@ -92,7 +115,6 @@ export interface ModelProfile {
     | null;
   thinkingAlwaysOn?: boolean | null;
   thinkingBetweenTools?: boolean | null;
-  midConversationSystem?: boolean | null;
   forcedToolChoice?: boolean | null;
   samplingParameters?: boolean | null;
   toolCalls?: boolean | null;
@@ -117,12 +139,17 @@ export interface ModelRegistryStatus {
   updated: boolean;
   updateAvailable: boolean;
   message: string;
+  source?: string;
+  sha256?: string;
+  reference?: string;
+  policy?: string;
+  models?: number;
+  stale?: boolean;
 }
 export interface ModelVerification {
   model: string;
   endpoint: "messages" | "chat_completions" | "responses";
-  feature: "text" | "image" | "tools" | "stream";
-  state: "verified" | "unsupported" | "unknown";
+  state: "available" | "unavailable" | "unknown";
   checkedAt: number;
   message: string;
 }
@@ -140,6 +167,18 @@ export interface ProviderModel {
   officialSource?: string | null;
   canonicalId?: string | null;
   metadataUpdatedAt?: number | null;
+  metadata?: {
+    policy: string;
+    reference: string;
+    baseUrl?: string;
+    providerContext?: number;
+    vendor: Record<string, unknown>;
+    catalog?: Record<string, unknown> | null;
+    profile: ModelProfile;
+    capabilities: ModelCapabilities;
+    publishedOutput?: number;
+    sources: Record<string, string>;
+  };
 }
 export interface BalanceQuery {
   adapter?:

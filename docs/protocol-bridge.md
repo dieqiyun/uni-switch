@@ -1,5 +1,7 @@
 # 在 Codex 中使用 Claude 模型
 
+当前工作树（2026-11-07，未发布）已改用我们自己的 Go 推理网关，参考固定 Magpie 提交的解析 → 统一表示 → 编码/事件转换逻辑。Go 同时负责本地监听、鉴权和已应用快照；Rust 仅传输启动与健康 IPC。完整取舍和验收见 [能力对齐清单](magpie-capability-alignment.md)；本文末尾的真实 CLI 记录属于旧 Rust 阶段，不能作为本次 Go 版本的实测证明。
+
 0.3.7 在 Codex 供应商表单中增加「API 协议」。选择 **Claude Messages · 在 Codex 中使用 Claude**，填写供应商的 Claude 接入地址和 API Key，等待模型自动同步，勾选要使用的模型并保存、应用。完全退出并重新打开 Codex 后，桌面端的模型菜单和 CLI `/model` 可以选择已启用的 Claude 模型。0.3.8 增加相反方向：[在 Claude Code 中使用 GPT](reverse-protocol-bridge.md)。
 
 供应商本身已经提供 OpenAI Responses 兼容接口时，继续选择 OpenAI Responses 即可。只有 Chat Completions 的接口仍不支持。
@@ -35,17 +37,17 @@ uni-switch 内置的本机 HTTP 转换服务
 
 回复转换包括非流式 JSON、SSE 文本增量、工具 JSON 增量、工具调用完成事件、思考内容与签名保留、缓存与普通 Token 计数。网络数据按完整字节行解析，避免中文字符被网络分片截断。取消 Codex 请求会释放上游连接；上游 HTTP/流式错误和截断不会被报告为成功，错误中的当前供应商密钥会被隐藏。
 
-思考强度以兼容映射发送：识别到 Claude 4.6 / 4.7 使用 adaptive thinking，其余模型使用预算方式；low / medium / high 对应不同档位，xhigh 映射 high，max / ultra 在 Opus adaptive 模式映射 max。兼容网关和模型仍需支持相应 thinking 参数；修复显示列表不代表各强度拥有独立效果。
+思考强度按 Go 最终模型资料及上游档位映射。预算模式的 low / medium / high / xhigh-max 参考预算分别为 4096 / 10000 / 24000 / 32000，并受输出上限约束；adaptive 使用对应模型档案。供应商仍需支持这些参数，菜单存在某档不代表上游有独立效果。
 
-`/responses/compact` 使用 Claude 生成接续摘要，并返回本地可识别的 compaction 项。此记录用于后续请求重建摘要，工具历史转换为文本资料，避免摘要请求调用工具。摘要与思考签名保存在编码的 opaque 字段中，不宣称加密。真实 Codex 在当前验证环境中使用了本地压缩；单独验证了转换服务的 compact 接口和摘要回放。
+当前转换模型的独立 `/responses/compact` 返回 400；参考 Magpie 自管转换模型的行为，改用 `/responses` 输入中的 `compaction_trigger`。Go 生成接续摘要并返回可回放的 compaction 项；摘要请求不执行工具。摘要和签名容器不宣称是我方加密。旧 Rust 格式的 reasoning/continuation 记录明确拒绝，涉及旧记录的会话需新建。
 
 ## assistant prefill 报错与续接
 
 如果 Codex 已输出进度后提示 `This model does not support assistant message prefill. The conversation must end with a user message.`，需要检查转换后的最后一条消息。Responses 的完整历史可以以助手回复结束；Claude Messages 会把这种结尾解释为回复预填，不支持 prefill 的模型会拒绝它。
 
-生成请求现在保留已有助手文本、思考签名和工具结果，仅在历史最后一条为 assistant 且没有待返回结果的工具调用时，补一条继续完成最近用户请求的 user 指令。这条指令由转换服务生成，不会写回 Codex 的对话或配置文件，也不依赖具体模型名称。原本以用户输入或工具结果结尾的请求保持原有消息内容。
+Go 保留已有助手文本、思考签名和工具结果，先按目标接口发送。只有上游 400 明确拒绝 assistant prefill 时，才增加 user 继续指令并有限重试；一般 400 不据此重试。断流后的自动续接最多两次，另受可靠 prefill 上游、工具尚未开始等条件约束。
 
-若最后一条助手消息包含未返回结果的工具调用，转换服务会返回包含调用 ID 的 400 提示，要求先提供工具结果；不会伪造结果或把工具调用删掉。上下文压缩使用自己的摘要指令，仍可将未完成工具调用转为历史文本进行摘要。
+未返回的工具调用参考 Magpie 配对规则补 interrupted/error 结果；孤立结果保留为用户数据，重复结果使用第一条。中途 system/developer 在原位置转成 user 的 `<system-reminder>`，不再提供 inline-system 独立开关。
 
 这一兼容处理用于完整历史的接续生成，不保证实现 OpenAI 与 Claude 之间任意文本预填的逐字拼接语义。
 
@@ -57,6 +59,8 @@ uni-switch 内置的本机 HTTP 转换服务
 - API 权限、真实模型 ID、模型上下文、服务可用性和网关 thinking 兼容性仍由供应商决定。
 
 ## 验证记录
+
+下述为旧 Rust 实现阶段的历史记录。本次 Go 链路通过单元测试、Rust → Go 合同及隔离 Tauri 双向网关测试；尚未重跑下述全部真实 CLI 流程。
 
 验证脚本：`scripts/qa-protocol-bridge.mjs`，使用独立数据目录、Codex 配置和假密钥、本地模拟 Anthropic 供应商，不访问用户实际配置。真实运行的 Codex 为 **0.160.0**。
 

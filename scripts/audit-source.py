@@ -15,6 +15,8 @@ PATTERNS = {
     "api_key": rb"\bsk-(?:[a-fA-F0-9]{32,}|[A-Za-z0-9_-]{40,})\b",
     "github_token": rb"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})\b",
     "private_key": rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+    "google_oauth_secret": rb"\bGOCSPX-[A-Za-z0-9_-]{20,}\b",
+    "google_oauth_client": rb"\b[0-9]{8,}-[a-z0-9]{20,}\.apps\.googleusercontent\.com\b",
     "credential_url": rb"https?://[^\s/@:]+:[^\s/@]+@[^\s\"'`]+",
 }
 PRIVATE_PATH = r"(^|/)(\.git|\.qa|\.tools|node_modules|target|release|output|__pycache__|\.codex|\.claude)(/|$)|(^|/)\.env|\.(exe|db|sqlite3?|pem|pfx|p12|pyc)$"

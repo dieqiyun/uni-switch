@@ -39,6 +39,10 @@ export const clientConfigApi = {
     desktop();
     return invoke("set_client_config_directory", { client, directory });
   },
+  profile: async (client: ClientKind, profile: string): Promise<void> => {
+    desktop();
+    return invoke("set_client_config_profile", { client, profile });
+  },
   apply: async (
     client: ExtraClient,
     providerId: string,

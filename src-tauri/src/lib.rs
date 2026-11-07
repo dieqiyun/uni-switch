@@ -1,13 +1,14 @@
 pub mod adapters;
-mod api_endpoint;
 #[cfg(feature = "desktop")]
 pub mod background;
 pub mod bridge;
 mod browser;
-mod claude_models;
 pub mod client_config;
 pub mod discovery;
 pub mod error;
+pub mod go_backend;
+mod go_state;
+mod metadata_transport;
 pub mod model_capabilities;
 pub mod model_registry;
 pub mod model_verification;
@@ -91,6 +92,10 @@ mod desktop {
         client: crate::client_config::ClientKind,
     ) -> Result<crate::client_config::ConfigWriteResult> {
         locked(&state)?.restore_client_config(client)
+    }
+    #[tauri::command]
+    fn set_client_config_profile(state: State<AppState>, client:crate::client_config::ClientKind, profile:String)->Result<()> {
+        locked(&state)?.set_client_config_profile(client,profile)
     }
 
     #[tauri::command]
@@ -260,18 +265,51 @@ mod desktop {
     #[tauri::command]
     async fn discover_provider_connection(
         state: State<'_, AppState>,
+        core: State<'_, Arc<crate::go_backend::GoBackend>>,
         input: ConnectionInput,
         protocol: Option<CodexProtocol>,
         auth_mode: Option<String>,
     ) -> Result<ModelSyncResult> {
         let (base_url, key) = locked(&state)?.connection(input)?;
-        crate::supplier::discover_connection(&base_url, &key, protocol, auth_mode.as_deref()).await
+        core.discover(&base_url, &key, protocol, auth_mode.as_deref())
+            .await
+    }
+    #[tauri::command]
+    fn resolve_model_profiles(
+        base_url: String,
+        mut models: Vec<ProviderModel>,
+        provider_context: Option<i64>,
+    ) -> Result<Vec<ProviderModel>> {
+        crate::types::validate_url(&base_url)?;
+        crate::model_registry::resolve_models(&mut models, &base_url, provider_context)?;
+        Ok(models)
+    }
+    #[tauri::command]
+    async fn platform_command(state: State<'_, AppState>, action: String, params: serde_json::Value) -> Result<serde_json::Value> {
+        let directory = locked(&state)?.data_directory.clone();
+        let allowed = ["sources", "save", "delete", "accounts", "login", "loginStatus", "loginCancel", "loginCallback", "accountSwitch", "accountEnable", "accountDelete", "accountProject", "accountRefresh", "info", "openLogin"];
+        if !allowed.contains(&action.as_str()) { return Err(AppError::new("platform_action", "未知账号或网关操作")); }
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut input = params.as_object().cloned().unwrap_or_default();
+            input.insert("directory".into(), serde_json::json!(directory));
+            if action == "info" { return crate::metadata_transport::call("gateway.listen", serde_json::json!({"directory":directory})); }
+            let method = if action == "openLogin" { "loginStatus" } else { &action };
+            let result = crate::metadata_transport::call(&format!("platform.{method}"), serde_json::Value::Object(input))?;
+            if action == "openLogin" {
+                let raw = result["url"].as_str().ok_or_else(|| AppError::new("login_url", "登录页面尚未就绪"))?;
+                let url = url::Url::parse(raw).map_err(|_| AppError::new("login_url", "登录地址无效"))?;
+                let host = url.host_str().unwrap_or_default();
+                if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() || !["auth.openai.com", "accounts.google.com", "github.com", "claude.ai", "console.anthropic.com", "platform.claude.com"].contains(&host) {
+                    return Err(AppError::new("login_url", "账号服务返回了未知登录地址"));
+                }
+                crate::browser::open(raw, "login_browser", "无法打开登录页面，请复制登录链接到浏览器")?;
+            }
+            Ok(result)
+        }).await.map_err(|_| AppError::new("platform_worker", "账号服务任务异常"))?
     }
     #[tauri::command]
     fn get_model_registry(state: State<AppState>) -> Result<crate::model_registry::Status> {
-        Ok(crate::model_registry::status(
-            &locked(&state)?.data_directory,
-        ))
+        crate::model_registry::status(&locked(&state)?.data_directory)
     }
     #[tauri::command]
     async fn update_model_registry(
@@ -283,22 +321,17 @@ mod desktop {
     #[tauri::command]
     async fn verify_model_connection(
         state: State<'_, AppState>,
+        core: State<'_, Arc<crate::go_backend::GoBackend>>,
         input: ConnectionInput,
         model: String,
         auth_mode: String,
         endpoint: crate::model_verification::Endpoint,
-        feature: crate::model_verification::Feature,
         consent: bool,
     ) -> Result<crate::model_verification::Observation> {
         crate::model_verification::require_consent(consent)?;
         let (base, key) = locked(&state)?.connection(input)?;
-        let directory = locked(&state)?.data_directory.clone();
-        let result = crate::model_verification::verify(
-            &base, &key, &auth_mode, &model, endpoint, feature, consent,
-        )
-        .await?;
-        crate::model_verification::save(&directory, &base, &result)?;
-        Ok(result)
+        core.test_model(&base, &key, &auth_mode, &model, endpoint, consent)
+            .await
     }
     #[tauri::command]
     fn delete_provider(state: State<AppState>, provider_id: String) -> Result<()> {
@@ -401,11 +434,13 @@ mod desktop {
     #[tauri::command]
     async fn detect_provider_protocol(
         state: State<'_, AppState>,
+        core: State<'_, Arc<crate::go_backend::GoBackend>>,
         expected: Provider,
     ) -> Result<Provider> {
         let (base, key, protocol, auth) = locked(&state)?.protocol_probe_connection(&expected)?;
-        let result =
-            crate::supplier::discover_connection(&base, &key, protocol, auth.as_deref()).await?;
+        let result = core
+            .discover(&base, &key, protocol, auth.as_deref())
+            .await?;
         locked(&state)?.accept_protocol_detection(expected, result)
     }
     #[tauri::command]
@@ -476,16 +511,21 @@ mod desktop {
     #[tauri::command]
     async fn sync_provider_models(
         state: State<'_, AppState>,
+        core: State<'_, Arc<crate::go_backend::GoBackend>>,
         input: ConnectionInput,
         auth_mode: Option<String>,
         protocol: Option<CodexProtocol>,
     ) -> Result<ModelSyncResult> {
         let (base_url, key) = locked(&state)?.connection(input)?;
-        crate::supplier::sync_models_protocol(
+        core.discover(
             &base_url,
             &key,
-            auth_mode.as_deref().unwrap_or("bearer"),
-            protocol == Some(CodexProtocol::Anthropic),
+            Some(if protocol == Some(CodexProtocol::Anthropic) {
+                CodexProtocol::Anthropic
+            } else {
+                CodexProtocol::Openai
+            }),
+            Some(auth_mode.as_deref().unwrap_or("bearer")),
         )
         .await
     }
@@ -493,12 +533,14 @@ mod desktop {
     #[tauri::command]
     async fn query_provider_balance(
         state: State<'_, AppState>,
+        core: State<'_, Arc<crate::go_backend::GoBackend>>,
         input: ConnectionInput,
         query: Option<BalanceQuery>,
     ) -> Result<BalanceResult> {
         let (base_url, key, fallback, token) =
             locked(&state)?.auto_balance_connection(input, query)?;
-        crate::supplier::query_auto_balance(&base_url, &key, fallback, token.as_deref()).await
+        core.balance(&base_url, &key, fallback, token.as_deref())
+            .await
     }
 
     pub fn run() {
@@ -534,6 +576,18 @@ mod desktop {
                     None => app.path().app_local_data_dir()?,
                 };
                 crate::model_registry::initialize(&directory);
+                let core = Arc::new(crate::go_backend::GoBackend::bundled()?);
+                tauri::async_runtime::block_on(core.check())?;
+                app.manage(core.clone());
+                #[cfg(feature = "qa-webview")]
+                if let Some(delay) = std::env::var("UNI_SWITCH_QA_EXIT_AFTER_MS").ok()
+                    .and_then(|v| v.parse::<u64>().ok()).filter(|v| (250..=180_000).contains(v)) {
+                    let handle = app.handle().clone();
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+                        handle.exit(0);
+                    });
+                }
                 let mut store = Store::open(directory.clone())?;
                 tauri::async_runtime::spawn(crate::model_registry::auto_update(directory.clone()));
                 let (route, listener) = crate::bridge::Route::start(&directory)?;
@@ -542,7 +596,7 @@ mod desktop {
                 app.manage(state.clone());
                 app.manage(crate::updates::UpdateManager::default());
                 tauri::async_runtime::spawn(async move {
-                    crate::bridge::maintain(listener, route, state).await;
+                    crate::bridge::maintain(listener, route, state, core).await;
                 });
                 let show = tauri::menu::MenuItem::with_id(
                     app,
@@ -608,6 +662,7 @@ mod desktop {
                 read_client_config,
                 save_client_config,
                 set_client_config_directory,
+		set_client_config_profile,
                 apply_client_config,
                 restore_client_config,
                 get_update_source,
@@ -629,8 +684,10 @@ mod desktop {
                 commit_provider,
                 discover_provider_connection,
                 get_model_registry,
+                platform_command,
                 update_model_registry,
                 verify_model_connection,
+                resolve_model_profiles,
                 delete_provider,
                 apply_provider,
                 prepare_apply_overwrite,
@@ -646,9 +703,24 @@ mod desktop {
                 sync_provider_models,
                 query_provider_balance
             ])
-            .run(context);
-        if let Err(error) = result {
-            eprintln!("uni-switch 无法启动：{error}");
+            .build(context);
+        match result {
+            Ok(app) => app.run(|handle, event| {
+                if matches!(event, tauri::RunEvent::Exit) {
+                    crate::metadata_transport::shutdown();
+                    if let Some(core) = handle.try_state::<Arc<crate::go_backend::GoBackend>>() {
+                        match tauri::async_runtime::block_on(async {
+                            tokio::time::timeout(std::time::Duration::from_secs(3), core.shutdown())
+                                .await
+                        }) {
+                            Ok(Ok(())) => {}
+                            Ok(Err(error)) => eprintln!("Go 后端退出清理失败：{error}"),
+                            Err(_) => eprintln!("Go 后端退出清理超时"),
+                        }
+                    }
+                }
+            }),
+            Err(error) => eprintln!("uni-switch 无法启动：{error}"),
         }
     }
 }

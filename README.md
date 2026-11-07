@@ -32,13 +32,14 @@
 ## 功能
 
 - 管理 Codex 桌面端 / CLI、Claude Code 桌面端及 Claude CLI 的 API 配置，同一供应商可在客户端之间复用。
-- 新增 ZCode、DSH（DeepSeek Harness）、WorkBuddy 一键配置；所有客户端可查看实际配置文件、手动编辑保存，校验与备份后提示重启。详见 [多客户端配置与编辑说明](docs/client-config-editor.md)。
+- 侧栏「全部客户端」提供 71 个附加入口，按 Magpie 的完整第三方配置注册表补齐 OpenCode、Pi、Oh My Pi、Gemini CLI、Zed、VS Code、T3 Code、Alma、NewMax、OpenHanako 等。支持配置文件、数据库、本地 API、启动脚本及导入链接，具体步骤与限制见 [完整客户端清单](docs/magpie-client-support.md)。
+- 设置中提供 ChatGPT、Claude、Google、Copilot 订阅账号管理，以及四协议统一网关、Gemini 原生转换、图片／视频接口和厂商原生透传。独立 Go 实现参考固定 Magpie 版本；配置步骤与已实现范围见 [统一网关说明](docs/unified-gateway.md)。
 - 自动检测协议、认证方式、上游模型和余额，无需选择站点类型或手填模型 ID。
-- 模型详情展示上游、内置和手动能力资料，可调整思考模式；仅在明确确认后发送受限合成请求验证能力。签名资料更新基础设施已加入，当前生产签名源尚未配置。
-- 默认启用全部适用模型。每个模型可设置上下文长度，默认 256k。
+- 模型资料的解析、models.dev 目录补全、用户覆盖及最终合并统一由我们自己的 Go 核心按固定 Magpie 版本规则处理；未知能力不推断支持，更新失败保留缓存。可调整思考模式；连接测试须明确确认，只发一个最多 16 输出 Token 的合成文本请求，不据此认证图片、工具或流式能力。详见 [模型资料说明](docs/model-metadata.md)。
+- 默认启用全部适用模型。每个模型可设置上下文长度；未设置时采用解析后的资料，未知时界面/客户端使用 256k 回退值，该值不作为供应商事实。
 - 同步成功后移除上游已下架的模型，并为失效默认模型选择有效替代项；同步失败保留原列表。
 - 双向协议转换：Codex 使用 Claude Messages 模型；Claude Code 使用 OpenAI 模型。
-- ZCode、DSH、WorkBuddy 使用官网原始图标，可一键写入原生配置和手动编辑配置文件；写入后提示重启。详见 [多客户端配置与兼容边界](docs/client-config-editor.md)。
+- ZCode、DSH、WorkBuddy 使用官网原始图标，保留原生直连适配。文件型配置可查看和编辑，API、数据库及系统凭据通过对应适配器管理。详见 [多客户端配置与兼容边界](docs/client-config-editor.md)。
 - 供应商列表直接切换默认模型、上下文、Fast 加速模式和协议转换；完整模型配置在弹窗中确认。
 - Codex 配置写入时自动检查思考强度显示并保留有效用户选择。实际修改后提示重启和新开对话；Claude 未运行时也提示后续启动与新对话。
 - 本地配置备份、外部修改冲突检测、确认覆盖及恢复原配置；后台协议转换与可选 Windows 登录启动。
@@ -82,9 +83,9 @@ macOS 包使用 ad-hoc 签名，尚未经过 Apple Developer ID 签名与公证�
 
 ## 从源码构建
 
-架构：**Tauri 2 + Rust + React + TypeScript + Vite + SQLite**，技术选型参考 [cc-switch](https://github.com/farion1231/cc-switch)。
+架构：**React / TypeScript + Tauri 2 桌面壳 + Go 业务核心（迁移中）+ Rust 存量模块 + SQLite**，原有技术选型参考 [cc-switch](https://github.com/farion1231/cc-switch)。模型发现、供应商协议识别和余额查询已接入我们自己的 Go 实现；转换与配置事务仍在分批迁移，见 [Go 后端说明](docs/go-backend.md)。
 
-通用构建环境：Node.js 20 或更新版本、Corepack / pnpm 10.12.3、Rust 1.89 或更新版本、Visual Studio C++ Build Tools（含 Windows SDK）及 WebView2（Windows）。Linux 安装 Tauri 的 WebKitGTK 4.1 / GTK 依赖，macOS 安装 Xcode Command Line Tools。
+通用构建环境：Node.js 22、Corepack / pnpm 10.12.3、Go 1.26 或更新版本（CI 固定 1.26.8）、Rust 1.89 或更新版本、Visual Studio C++ Build Tools（含 Windows SDK）及 WebView2（Windows）。Linux 安装 Tauri 的 WebKitGTK 4.1 / GTK 依赖，macOS 安装 Xcode Command Line Tools。
 
 ```powershell
 corepack enable
@@ -95,7 +96,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-msvc.ps1 -Actio
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-msvc.ps1 -Action build
 ```
 
-安装包输出到 `src-tauri/target/release/bundle/nsis/`，主程序在 `src-tauri/target/release/uni-switch.exe`。预编译图标、模型基础指令和资源已包含在仓库中，常规构建无需图像生成服务或私有凭据。
+安装包输出到 `src-tauri/target/release/bundle/nsis/`，主程序在 `src-tauri/target/release/uni-switch.exe`。构建自动编译并嵌入本项目 Go 核心，运行时不需要安装 Go，Windows 独立 EXE 继续可用。预编译图标、模型基础指令和资源已包含在仓库中，常规构建无需图像生成服务或私有凭据。
+
+Go 迁移后的 macOS 包最低需要 macOS 12；旧版本的 macOS 11 兼容声明不适用于新核心。三平台原生工作流完成前，不将本地交叉编译当作已发布或完整跨平台验收。
 
 开发桌面应用使用 `corepack pnpm dev`；仅预览界面使用 `corepack pnpm dev:web`。浏览器预览不写入真实客户端配置。配置实现、协议兼容范围及隔离测试说明见 [docs](docs/qa-inventory.md)。三平台原生构建工作流见 [.github/workflows/build-desktop.yml](.github/workflows/build-desktop.yml)，正式发布流程见 [发布说明](docs/github-release.md)。
 

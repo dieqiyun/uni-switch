@@ -9,6 +9,7 @@ import {
   type ConfigWriteResult,
 } from "../types";
 import { Modal } from "./Modal";
+import { clientDefinition, isExtraClient } from "../content/clients";
 
 export function ClientConfigEditor({
   client,
@@ -92,21 +93,32 @@ export function ClientConfigEditor({
         </p>
       )}
       <div className="config-file-list" role="group" aria-label="配置文件列表">
-        {status.data?.files.map((file) => (
-          <button
-            key={file.id}
-            className="config-file-choice"
-            disabled={busy || !!discard}
-            aria-pressed={document?.fileId === file.id}
-            onClick={() => select(file.id)}
-          >
-            <code>{file.path}</code>
-            <small>
-              {file.format.toUpperCase()} ·{" "}
-              {file.exists ? "已存在" : "尚未创建，保存时创建"}
-            </small>
-          </button>
-        ))}
+        {status.data?.files
+          .filter(
+            (f) =>
+              ![
+                "newmax",
+                "alma",
+                "zed_credential",
+                "hanako_provider",
+                "hanako_chat",
+              ].includes(f.format),
+          )
+          .map((file) => (
+            <button
+              key={file.id}
+              className="config-file-choice"
+              disabled={busy || !!discard}
+              aria-pressed={document?.fileId === file.id}
+              onClick={() => select(file.id)}
+            >
+              <code>{file.path}</code>
+              <small>
+                {file.format.toUpperCase()} ·{" "}
+                {file.exists ? "已存在" : "尚未创建，保存时创建"}
+              </small>
+            </button>
+          ))}
       </div>
       {status.data && !status.data.files.length && (
         <p>请在桌面应用中查看本机配置文件。</p>
@@ -214,10 +226,20 @@ export function ConfigRestartNotice({
   result: ConfigWriteResult;
   onClose: () => void;
 }) {
+  const launcher =
+    isExtraClient(client) &&
+    (clientDefinition(client).mode === "launch" || client === "openchamber");
+  const api = client === "alma";
   return (
     <Modal
       title={clientNames[client] + " 配置已保存"}
-      description="请完全退出并重新打开客户端，再新开对话或任务，以加载新配置。"
+      description={
+        launcher
+          ? "请使用生成的 uni-switch-launch 启动脚本打开客户端。Windows 使用 PowerShell 运行 .ps1，macOS / Linux 使用 sh 运行 .sh。"
+          : api
+            ? "配置已通过客户端 API 保存，请新开对话并检查模型选择。"
+            : "请完全退出并重新打开客户端，再新开对话或任务，以加载新配置。"
+      }
       onClose={onClose}
     >
       <p>
@@ -228,7 +250,7 @@ export function ConfigRestartNotice({
       )}
       {result.backupPath && (
         <>
-          <p>原文件备份</p>
+          <p>原配置备份</p>
           <code className="settings-path">{result.backupPath}</code>
         </>
       )}

@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, thiserror::Error, Serialize)]
+#[derive(Debug, thiserror::Error, Serialize, Deserialize)]
 #[error("{message}")]
 #[serde(rename_all = "camelCase")]
 pub struct AppError {
