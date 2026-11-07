@@ -8,7 +8,7 @@
 
 完整源码提交并推送 GitHub main 后，运行 `.github/workflows/build-desktop.yml`（手动触发或新版本标签）。工作流使用 Windows、Ubuntu 22.04、macOS 15 Intel 原生 runner（`macos-15-intel`）；macOS 编译 aarch64 与 x86_64 后合为 universal，隔离启动在 Intel 主机执行。固定 action 提交、冻结 pnpm / Cargo 锁文件；工作流只有只读仓库权限，不自行公开 Release。
 
-每个平台执行 Rust 测试、Clippy、正式构建和隔离启动检查；Linux 还执行前端测试。macOS 核对 lipo 双架构与 codesign 签名，Linux 在 Xvfb 桌面环境验证启动，Windows 验证独立数据目录启动。不会测试或改变用户真实客户端。
+每个平台执行 Go 测试 / vet、Rust → Go 合同测试、Rust 测试、Clippy、正式构建和隔离启动检查；Linux 还执行前端测试和 Go race 检查。CI 固定 Go 1.26.8；Cargo 构建脚本为每个 Rust 目标编译对应 Go 核心并嵌入桌面程序，macOS universal 的两个切片各自嵌入相应架构的核心。运行时不下载二进制，也不依赖用户安装 Go。macOS 核对 lipo 双架构与 codesign 签名，Linux 在 Xvfb 桌面环境验证启动，Windows 验证独立数据目录启动。不会测试或改变用户真实客户端。
 
 ## 产物与发布
 
@@ -19,6 +19,8 @@
 使用 `scripts/publish-multiplatform-release.py` 发布；源码必须在公开 main，标签必须指向构建提交。先建草稿，固定清单上传，再下载所有附件校验 SHA256，最终公开并设 Latest。不覆盖公开同版本；失败可继续同版本草稿。草稿阶段从发布列表定位唯一的标签与 Release ID，再按 ID 查询，避免按标签读取尚未公开的草稿时返回 404；公开后再核对 Latest 与全部附件。
 
 macOS 使用 ad-hoc 签名，不具备 Apple Developer ID 公证；发布说明应明确首次打开限制。Windows 程序未增加购买的代码签名证书。macOS / Linux 自动重启与系统登录启动尚未实现，配置写入后手动重启。
+
+Go 后端迁移后的新包最低支持 macOS 12，与 Go 核心 Mach-O 的运行版本要求一致；历史版本和附件不改动。发布说明必须明确这项最低系统版本变化。
 
 ## 使用者
 

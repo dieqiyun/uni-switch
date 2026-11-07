@@ -1,8 +1,11 @@
-use crate::adapters::{self, Change, ManagedFile};
+#[cfg(test)]
+use crate::adapters::Change;
+use crate::adapters::{self, ManagedFile};
 use crate::error::{AppError, Result};
+use crate::go_state::Connection;
 use crate::types::*;
 use crate::writer;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,26 +17,9 @@ pub struct Store {
     _lock: std::fs::File,
     bridge_route: Option<crate::bridge::Route>,
     repaired_model_capabilities: bool,
-    overwrite_approval: Option<OverwriteApproval>,
 }
 
-struct OverwriteApproval {
-    token: String,
-    target: Target,
-    provider_id: String,
-    provider: String,
-    target_state: String,
-    files: Vec<(PathBuf, Option<String>)>,
-    created_at: std::time::Instant,
-}
-
-fn overwrite_changed() -> AppError {
-    AppError::new(
-        "overwrite_confirmation_changed",
-        "配置或供应商在确认期间发生变化，或确认已过期。此次没有写入，请重新确认覆盖。",
-    )
-}
-
+#[cfg(test)]
 #[derive(Debug, Serialize, Deserialize)]
 struct Pending {
     target: Target,
@@ -79,6 +65,13 @@ fn decode_provider(data: &str) -> Result<StoredProvider> {
             query.divisor = 500_000.0;
         }
     }
+    let base = provider.summary.base_url.clone();
+    let context = provider.summary.codex_options.context_window;
+    crate::model_registry::resolve_models(
+        &mut provider.summary.codex_options.models,
+        &base,
+        context,
+    )?;
     Ok(provider)
 }
 fn valid_private_token(token: &str) -> Result<()> {
@@ -152,7 +145,6 @@ impl Store {
             _lock: lock,
             bridge_route: None,
             repaired_model_capabilities: false,
-            overwrite_approval: None,
         };
         let has_applied_at = store
             .conn
@@ -186,80 +178,9 @@ impl Store {
     }
 
     fn migrate_model_capabilities(&mut self) -> Result<()> {
-        let target = Target::Codex;
-        if self.manually_configured(target)? {
-            return Ok(());
-        }
-        let (_, active, baseline) = self.target_record(target)?;
-        let (Some(id), Some(mut baseline)) = (active, baseline) else {
-            return Ok(());
-        };
-        let provider = self.provider(&id)?;
-        let summary: Option<String> = self.conn.query_row(
-            "SELECT applied_summary FROM targets WHERE id=?1",
-            [target.id()],
-            |r| r.get(0),
-        )?;
-        let mut applied = Self::for_target(&provider, target);
-        if let Some(ref summary) = summary {
-            applied.summary = decode(summary)?;
-        }
-        // Check our normal compatibility rules too, including credentials and profiles.
-        for file in &baseline {
-            if !matches!(
-                adapters::changed_for_provider(file, Some(&applied)),
-                Ok(false)
-            ) {
-                return Ok(());
-            }
-        }
-        let Some(file) = baseline.iter_mut().find(|f| f.format == "catalog") else {
-            return Ok(());
-        };
-        let before = adapters::read(&file.path)?;
-        if before != file.expected {
-            return Ok(());
-        }
-        let Some(ref text) = before else {
-            return Ok(());
-        };
-        let Ok(mut catalog) = serde_json::from_str::<serde_json::Value>(text) else {
-            return Ok(());
-        };
-        let original_catalog = catalog.clone();
-        crate::model_capabilities::repair_catalog(&mut catalog, &applied);
-        if catalog == original_catalog {
-            return Ok(());
-        }
-        let after = Some(
-            serde_json::to_string_pretty(&catalog)
-                .map_err(|_| AppError::new("serialization", "无法修复模型能力"))?
-                + "\n",
-        );
-        let change = Change {
-            path: file.path.clone(),
-            before,
-            after: after.clone(),
-        };
-        file.expected = after;
-        let accepted_source = self.conn.query_row(
-            "SELECT accepted_source FROM targets WHERE id=?1",
-            [target.id()],
-            |r| r.get(0),
-        )?;
-        self.execute(Pending {
-            target,
-            changes: vec![change],
-            baseline: Some(baseline),
-            active: Some(id),
-            provider_update: None,
-            applied_summary: summary.map(|s| decode(&s)).transpose()?,
-            accepted_source,
-        })?;
-        self.repaired_model_capabilities = true;
+        self.repaired_model_capabilities = self.config_call("migrate", serde_json::json!({}))?;
         Ok(())
     }
-
     pub fn set_bridge_route(&mut self, route: crate::bridge::Route) {
         self.bridge_route = Some(route);
     }
@@ -292,24 +213,16 @@ impl Store {
             .any(|target| self.bridge_record(target).is_ok_and(|p| p.is_some()))
     }
 
+    #[cfg(test)]
     fn bridge_provider_record(&self) -> Result<Option<StoredProvider>> {
         self.bridge_record(Target::Codex)
     }
 
-    fn bridge_path(&self, target: Target) -> PathBuf {
-        self.data_directory.join(match target {
-            Target::Codex => "bridge-active.json",
-            Target::ClaudeDesktop => "bridge-claude-desktop-active.json",
-            Target::ClaudeCli => "bridge-claude-cli-active.json",
-        })
-    }
-
     fn bridge_record(&self, target: Target) -> Result<Option<StoredProvider>> {
-        adapters::read(&self.bridge_path(target))?
-            .map(|s| decode(&s))
-            .transpose()
+        self.config_call("bridgeRecord", serde_json::json!({"target":target}))
     }
 
+    #[cfg(test)]
     pub fn claude_bridge_provider(&self, target: Target, id: &str) -> Result<StoredProvider> {
         let (_, active, _) = self.target_record(target)?;
         self.bridge_record(target)?
@@ -327,6 +240,7 @@ impl Store {
             })
     }
 
+    #[cfg(test)]
     pub fn bridge_provider(&self, id: &str) -> Result<StoredProvider> {
         let (_, active, _) = self.target_record(Target::Codex)?;
         let saved = self
@@ -345,139 +259,28 @@ impl Store {
         Ok(saved)
     }
 
+    fn config_call<T: serde::de::DeserializeOwned>(
+        &self,
+        op: &str,
+        mut params: serde_json::Value,
+    ) -> Result<T> {
+        params["directory"] = serde_json::json!(self.data_directory);
+        params["cacheDirectory"] = serde_json::json!(crate::model_registry::cache_directory());
+        params["route"] = serde_json::json!(self.bridge_route);
+        let v = crate::metadata_transport::call(&format!("configuration.{op}"), params)?;
+        serde_json::from_value(v).map_err(|_| AppError::new("go_config", "Go 配置服务响应格式无效"))
+    }
+    #[cfg(test)]
     fn plan(
         &self,
         target: Target,
-        directory: &std::path::Path,
+        _directory: &std::path::Path,
         provider: &StoredProvider,
     ) -> Result<Vec<ManagedFile>> {
-        provider.summary.ensure_conversion(target)?;
-        let projected = Self::for_target(provider, target);
-        let provider = &projected;
-        let mut routed = provider.clone();
-        let converted = if target == Target::Codex {
-            provider.summary.codex_options.protocol == CodexProtocol::Anthropic
-        } else {
-            provider.summary.codex_options.claude_protocol == ClaudeProtocol::Openai
-        };
-        if converted {
-            let route = self.bridge_route.as_ref().ok_or_else(|| {
-                AppError::new(
-                    "bridge_unavailable",
-                    "本地协议转换服务尚未启动，请重启 uni-switch",
-                )
-            })?;
-            routed.summary.base_url = if target == Target::Codex {
-                route.base_url(&provider.summary.id)
-            } else {
-                route.claude_base_url(target, &provider.summary.id)
-            };
-            routed.api_key = route.token.clone();
-            routed.summary.auth_mode = "bearer".into();
-            if target.family() == Family::Claude {
-                routed.summary.auth_mode = "bearer".into();
-                if target == Target::ClaudeDesktop {
-                    routed.summary.model =
-                        crate::bridge::reverse::model_alias(&provider.summary.model);
-                    for model in &mut routed.summary.codex_options.models {
-                        model.id = crate::bridge::reverse::model_alias(&model.id);
-                    }
-                }
-            }
-        }
-        let mut files = adapters::plan(target, directory, &routed)?;
-        if target == Target::ClaudeDesktop && converted {
-            let ids = crate::bridge::reverse::model_ids(provider);
-            if ids.len() > 200 {
-                return Err(AppError::new(
-                    "desktop_model_limit",
-                    "Claude 桌面端最多启用 200 个模型，请减少勾选数量",
-                ));
-            }
-            for file in &mut files {
-                if file.keys.iter().any(|key| key == "inferenceModels") {
-                    let mut doc: serde_json::Value =
-                        serde_json::from_str(file.expected.as_deref().unwrap_or("{}"))
-                            .map_err(|_| AppError::new("invalid_state", "Claude 桌面配置无效"))?;
-                    doc["inferenceModels"] = adapters::desktop_inference_models(
-                        &ids.iter().map(String::as_str).collect::<Vec<_>>(),
-                        true,
-                    );
-                    file.expected = Some(serde_json::to_string_pretty(&doc).unwrap());
-                }
-            }
-        }
-        if target == Target::Codex && !converted && self.bridge_provider_record()?.is_some() {
-            let (_, _, baseline) = self.target_record(target)?;
-            if let Some(before) = baseline
-                .as_ref()
-                .and_then(|files| files.iter().find(|f| f.format == "toml"))
-            {
-                let original = before
-                    .original
-                    .as_deref()
-                    .unwrap_or("")
-                    .parse::<toml_edit::DocumentMut>()
-                    .map_err(|_| AppError::new("invalid_state", "Codex 原配置快照无效"))?;
-                if let Some(file) = files.iter_mut().find(|f| f.format == "toml") {
-                    let mut doc = file
-                        .expected
-                        .as_deref()
-                        .unwrap_or("")
-                        .parse::<toml_edit::DocumentMut>()
-                        .map_err(|_| AppError::new("invalid_state", "Codex 配置无效"))?;
-                    if let Some(value) = original.get("web_search") {
-                        doc["web_search"] = value.clone();
-                    } else {
-                        doc.as_table_mut().remove("web_search");
-                    }
-                    file.expected = Some(doc.to_string());
-                }
-            }
-        }
-        if target == Target::ClaudeCli && !converted && self.bridge_record(target)?.is_some() {
-            let (_, _, baseline) = self.target_record(target)?;
-            if let Some(before) = baseline.as_ref().and_then(|files| {
-                files
-                    .iter()
-                    .find(|f| f.path == directory.join("settings.json"))
-            }) {
-                let original: serde_json::Value =
-                    serde_json::from_str(before.original.as_deref().unwrap_or("{}"))
-                        .map_err(|_| AppError::new("invalid_state", "Claude 原配置快照无效"))?;
-                if let Some(file) = files.iter_mut().find(|f| f.path == before.path) {
-                    let mut doc: serde_json::Value =
-                        serde_json::from_str(file.expected.as_deref().unwrap_or("{}"))
-                            .map_err(|_| AppError::new("invalid_state", "Claude 配置无效"))?;
-                    if let Some(value) = original.pointer("/env/ENABLE_TOOL_SEARCH") {
-                        doc["env"]["ENABLE_TOOL_SEARCH"] = value.clone();
-                    } else if let Some(env) = doc["env"].as_object_mut() {
-                        env.remove("ENABLE_TOOL_SEARCH");
-                    }
-                    file.keys.push("env.ENABLE_TOOL_SEARCH".into());
-                    file.expected = Some(serde_json::to_string_pretty(&doc).unwrap());
-                }
-            }
-        }
-        {
-            let path = self.bridge_path(target);
-            files.push(ManagedFile {
-                original: adapters::read(&path)?,
-                path,
-                format: "json".into(),
-                keys: vec![
-                    "summary".into(),
-                    "api_key".into(),
-                    "balance_access_token".into(),
-                ],
-                expected: if converted {
-                    Some(json(provider)?)
-                } else {
-                    None
-                },
-            });
-        }
-        Ok(files)
+        self.config_call(
+            "plan",
+            serde_json::json!({"target":target,"provider":provider}),
+        )
     }
 
     pub fn list(&self) -> Result<Vec<Provider>> {
@@ -733,33 +536,6 @@ impl Store {
             .map(|p| (p, false))
     }
 
-    fn for_target(provider: &StoredProvider, target: Target) -> StoredProvider {
-        let mut projected = provider.clone();
-        let upstream = provider.summary.upstream_protocol();
-        projected.summary.family = target.family();
-        projected.summary.codex_options.protocol = upstream;
-        projected.summary.codex_options.claude_protocol = if upstream == CodexProtocol::Openai {
-            ClaudeProtocol::Openai
-        } else {
-            ClaudeProtocol::Anthropic
-        };
-        if upstream == CodexProtocol::Anthropic {
-            projected.summary.codex_options.fast_mode = None;
-        }
-        if target == Target::Codex
-            && projected.summary.codex_options.models.is_empty()
-            && provider.summary.family == Family::Claude
-        {
-            projected.summary.codex_options.models.push(ProviderModel {
-                id: provider.summary.model.clone(),
-                context_window: Some(256_000),
-                reasoning_efforts: vec![],
-                enabled: true,
-                ..Default::default()
-            });
-        }
-        projected
-    }
     fn model_settings_signature(provider: &Provider) -> Result<String> {
         let mut options = provider.codex_options.clone();
         options.models_synced_at = None;
@@ -774,100 +550,17 @@ impl Store {
         }
         json(&options)
     }
+    #[cfg(test)]
     fn source_signature(provider: &StoredProvider) -> Result<String> {
-        use sha2::{Digest, Sha256};
-        let mut value = serde_json::to_value(provider)
-            .map_err(|_| AppError::new("serialization", "无法比较供应商配置"))?;
-        if let Some(summary) = value
-            .get_mut("summary")
-            .and_then(serde_json::Value::as_object_mut)
-        {
-            for field in ["name", "updatedAt", "modelsSyncedAt"] {
-                summary.remove(field);
-            }
-            if let Some(options) = summary
-                .get_mut("codexOptions")
-                .and_then(serde_json::Value::as_object_mut)
-            {
-                options.remove("modelsSyncedAt");
-                options.remove("protocolDetectedAt");
-                options.remove("conversionDisabledTargets");
-            }
-        }
-        Ok(format!("{:x}", Sha256::digest(json(&value)?.as_bytes())))
+        adapters::call("signature", serde_json::json!({"provider":provider}))
     }
     pub fn sync_connection(&mut self, target: Target, provider_id: &str) -> Result<TargetStatus> {
-        self.recover()?;
-        let newest = self.provider(provider_id)?;
-        let (directory, active, baseline) = self.target_record(target)?;
-        if active.as_deref() != Some(provider_id) {
-            return Err(AppError::new(
-                "target_changed",
-                "此客户端已切换供应商，未同步",
-            ));
-        }
-        let signature = Self::source_signature(&newest)?;
-        let saved: Option<String> = self.conn.query_row(
-            "SELECT applied_summary FROM targets WHERE id=?1",
-            [target.id()],
-            |r| r.get(0),
+        let _: bool = self.config_call(
+            "sync",
+            serde_json::json!({"target":target,"providerId":provider_id}),
         )?;
-        let old = saved
-            .map(|text| decode::<Provider>(&text))
-            .transpose()?
-            .or_else(|| self.bridge_record(target).ok().flatten().map(|p| p.summary))
-            .or_else(|| {
-                adapters::read_model_preferences(target, &directory)
-                    .ok()
-                    .map(|preferences| {
-                        let mut summary = newest.summary.clone();
-                        summary.model = preferences.model;
-                        summary.reasoning_effort = preferences.reasoning_effort;
-                        summary.codex_options.fast_mode = preferences.codex_options.fast_mode;
-                        summary.codex_options.context_window =
-                            preferences.codex_options.context_window;
-                        summary.codex_options.auto_compact_token_limit =
-                            preferences.codex_options.auto_compact_token_limit;
-                        summary.codex_options.models = preferences.codex_options.models;
-                        for model in &mut summary.codex_options.models {
-                            if let Some(saved) = newest
-                                .summary
-                                .codex_options
-                                .models
-                                .iter()
-                                .find(|m| m.id == model.id)
-                            {
-                                model.capabilities = saved.capabilities.clone();
-                                model.capability_overrides = saved.capability_overrides.clone();
-                            }
-                        }
-                        summary.codex_options.repair_reasoning_levels =
-                            baseline.as_ref().is_some_and(|files| {
-                                files.iter().any(|f| {
-                                    f.keys
-                                        .iter()
-                                        .any(|key| key == adapters::REASONING_DISPLAY_KEY)
-                                })
-                            });
-                        summary
-                    })
-            });
-        let mut merged = newest.clone();
-        if let Some(old) = old {
-            merged.summary.model = old.model;
-            merged.summary.reasoning_effort = old.reasoning_effort;
-            merged.summary.codex_options = old.codex_options;
-            merged.summary.codex_options.upstream_protocol =
-                Some(newest.summary.upstream_protocol());
-            merged.summary.codex_options.conversion_disabled_targets = newest
-                .summary
-                .codex_options
-                .conversion_disabled_targets
-                .clone();
-        }
-        self.apply_stored_from_source(target, merged, None, true, Some(signature), None)
+        self.status(target)
     }
-
     pub fn delete(&mut self, id: &str) -> Result<()> {
         let in_use: bool = self.conn.query_row(
             "SELECT EXISTS(SELECT 1 FROM targets WHERE active=?1)",
@@ -903,136 +596,7 @@ impl Store {
     }
 
     pub fn status(&self, target: Target) -> Result<TargetStatus> {
-        let (directory, active, baseline) = self.target_record(target)?;
-        let configuration_revision = self.conn.query_row(
-            "SELECT applied_at_ms FROM targets WHERE id=?1",
-            [target.id()],
-            |r| r.get(0),
-        )?;
-        let applied_summary: Option<String> = self.conn.query_row(
-            "SELECT applied_summary FROM targets WHERE id=?1",
-            [target.id()],
-            |r| r.get(0),
-        )?;
-        let applied_summary = applied_summary
-            .map(|text| decode::<Provider>(&text))
-            .transpose()?;
-        let applied_model = applied_summary.as_ref().map(|p| p.model.clone());
-        let mut state = if active.is_some() {
-            "applied"
-        } else {
-            "unmanaged"
-        }
-        .to_owned();
-        let mut message = if active.is_some() {
-            "配置已写入。请完全退出客户端，再重新打开以使用新配置。"
-        } else {
-            "添加一组 API 配置，然后应用到此客户端。"
-        }
-        .to_owned();
-        if let Some(files) = &baseline {
-            let active_provider = active
-                .as_deref()
-                .map(|id| self.provider(id))
-                .transpose()?
-                .map(|p| Self::for_target(&p, target));
-            for file in files {
-                match adapters::changed_for_provider(file, active_provider.as_ref()) {
-                    Ok(true) => {
-                        state = "external_change".into();
-                        message =
-                            "API 配置已被其他工具修改。点击「使用」可确认覆盖；确认前不会修改现有文件。"
-                                .into();
-                        break;
-                    }
-                    Err(err) => {
-                        state = "error".into();
-                        message = err.message;
-                        break;
-                    }
-                    _ => {}
-                }
-            }
-            if state == "applied"
-                && target.family() == Family::Claude
-                && adapters::claude_client_base_needs_update(files)?
-            {
-                state = "saved_changes".into();
-                message = "Claude 接入地址需要更新以避免重复 /v1。点击「更新配置」，然后完全退出并重新打开客户端。".into();
-            }
-            if state == "applied" && target.family() == Family::Claude {
-                let applied_provider = applied_summary
-                    .clone()
-                    .or_else(|| self.bridge_record(target).ok().flatten().map(|p| p.summary));
-                if let Some(provider) = applied_provider {
-                    if adapters::claude_model_config_needs_update(files, target, &provider)? {
-                        state = "saved_changes".into();
-                        message = "Claude 模型映射需要更新。点击「更新配置」，然后完全退出并重新打开客户端。".into();
-                    }
-                }
-            }
-            if state == "applied" {
-                if let Some(id) = &active {
-                    if let Ok(provider) = self.provider(id) {
-                        let accepted: Option<String> = self.conn.query_row(
-                            "SELECT accepted_source FROM targets WHERE id=?1",
-                            [target.id()],
-                            |r| r.get(0),
-                        )?;
-                        match if accepted.as_deref() == Some(&Self::source_signature(&provider)?) {
-                            Ok(Vec::new())
-                        } else {
-                            self.plan(target, &directory, &provider)
-                        } {
-                            Ok(desired) => {
-                                for file in desired {
-                                    let applied_file =
-                                        files.iter().find(|old| old.path == file.path);
-                                    let applied_content =
-                                        applied_file.and_then(|old| old.expected.as_deref());
-                                    if adapters::projection(&file, applied_content)?
-                                        != adapters::projection(&file, file.expected.as_deref())?
-                                    {
-                                        state = "saved_changes".into();
-                                        message = "此配置已编辑。点击重新应用，让客户端使用保存后的内容。".into();
-                                        break;
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                state = "error".into();
-                                message = err.message;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        let configured = if target == Target::Codex && active.is_some() && state == "applied" {
-            adapters::codex_model_selection(&directory).ok().flatten()
-        } else {
-            None
-        };
-        if active.is_some() && self.manually_configured(target)? {
-            state = "external_change".into();
-            message = "配置已手动保存。重新应用供应商将覆盖相关设置，请先确认。".into();
-        }
-        Ok(TargetStatus {
-            target,
-            directory: directory.to_string_lossy().into_owned(),
-            files: adapters::specifications(target, &directory)
-                .into_iter()
-                .map(|(path, _, _)| path.to_string_lossy().into_owned())
-                .collect(),
-            active_provider_id: active,
-            state,
-            can_restore: baseline.is_some(),
-            message,
-            applied_model,
-            configured_model: configured.as_ref().map(|value| value.model.clone()),
-            configured_reasoning_effort: configured.and_then(|value| value.reasoning_effort),
-            configuration_revision,
-        })
+        self.config_call("status", serde_json::json!({"target":target}))
     }
 
     pub fn overview(&self) -> Result<Overview> {
@@ -1048,33 +612,9 @@ impl Store {
     }
 
     pub fn set_directory(&mut self, target: Target, directory: String) -> Result<()> {
-        let path = PathBuf::from(directory.trim());
-        if !path.is_absolute() {
-            return Err(AppError::new("invalid_path", "请选择完整的绝对目录路径"));
-        }
-        let (current, _, baseline) = self.target_record(target)?;
-        if crate::discovery::same_directory(&path, &current) {
-            self.conn.execute(
-                "UPDATE targets SET directory_selected=1 WHERE id=?1",
-                [target.id()],
-            )?;
-            return Ok(());
-        }
-        if baseline.is_some() {
-            return Err(AppError::new(
-                "managed_directory",
-                "请先恢复当前目录的原配置，再修改目录",
-            ));
-        }
-        if path.is_file() {
-            return Err(AppError::new(
-                "invalid_path",
-                "请输入目录路径，不是文件路径",
-            ));
-        }
-        self.conn.execute(
-            "UPDATE targets SET directory=?1,active=NULL,directory_selected=1,applied_at_ms=0,applied_summary=NULL,accepted_source=NULL WHERE id=?2",
-            params![path.to_string_lossy(), target.id()],
+        let _: bool = self.config_call(
+            "setDirectory",
+            serde_json::json!({"client":target.id(),"path":directory}),
         )?;
         Ok(())
     }
@@ -1094,121 +634,38 @@ impl Store {
         expected: &str,
         automatic: bool,
     ) -> Result<()> {
-        let (current, selected) = self.directory_discovery_context(target)?;
-        if !crate::discovery::same_directory(&current, std::path::Path::new(expected)) {
-            return Err(AppError::new(
-                "directory_changed",
-                "当前目录已变化，请重新查找",
-            ));
-        }
-        if automatic && selected {
-            return Err(AppError::new(
-                "directory_selected",
-                "当前目录已手动选择或接管，不自动更换",
-            ));
-        }
-        self.set_directory(target, directory)?;
-        if automatic {
-            self.conn.execute(
-                "UPDATE targets SET directory_selected=0 WHERE id=?1",
-                [target.id()],
-            )?;
-        }
+        let _:bool=self.config_call("setDirectory",serde_json::json!({"client":target.id(),"path":directory,"expected":expected,"automatic":automatic}))?;
         Ok(())
     }
-
     pub fn apply(&mut self, target: Target, provider_id: &str) -> Result<TargetStatus> {
-        self.recover()?;
-        let provider = self.provider(provider_id)?;
-        self.apply_stored(target, provider, None, false)
-    }
-
-    fn apply_confirmation_state(&self, target: Target) -> Result<String> {
-        let record = self.target_record(target)?;
-        let metadata: (u64, Option<String>, Option<String>) = self.conn.query_row(
-            "SELECT applied_at_ms,applied_summary,accepted_source FROM targets WHERE id=?1",
-            [target.id()],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        let _: bool = self.config_call(
+            "apply",
+            serde_json::json!({"target":target,"providerId":provider_id}),
         )?;
-        json(&(record, metadata))
+        self.status(target)
     }
-
     pub fn prepare_apply_overwrite(
         &mut self,
         target: Target,
         provider_id: &str,
     ) -> Result<ApplyOverwriteConfirmation> {
-        self.overwrite_approval = None;
-        self.recover()?;
-        let provider = self.provider(provider_id)?;
-        let (directory, _, baseline) = self.target_record(target)?;
-        if baseline.is_none() {
-            return Err(overwrite_changed());
-        }
-        let planned = self.plan(target, &directory, &Self::for_target(&provider, target))?;
-        let token = uuid::Uuid::new_v4().to_string();
-        let files = planned
-            .iter()
-            .filter(|file| file.path != self.bridge_path(target))
-            .filter(|file| file.original != file.expected)
-            .map(|file| file.path.to_string_lossy().into_owned())
-            .collect();
-        let result = ApplyOverwriteConfirmation {
-            token: token.clone(),
-            target,
-            provider_id: provider_id.into(),
-            directory: directory.to_string_lossy().into_owned(),
-            files,
-        };
-        self.overwrite_approval = Some(OverwriteApproval {
-            token,
-            target,
-            provider_id: provider_id.into(),
-            provider: json(&provider)?,
-            target_state: self.apply_confirmation_state(target)?,
-            files: planned
-                .into_iter()
-                .map(|file| (file.path, file.original))
-                .collect(),
-            created_at: std::time::Instant::now(),
-        });
-        Ok(result)
+        self.config_call(
+            "prepare",
+            serde_json::json!({"target":target,"providerId":provider_id}),
+        )
     }
-
     pub fn apply_overwrite(
         &mut self,
         target: Target,
         provider_id: &str,
         token: &str,
     ) -> Result<TargetStatus> {
-        self.recover()?;
-        // Consume every attempted approval. No flag can bypass the normal
-        // conflict checks; used or stale confirmations cannot be reused.
-        let approval = self
-            .overwrite_approval
-            .take()
-            .ok_or_else(overwrite_changed)?;
-        if approval.token != token
-            || approval.target != target
-            || approval.provider_id != provider_id
-            || approval.created_at.elapsed() > std::time::Duration::from_secs(300)
-        {
-            return Err(overwrite_changed());
-        }
-        let provider = self.provider(provider_id)?;
-        if json(&provider)? != approval.provider
-            || self.apply_confirmation_state(target)? != approval.target_state
-        {
-            return Err(overwrite_changed());
-        }
-        for (path, contents) in &approval.files {
-            if adapters::read(path)? != *contents {
-                return Err(overwrite_changed());
-            }
-        }
-        self.apply_stored_from_source(target, provider, None, false, None, Some(approval))
+        let _: bool = self.config_call(
+            "confirm",
+            serde_json::json!({"target":target,"providerId":provider_id,"token":token}),
+        )?;
+        self.status(target)
     }
-
     fn apply_stored(
         &mut self,
         target: Target,
@@ -1216,14 +673,7 @@ impl Store {
         provider_update: Option<StoredProvider>,
         preserve_choices: bool,
     ) -> Result<TargetStatus> {
-        self.apply_stored_from_source(
-            target,
-            provider,
-            provider_update,
-            preserve_choices,
-            None,
-            None,
-        )
+        self.apply_stored_from_source(target, provider, provider_update, preserve_choices, None)
     }
     fn apply_stored_from_source(
         &mut self,
@@ -1232,107 +682,8 @@ impl Store {
         provider_update: Option<StoredProvider>,
         preserve_choices: bool,
         source: Option<String>,
-        approval: Option<OverwriteApproval>,
     ) -> Result<TargetStatus> {
-        let accepted_source = Some(source.unwrap_or(Self::source_signature(&provider)?));
-        if approval.is_none()
-            && self.target_record(target)?.2.is_some()
-            && self.manually_configured(target)?
-        {
-            return Err(AppError::new(
-                "external_change",
-                "配置已手动保存，请确认后再应用供应商",
-            ));
-        }
-        let provider = Self::for_target(&provider, target);
-        let provider_id = provider.summary.id.clone();
-        let (directory, active, baseline) = self.target_record(target)?;
-        let active_provider = active
-            .as_deref()
-            .map(|id| self.provider(id))
-            .transpose()?
-            .map(|p| Self::for_target(&p, target));
-        let mut files = self.plan(target, &directory, &provider)?;
-        if let Some(approval) = &approval {
-            let planned: Vec<_> = files
-                .iter()
-                .map(|file| (file.path.clone(), file.original.clone()))
-                .collect();
-            if planned != approval.files {
-                return Err(overwrite_changed());
-            }
-        }
-        if let Some(baseline) = &baseline {
-            for file in &mut files {
-                if let Some(previous) = baseline.iter().find(|old| old.path == file.path) {
-                    if previous.keys.iter().any(|k| k == "web_search")
-                        && !file.keys.iter().any(|k| k == "web_search")
-                    {
-                        file.keys.push("web_search".into());
-                    }
-                    if previous
-                        .keys
-                        .iter()
-                        .any(|key| key == adapters::REASONING_DISPLAY_KEY)
-                        && !file
-                            .keys
-                            .iter()
-                            .any(|key| key == adapters::REASONING_DISPLAY_KEY)
-                    {
-                        file.keys.push(adapters::REASONING_DISPLAY_KEY.into());
-                    }
-                    if approval.is_none()
-                        && adapters::changed_for_provider(previous, active_provider.as_ref())?
-                    {
-                        return Err(AppError::new("external_change", "当前 API 配置已被其他工具修改。请点击「使用」确认是否覆盖；确认前不会修改现有文件。"));
-                    }
-                }
-            }
-        }
-        let keep_model = active_provider
-            .as_ref()
-            .is_some_and(|p| p.summary.model == provider.summary.model);
-        let changes: Vec<_> = files
-            .iter()
-            .map(|file| {
-                Ok(Change {
-                    path: file.path.clone(),
-                    before: file.original.clone(),
-                    after: if preserve_choices && target == Target::Codex && file.format == "toml" {
-                        adapters::preserve_codex_choices(file, &provider, keep_model)?
-                    } else {
-                        file.expected.clone()
-                    },
-                })
-            })
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .filter(|change| change.before != change.after)
-            .collect();
-        if let Some(baseline) = baseline {
-            for file in &mut files {
-                if let Some(previous) = baseline.iter().find(|old| old.path == file.path) {
-                    // Keep the first snapshot of previously managed keys, while capturing
-                    // newly introduced settings at the time we first take ownership of them.
-                    let snapshot = ManagedFile {
-                        expected: file.original.clone(),
-                        original: previous.original.clone(),
-                        keys: previous.keys.clone(),
-                        ..file.clone()
-                    };
-                    file.original = adapters::restore(&snapshot)?.after;
-                }
-            }
-        }
-        self.execute(Pending {
-            target,
-            changes,
-            baseline: Some(files),
-            active: Some(provider_id),
-            provider_update,
-            applied_summary: Some(provider.summary.clone()),
-            accepted_source,
-        })?;
+        let _:bool=self.config_call("applyStored",serde_json::json!({"target":target,"provider":provider,"providerUpdate":provider_update,"preserve":preserve_choices,"source":source}))?;
         self.status(target)
     }
 
@@ -1341,127 +692,15 @@ impl Store {
         provider_id: &str,
         enabled: bool,
     ) -> Result<FastModeResult> {
-        self.recover()?;
-        let mut provider = self.provider(provider_id)?;
-        if enabled && provider.summary.upstream_protocol() == CodexProtocol::Anthropic {
-            return Err(AppError::new(
-                "anthropic_fast",
-                "Claude 协议转换暂不支持 Fast，请使用 OpenAI 协议供应商",
-            ));
-        }
-        let was_applied = self.status(Target::Codex)?.state == "applied";
-        let (directory, active, baseline) = self.target_record(Target::Codex)?;
-        let applied = active.as_deref() == Some(provider_id);
-        let previous_source = Self::source_signature(&provider)?;
-        provider.summary.codex_options.fast_mode = Some(enabled);
-        provider.summary.updated_at = now();
-        if applied {
-            let mut baseline = baseline.ok_or_else(|| {
-                AppError::new(
-                    "invalid_state",
-                    "当前配置缺少管理记录，请重新使用供应商后重试",
-                )
-            })?;
-            let previous = self.provider(provider_id)?;
-            let summary: Option<String> = self.conn.query_row(
-                "SELECT applied_summary FROM targets WHERE id=?1",
-                [Target::Codex.id()],
-                |r| r.get(0),
-            )?;
-            let mut applied_summary = summary
-                .map(|text| decode::<Provider>(&text))
-                .transpose()?
-                .unwrap_or_else(|| previous.summary.clone());
-            if enabled && applied_summary.upstream_protocol() == CodexProtocol::Anthropic {
-                return Err(AppError::new(
-                    "anthropic_fast",
-                    "当前 Codex 仍在使用 Claude 协议转换，请先使用 OpenAI 协议配置再开启 Fast",
-                ));
-            }
-            applied_summary.codex_options.fast_mode = Some(enabled);
-            applied_summary.updated_at = provider.summary.updated_at;
-            let applied_provider = StoredProvider {
-                summary: applied_summary.clone(),
-                ..previous.clone()
-            };
-            // Validate profile overrides and file shapes without applying pending edits.
-            adapters::plan(
-                Target::Codex,
-                &directory,
-                &Self::for_target(&applied_provider, Target::Codex),
-            )?;
-            let previous_for_codex = Self::for_target(&previous, Target::Codex);
-            for file in &baseline {
-                if adapters::changed_for_provider(file, Some(&previous_for_codex))? {
-                    return Err(AppError::new("external_change", "当前 API 配置或模型目录已被其他工具修改，请先处理配置冲突后重试；此次没有写入"));
-                }
-            }
-            let files = adapters::fast_mode_files(
-                &baseline,
-                &Self::for_target(&applied_provider, Target::Codex),
-                enabled,
-            )?;
-            let changes = files
-                .iter()
-                .filter(|f| f.original != f.expected)
-                .map(|f| Change {
-                    path: f.path.clone(),
-                    before: f.original.clone(),
-                    after: f.expected.clone(),
-                })
-                .collect();
-            for file in files {
-                if let Some(previous) = baseline.iter_mut().find(|f| f.path == file.path) {
-                    let snapshot = ManagedFile {
-                        expected: file.original.clone(),
-                        original: previous.original.clone(),
-                        keys: previous.keys.clone(),
-                        ..file.clone()
-                    };
-                    previous.original = adapters::restore(&snapshot)?.after;
-                    previous.keys = file.keys;
-                    previous.expected = file.expected;
-                } else {
-                    baseline.push(file);
-                }
-            }
-            let accepted_source = if was_applied {
-                Some(Self::source_signature(&provider)?)
-            } else {
-                None
-            };
-            self.execute(Pending {
-                target: Target::Codex,
-                changes,
-                baseline: Some(baseline),
-                active,
-                provider_update: Some(provider.clone()),
-                applied_summary: Some(applied_summary),
-                accepted_source,
-            })?;
-        } else {
-            let newest_source = Self::source_signature(&provider)?;
-            let tx = self.conn.transaction()?;
-            tx.execute(
-                "UPDATE providers SET data=?1 WHERE id=?2",
-                params![json(&provider)?, provider_id],
-            )?;
-            tx.execute(
-                "UPDATE targets SET accepted_source=?1 WHERE active=?2 AND accepted_source=?3",
-                params![newest_source, provider_id, previous_source],
-            )?;
-            tx.commit()?;
-        }
-        Ok(FastModeResult {
-            provider: provider.summary,
-            applied,
-        })
+        self.config_call(
+            "fast",
+            serde_json::json!({"providerId":provider_id,"enabled":enabled}),
+        )
     }
-
     pub fn rename_provider(&mut self, expected: Provider, name: String) -> Result<Provider> {
         self.recover()?;
         let mut stored = self.provider(&expected.id)?;
-        if json(&stored.summary)? != json(&expected)? {
+        if serde_json::to_value(&stored.summary).ok() != serde_json::to_value(&expected).ok() {
             return Err(AppError::new(
                 "provider_changed",
                 "供应商已更新，请刷新后重新命名；此次没有修改",
@@ -1491,7 +730,7 @@ impl Store {
         expected: &Provider,
     ) -> Result<(String, String, Option<CodexProtocol>, Option<String>)> {
         let stored = self.provider(&expected.id)?;
-        if json(&stored.summary)? != json(expected)? {
+        if serde_json::to_value(&stored.summary).ok() != serde_json::to_value(expected).ok() {
             return Err(AppError::new(
                 "provider_changed",
                 "供应商已更新，请刷新后重新检测",
@@ -1512,7 +751,7 @@ impl Store {
     ) -> Result<Provider> {
         self.recover()?;
         let mut stored = self.provider(&expected.id)?;
-        if json(&stored.summary)? != json(&expected)? {
+        if serde_json::to_value(&stored.summary).ok() != serde_json::to_value(&expected).ok() {
             return Err(AppError::new(
                 "provider_changed",
                 "检测期间供应商已更新，请重新检测；此次没有修改",
@@ -1547,7 +786,7 @@ impl Store {
     ) -> Result<ProtocolConversionResult> {
         self.recover()?;
         let mut stored = self.provider(&expected.id)?;
-        if json(&stored.summary)? != json(&expected)? {
+        if serde_json::to_value(&stored.summary).ok() != serde_json::to_value(&expected).ok() {
             return Err(AppError::new(
                 "provider_changed",
                 "供应商已更新，请刷新后重新设置；此次没有写入",
@@ -1596,7 +835,8 @@ impl Store {
     pub fn quick_model_settings(&mut self, input: QuickModelInput) -> Result<ModelWriteResult> {
         self.recover()?;
         let mut stored = self.provider(&input.expected.id)?;
-        if json(&stored.summary)? != json(&input.expected)? {
+        if serde_json::to_value(&stored.summary).ok() != serde_json::to_value(&input.expected).ok()
+        {
             return Err(AppError::new(
                 "provider_changed",
                 "供应商已更新，请刷新列表后重新选择；此次没有写入",
@@ -1759,389 +999,28 @@ impl Store {
     pub fn restore(&mut self, target: Target) -> Result<TargetStatus> {
         self.restore_with_provider(target, None)
     }
-
     fn restore_with_provider(
         &mut self,
         target: Target,
         provider_update: Option<StoredProvider>,
     ) -> Result<TargetStatus> {
-        self.recover()?;
-        let (_, active, baseline) = self.target_record(target)?;
-        let active_provider = active
-            .as_deref()
-            .map(|id| self.provider(id))
-            .transpose()?
-            .map(|p| Self::for_target(&p, target));
-        let files = baseline
-            .ok_or_else(|| AppError::new("nothing_to_restore", "此客户端尚未由 uni-switch 接管"))?;
-        let changes = files
-            .iter()
-            .map(|file| {
-                if adapters::changed_for_provider(file, active_provider.as_ref())? {
-                    return adapters::restore(file);
-                }
-                let mut accepted = file.clone();
-                accepted.expected = adapters::read(&file.path)?;
-                adapters::restore(&accepted)
-            })
-            .collect::<Result<Vec<_>>>()?;
-        self.execute(Pending {
-            target,
-            changes,
-            baseline: None,
-            active: None,
-            provider_update,
-            applied_summary: None,
-            accepted_source: None,
-        })?;
+        let _: bool = self.config_call(
+            "restore",
+            serde_json::json!({"target":target,"providerUpdate":provider_update}),
+        )?;
         self.status(target)
     }
 
     pub fn repair_reasoning_levels(&mut self, provider_id: &str) -> Result<ReasoningRepairResult> {
-        self.recover()?;
-        let mut provider = self.provider(provider_id)?;
-        if provider.summary.family != Family::Codex {
-            return Err(AppError::new("wrong_family", "此修复仅适用于 Codex"));
-        }
-        provider.summary.codex_options.repair_reasoning_levels = true;
-        provider.summary.updated_at = now();
-        if !provider
-            .summary
-            .codex_options
-            .models
-            .iter()
-            .any(|m| m.enabled)
-        {
-            provider.summary.codex_options.models = vec![ProviderModel {
-                id: provider.summary.model.clone(),
-                context_window: None,
-                reasoning_efforts: vec![],
-                enabled: true,
-                ..Default::default()
-            }];
-        }
-        let (directory, active, baseline) = self.target_record(Target::Codex)?;
-        let applied = active.as_deref() == Some(provider_id);
-        if !applied {
-            self.conn.execute(
-                "UPDATE providers SET data=?1 WHERE id=?2",
-                params![json(&provider)?, provider_id],
-            )?;
-        } else {
-            let mut baseline = baseline.ok_or_else(|| {
-                AppError::new("invalid_state", "当前配置缺少管理记录，请重新应用后重试")
-            })?;
-            let saved = self.provider(provider_id)?;
-            // Validate profile/credential compatibility without applying settings.
-            adapters::plan(Target::Codex, &directory, &saved)?;
-            for file in &baseline {
-                if adapters::changed_for_provider(file, Some(&saved))? {
-                    return Err(AppError::new("external_change", "当前 API 配置或模型目录已被其他工具修改，请先撤回相应修改后重试；此次没有写入"));
-                }
-            }
-            let files = adapters::reasoning_repair_files(&directory, &provider)?;
-            let mut changes: Vec<Change> = files
-                .iter()
-                .filter(|f| f.original != f.expected)
-                .map(|f| Change {
-                    path: f.path.clone(),
-                    before: f.original.clone(),
-                    after: f.expected.clone(),
-                })
-                .collect();
-            for file in files {
-                if let Some(previous) = baseline.iter_mut().find(|old| old.path == file.path) {
-                    if file.format == "toml" {
-                        // Capture newly managed display preferences at the first repair,
-                        // while retaining the original snapshots of existing managed keys.
-                        let snapshot = ManagedFile {
-                            expected: file.original.clone(),
-                            original: previous.original.clone(),
-                            keys: previous.keys.clone(),
-                            ..file.clone()
-                        };
-                        previous.original = adapters::restore(&snapshot)?.after;
-                        // Retain the applied model/effort defaults for status comparisons.
-                        let mut expected = previous
-                            .expected
-                            .as_deref()
-                            .unwrap_or("")
-                            .parse::<toml_edit::DocumentMut>()
-                            .map_err(|_| {
-                                AppError::new("invalid_state", "已保存的 Codex 配置无效")
-                            })?;
-                        expected["model_catalog_json"] = toml_edit::value(
-                            directory
-                                .join("uni-switch-models.json")
-                                .to_string_lossy()
-                                .as_ref(),
-                        );
-                        let repaired = file
-                            .expected
-                            .as_deref()
-                            .unwrap_or("")
-                            .parse::<toml_edit::DocumentMut>()
-                            .map_err(|_| {
-                                AppError::new("invalid_state", "修复后的 Codex 配置无效")
-                            })?;
-                        if expected.get("desktop").is_none() {
-                            expected["desktop"] = toml_edit::Item::Table(toml_edit::Table::new());
-                        }
-                        let display = repaired
-                            .get("desktop")
-                            .and_then(|v| v.get("enabled-reasoning-efforts"))
-                            .ok_or_else(|| {
-                                AppError::new("invalid_state", "修复后的思考强度显示设置缺失")
-                            })?;
-                        let desktop = expected
-                            .get_mut("desktop")
-                            .and_then(toml_edit::Item::as_table_like_mut)
-                            .ok_or_else(|| {
-                                AppError::new("invalid_state", "已保存的 Codex desktop 设置无效")
-                            })?;
-                        desktop.insert("enabled-reasoning-efforts", display.clone());
-                        previous.expected = Some(expected.to_string());
-                        if !previous.keys.iter().any(|k| k == "model_catalog_json") {
-                            previous.keys.push("model_catalog_json".into());
-                        }
-                        if !previous
-                            .keys
-                            .iter()
-                            .any(|key| key == adapters::REASONING_DISPLAY_KEY)
-                        {
-                            previous.keys.push(adapters::REASONING_DISPLAY_KEY.into());
-                        }
-                    } else {
-                        previous.expected = file.expected;
-                    }
-                } else {
-                    baseline.push(file);
-                }
-            }
-            if let Some(mut applied_bridge) = self
-                .bridge_provider_record()?
-                .filter(|p| p.summary.id == provider_id)
-            {
-                applied_bridge.summary.codex_options.repair_reasoning_levels = true;
-                applied_bridge.summary.updated_at = provider.summary.updated_at;
-                if applied_bridge.summary.codex_options.models.is_empty() {
-                    applied_bridge.summary.codex_options.models =
-                        provider.summary.codex_options.models.clone();
-                }
-                let path = self.data_directory.join("bridge-active.json");
-                let before = adapters::read(&path)?;
-                let after = Some(json(&applied_bridge)?);
-                if before != after {
-                    changes.push(Change {
-                        path: path.clone(),
-                        before,
-                        after: after.clone(),
-                    });
-                }
-                if let Some(file) = baseline.iter_mut().find(|f| f.path == path) {
-                    file.expected = after;
-                }
-            }
-            self.execute(Pending {
-                target: Target::Codex,
-                changes,
-                baseline: Some(baseline),
-                active,
-                provider_update: Some(provider.clone()),
-                applied_summary: Some(provider.summary.clone()),
-                accepted_source: Some(Self::source_signature(&provider)?),
-            })?;
-        }
-        Ok(ReasoningRepairResult {
-            provider: provider.summary,
-            applied,
-        })
+        self.config_call("repair", serde_json::json!({"providerId":provider_id}))
     }
 
-    fn execute(&mut self, pending: Pending) -> Result<()> {
-        for change in &pending.changes {
-            if adapters::read(&change.path)? != change.before {
-                return Err(AppError::new(
-                    "external_change",
-                    "配置文件刚刚被其他程序修改，请刷新后重试",
-                ));
-            }
-        }
-        let id = uuid::Uuid::new_v4().to_string();
-        let backups = self.data_directory.join("backups");
-        writer::private_directory(&backups)?;
-        writer::write(&backups.join(format!("{id}.json")), Some(&json(&pending)?))?;
-        self.conn.execute(
-            "INSERT INTO operations(id,status,data,created_at) VALUES(?1,'pending',?2,?3)",
-            params![id, json(&pending)?, now()],
-        )?;
-        let applied = (|| {
-            for change in &pending.changes {
-                if adapters::read(&change.path)? != change.before {
-                    return Err(AppError::new(
-                        "external_change",
-                        "写入前发现外部修改，正在恢复此次操作",
-                    ));
-                }
-                writer::write(&change.path, change.after.as_deref())?;
-                if adapters::read(&change.path)? != change.after {
-                    return Err(AppError::new(
-                        "verify_failed",
-                        "配置文件回读校验失败，正在恢复此次操作",
-                    ));
-                }
-            }
-            self.finish(&id, &pending)
-        })();
-        if let Err(err) = applied {
-            if self.rollback(&pending).is_err() {
-                return Err(AppError::new("recovery_required", "部分文件无法恢复，已保留操作备份。请关闭客户端后重新打开 uni-switch；备份位于应用数据目录的 backups 文件夹"));
-            }
-            self.conn.execute(
-                "UPDATE operations SET status='rolled_back',data='{}' WHERE id=?1",
-                [&id],
-            )?;
-            return Err(err);
-        }
-        // Cleanup cannot turn an already committed application into a reported failure.
-        let _ = self.cleanup_backups();
-        Ok(())
-    }
-
-    fn finish(&mut self, id: &str, pending: &Pending) -> Result<()> {
-        // Fast affects Codex only. If it is the sole changed setting, other
-        // already-current clients keep their own snapshots and remain current.
-        // Include this source advance in the same journaled database commit.
-        let fast_transition = if let Some(updated) = &pending.provider_update {
-            let old: Option<String> = self
-                .conn
-                .query_row(
-                    "SELECT data FROM providers WHERE id=?1",
-                    [&updated.summary.id],
-                    |r| r.get(0),
-                )
-                .optional()?;
-            if let Some(mut previous) = old.map(|data| decode_provider(&data)).transpose()? {
-                let before = Self::source_signature(&previous)?;
-                let changed = previous.summary.codex_options.fast_mode
-                    != updated.summary.codex_options.fast_mode;
-                previous.summary.codex_options.fast_mode = updated.summary.codex_options.fast_mode;
-                let after = Self::source_signature(updated)?;
-                if changed && Self::source_signature(&previous)? == after {
-                    Some((updated.summary.id.clone(), before, after))
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        let tx = self.conn.transaction()?;
-        let baseline = pending.baseline.as_ref().map(json).transpose()?;
-        let previous_revision: u64 = tx.query_row(
-            "SELECT applied_at_ms FROM targets WHERE id=?1",
-            [pending.target.id()],
-            |r| r.get(0),
-        )?;
-        let changed = pending.changes.iter().any(|change| {
-            pending.target != Target::Codex
-                || change
-                    .path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| matches!(n, "config.toml" | "uni-switch-models.json"))
-        });
-        let revision = if changed {
-            (std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64)
-                .max(previous_revision.saturating_add(1))
-        } else {
-            previous_revision
-        };
-        tx.execute(
-            "UPDATE targets SET active=?1,baseline=?2,applied_at_ms=?4,configuration_manual=0 WHERE id=?3",
-            params![pending.active, baseline, pending.target.id(), revision],
-        )?;
-        tx.execute(
-            "UPDATE targets SET applied_summary=?1,accepted_source=?2 WHERE id=?3",
-            params![
-                pending.applied_summary.as_ref().map(json).transpose()?,
-                pending.accepted_source,
-                pending.target.id()
-            ],
-        )?;
-        if let Some(provider) = &pending.provider_update {
-            tx.execute(
-                "INSERT INTO providers(id,family,data) VALUES(?1,?2,?3) ON CONFLICT(id) DO UPDATE SET family=excluded.family,data=excluded.data",
-                params![provider.summary.id, json(&provider.summary.family)?, json(provider)?],
-            )?;
-        }
-        if let Some((provider_id, before, after)) = fast_transition {
-            tx.execute("UPDATE targets SET accepted_source=?1 WHERE active=?2 AND accepted_source=?3 AND id!=?4", params![after, provider_id, before, pending.target.id()])?;
-        }
-        tx.execute(
-            "UPDATE operations SET status='complete',data='{}' WHERE id=?1",
-            [id],
-        )?;
-        tx.commit()?;
-        Ok(())
-    }
-
+    #[cfg(test)]
     fn rollback(&self, pending: &Pending) -> Result<()> {
         writer::rollback(&pending.changes, |_| Ok(()))
     }
-
     pub fn recover(&mut self) -> Result<()> {
-        self.recover_config_operations()?;
-        let rows: Vec<(String, String)> = {
-            let mut stmt = self.conn.prepare(
-                "SELECT id,data FROM operations WHERE status='pending' ORDER BY created_at",
-            )?;
-            let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
-            rows.collect::<std::result::Result<_, _>>()?
-        };
-        for (id, data) in rows {
-            let pending: Pending = decode(&data)?;
-            let mut all_after = true;
-            for change in &pending.changes {
-                if adapters::read(&change.path)? != change.after {
-                    all_after = false;
-                    break;
-                }
-            }
-            if all_after {
-                self.finish(&id, &pending)?;
-            } else {
-                self.rollback(&pending)?;
-                self.conn.execute(
-                    "UPDATE operations SET status='rolled_back',data='{}' WHERE id=?1",
-                    [&id],
-                )?;
-            }
-        }
-        Ok(())
-    }
-
-    fn cleanup_backups(&self) -> Result<()> {
-        let mut stmt = self.conn.prepare("SELECT id FROM operations WHERE status!='pending' ORDER BY created_at DESC,rowid DESC LIMIT -1 OFFSET 10")?;
-        let ids = stmt
-            .query_map([], |row| row.get::<_, String>(0))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        for id in ids {
-            let path = self
-                .data_directory
-                .join("backups")
-                .join(format!("{id}.json"));
-            if path.is_file() {
-                std::fs::remove_file(&path).map_err(|err| AppError::io(&path, err))?;
-            }
-            self.conn
-                .execute("DELETE FROM operations WHERE id=?1", [&id])?;
-        }
+        let _: bool = self.config_call("recover", serde_json::json!({}))?;
         Ok(())
     }
 }

@@ -1,6 +1,6 @@
 """Collect dependency notices from installed packages; no network or credentials.
 
-Run after pnpm install and cargo fetch. This includes build/dev dependencies
+Run after pnpm install, cargo fetch and go mod download. This includes build/dev dependencies
 and the current Cargo host target for the platform being distributed.
 """
 from pathlib import Path
@@ -34,6 +34,23 @@ def collect():
         cwd=ROOT, text=True, encoding="utf-8",
     ))
     entries = []
+    local_go = ROOT / ".tools/go/bin" / ("go.exe" if os.name == "nt" else "go")
+    go = os.environ.get("UNI_SWITCH_GO") or (str(local_go) if local_go.is_file() else shutil.which("go"))
+    if not go:
+        raise RuntimeError("Go is required to inventory locked Go dependency licenses")
+    modules = subprocess.check_output([go, "list", "-mod=readonly", "-m", "-json", "all"],
+        cwd=ROOT / "backend", text=True, encoding="utf-8", env={**os.environ, "GOTOOLCHAIN": "local"})
+    decoder = json.JSONDecoder()
+    while modules.strip():
+        module, end = decoder.raw_decode(modules.lstrip())
+        modules = modules.lstrip()[end:]
+        if module.get("Main"):
+            continue
+        if module.get("Replace") or not module.get("Dir"):
+            raise RuntimeError(f"Unresolved or replaced Go dependency: {module['Path']}")
+        directory = Path(module["Dir"])
+        entries.append(("Go", module["Path"], module["Version"], "See bundled upstream license text",
+            f"https://pkg.go.dev/{module['Path']}@{module['Version']}", directory, None))
     resolved = {node["id"] for node in metadata["resolve"]["nodes"]}
     for package in metadata["packages"]:
         if package["id"] not in resolved:
@@ -73,7 +90,7 @@ def collect():
     lines = ["uni-switch — Third-party dependency licenses", "",
              "Generated from locked, locally installed packages. Dependencies retain their own licenses.",
              "Both runtime and build/development packages are listed; inclusion does not imply runtime use.",
-             "Source versions are also recorded in pnpm-lock.yaml and src-tauri/Cargo.lock.", ""]
+             "Source versions are also recorded in pnpm-lock.yaml, src-tauri/Cargo.lock and backend/go.sum.", ""]
     missing = []
     supplements = ROOT / "third-party/dependency-license-supplements"
     provenance = json.loads((supplements / "sources.json").read_text(encoding="utf-8"))
@@ -99,7 +116,9 @@ def collect():
         for file in files:
             lines += [f"--- {file.relative_to(directory).as_posix()} ---", file.read_text(encoding="utf-8", errors="replace").strip(), ""]
     destination = ROOT / "third-party/dependency-licenses.txt"
-    destination.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    notice_text = "\n".join(lines)
+    destination.write_text("\n".join(line.rstrip(" \t") for line in notice_text.splitlines()) + "\n",
+                           encoding="utf-8", newline="\n")
     print(f"Collected {len(entries)} dependency notices ({destination.stat().st_size} bytes).")
     for item in missing:
         print(f"Metadata-only notice: {item}")

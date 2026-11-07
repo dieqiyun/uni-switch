@@ -34,7 +34,7 @@ impl Target {
 
 /// Opaque approval for one exact provider, target and current file snapshot.
 /// File contents and credentials are retained only by the backend.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApplyOverwriteConfirmation {
     pub token: String,
@@ -151,6 +151,23 @@ pub struct ProviderModel {
     pub canonical_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata_updated_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<ResolvedMetadata>,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ResolvedMetadata {
+    pub policy: String,
+    pub reference: String,
+    pub base_url: String,
+    pub provider_context: Option<i64>,
+    pub vendor: serde_json::Value,
+    pub catalog: Option<serde_json::Value>,
+    pub profile: ModelProfile,
+    pub capabilities: ModelCapabilities,
+    pub published_output: Option<i64>,
+    pub sources: std::collections::BTreeMap<String, String>,
+    pub effort_mapping: std::collections::BTreeMap<String, String>,
 }
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -171,24 +188,67 @@ impl ModelCapabilities {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct ModelProfile {
+    #[serde(skip)]
+    pub effort_mapping: std::collections::BTreeMap<String, String>,
+    // Read compatibility only: discard the retired switch from old providers,
+    // applied snapshots and recovery journals. Never emit or use its value.
+    #[doc(hidden)]
+    #[serde(
+        rename = "midConversationSystem",
+        skip_serializing,
+        deserialize_with = "discard_retired_inline_system"
+    )]
+    pub retired_inline_system: (),
     pub context_window: Option<i64>,
     pub max_input_tokens: Option<i64>,
     pub max_output_tokens: Option<i64>,
+    pub max_context_window: Option<i64>,
+    pub input_modalities: Option<Vec<String>>,
+    pub output_modalities: Option<Vec<String>>,
+    pub reasoning: Option<bool>,
+    pub dynamic_tools: Option<bool>,
     pub reasoning_efforts: Option<Vec<String>>,
     pub default_effort: Option<String>,
     pub thinking_format: Option<ThinkingFormat>,
     pub thinking_always_on: Option<bool>,
     pub thinking_between_tools: Option<bool>,
-    pub mid_conversation_system: Option<bool>,
     pub forced_tool_choice: Option<bool>,
     pub sampling_parameters: Option<bool>,
     pub tool_calls: Option<bool>,
     pub structured_output: Option<bool>,
     pub endpoints: EndpointSupport,
 }
+fn discard_retired_inline_system<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<(), D::Error> {
+    serde::de::IgnoredAny::deserialize(deserializer).map(|_| ())
+}
 impl ModelProfile {
     pub fn is_empty(&self) -> bool {
         self == &Self::default()
+    }
+}
+
+#[cfg(test)]
+mod profile_compatibility_tests {
+    use super::*;
+
+    #[test]
+    fn retired_inline_system_is_read_and_discarded_without_relaxing_other_fields() {
+        let profile: ModelProfile = serde_json::from_value(serde_json::json!({
+            "midConversationSystem": true,
+            "thinkingFormat": "adaptive"
+        }))
+        .unwrap();
+        assert_eq!(profile.thinking_format, Some(ThinkingFormat::Adaptive));
+        assert!(serde_json::to_value(&profile)
+            .unwrap()
+            .get("midConversationSystem")
+            .is_none());
+        assert!(serde_json::from_value::<ModelProfile>(serde_json::json!({
+            "unknownProfileSwitch": true
+        }))
+        .is_err());
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -259,7 +319,7 @@ pub struct ConnectionInput {
     pub balance_access_token: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelSyncResult {
     pub models: Vec<ProviderModel>,
@@ -333,14 +393,14 @@ pub struct QuickModelInput {
     pub repair_reasoning_levels: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReasoningRepairResult {
     pub provider: Provider,
     pub applied: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FastModeResult {
     pub provider: Provider,
@@ -354,7 +414,7 @@ pub struct ProtocolConversionResult {
     pub restored: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BalanceResult {
     pub amount: Option<f64>,
@@ -370,7 +430,7 @@ pub struct BalanceResult {
     pub provider_type: Option<String>,
     pub note: Option<String>,
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BalanceWindow {
     pub label: String,
@@ -601,7 +661,10 @@ pub fn validate(input: &mut ProviderInput) -> Result<()> {
             || model.id.len() > 256
             || model.id.chars().any(char::is_control)
             || !ids.insert(model.id.clone())
-            || model.reasoning_efforts.iter().any(|e| !valid_effort(e))
+            || model
+                .reasoning_efforts
+                .iter()
+                .any(|e| !crate::model_registry::valid_vendor_effort(e))
             || model
                 .context_window
                 .is_some_and(|w| !(1..=100_000_000).contains(&w))
@@ -636,5 +699,11 @@ pub fn validate(input: &mut ProviderInput) -> Result<()> {
             "API Key 不能包含换行或控制字符",
         ));
     }
+    let context = input.codex_options.context_window;
+    crate::model_registry::resolve_models(
+        &mut input.codex_options.models,
+        &input.base_url,
+        context,
+    )?;
     Ok(())
 }

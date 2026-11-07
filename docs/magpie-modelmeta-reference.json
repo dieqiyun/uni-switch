@@ -1,0 +1,38 @@
+{
+  "repository": "https://github.com/yetone/magpie",
+  "commit": "665b9aff126e26eb5fa8931b7395feb6002185f3",
+  "sha256": {
+    "internal/catalog/catalog.go": "ceb16ae1ba0b42bd0f3877ece638806e1a3c41a6b86bbf399f67d8ea69230622",
+    "internal/catalog/samemodel.go": "0516ba484e5c7296ea3d9429477a4b6006e0552899c3e160c2f1494b98db7e04",
+    "internal/provider/models.go": "97cea2ac3d0af136f660eb60e36078c938c083697c3bc68e7333d4bb0fd158c0",
+    "internal/provider/modelprefs.go": "830d252c46a137c2473a2f91ffb3589aa68942759add1cd87fc8e88ec283af72",
+    "internal/provider/ultra.go": "99f3be665361c6f51bdee02253dc4279b59bd76898a14ead28f7ab3b91239d54"
+  },
+  "reviewedSha256": {
+    "internal/catalog/live.go": "fd18dfa6901ec4ad3c80ca9eb7caad90151e2a103b97ee399ddd0d5def3cc2ec",
+    "internal/catalog/family.go": "ab62ceeaa9db7814c686b4bc5616cbdece02e5ab84dc034e596e547c2c7ea5c6",
+    "internal/catalog/labs.go": "0fc31648d6e27e27ba66763c7b007a0270b5e5f4d7bc824e55ae6c3f559af06f",
+    "internal/catalog/fresh.go": "e158938aa6bb2700e567bb20f50e0e5d147f819d4d9817918fb2983f495d4466",
+    "internal/catalog/public.go": "a2f9b3bf7e891fdc151ce756870d774efcaf4d7e4dc73035ff62077d0efd35e5",
+    "internal/catalog/openrouter.go": "7606b68a7e700eee47645ed82a80591083ba1af6584138dda404a0d1b5f372db",
+    "internal/catalog/gemini_list.go": "0b8bf051f5c388dfe8f7edf5d28fff17bf222cca2221e6962411639e865ce904",
+    "internal/provider/presets.go": "93d6705155b2bcc2dce1ea502cdeceb1d2437783d5f072fd26645f8bc86f64ee",
+    "internal/provider/modelspec.go": "f52fc28e2d6cdf63a9e33493dcc78cc7d4b3edb3fdefb431ea1d832e65df4e4e",
+    "internal/provider/modellist.go": "87d3babdc07814961a466ddfb21fb8c1a3a526825280b2586d7ce14451d19ecc",
+    "internal/gateway/anthropic.go": "a77a1a1f4f9565bf6888bf30a65cd97fa34a6c56627444ec7fc940ef1d03101e",
+    "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+  },
+  "vectors": {
+    "inputWindow": 7,
+    "kept": 20,
+    "kinds": 4,
+    "levelVotes": 1,
+    "nameVotes": 1,
+    "nearest": 88,
+    "numberVotes": 1,
+    "outputWithin": 5,
+    "sameModel": 14,
+    "ultra": 24,
+    "window": 8
+  }
+}

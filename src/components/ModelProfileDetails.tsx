@@ -22,7 +22,6 @@ export function ModelProfileDetails({
         ? "chat_completions"
         : "responses",
   );
-  const [feature, setFeature] = useState<ModelVerification["feature"]>("text");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
@@ -30,7 +29,6 @@ export function ModelProfileDetails({
     discovery.connection,
     discovery.authMode,
     endpoint,
-    feature,
     model.id,
   ]);
   const current = useRef(signature);
@@ -63,7 +61,6 @@ export function ModelProfileDetails({
         model.id,
         discovery.authMode,
         endpoint,
-        feature,
         consent,
       );
       if (active()) setResult(observation.message);
@@ -97,11 +94,13 @@ export function ModelProfileDetails({
           <p>
             资料中的上下文：
             {profile.contextWindow?.toLocaleString() ?? "待确认"} · 最大输出：
-            {profile.maxOutputTokens?.toLocaleString() ?? "待确认"}{" "}
+            {(
+              model.metadata?.publishedOutput ?? profile.maxOutputTokens
+            )?.toLocaleString() ?? "待确认"}{" "}
             Token。仅展示资料，不修改当前上下文设置。
           </p>
           <p>
-            上游/官方思考档位：
+            上游/目录思考档位：
             {profile.reasoningEfforts?.join(" / ") ||
               (profile.reasoningEfforts ? "不支持" : "待确认")}
             ；默认：{profile.defaultEffort ?? "待确认"}
@@ -137,11 +136,11 @@ export function ModelProfileDetails({
               ? "思考模式：手动设置"
               : model.profile?.thinkingFormat
                 ? "思考模式：上游返回"
-                : "思考模式：官方资料或待确认"}
+                : "思考模式：协议适配或待确认"}
           </p>
           {model.officialSource && (
             <p className="model-profile-source">
-              官方资料来源：<span>{model.officialSource}</span>
+              目录资料来源：<span>{model.officialSource}</span>
             </p>
           )}
           {model.metadataUpdatedAt && (
@@ -154,7 +153,7 @@ export function ModelProfileDetails({
             disabled={busy || discovery.busy || discovery.preview}
             aria-describedby={`${id}-warning`}
           >
-            <legend>验证 {model.id} 的接入能力</legend>
+            <legend>测试 {model.id} 的模型连接</legend>
             <label htmlFor={`${id}-endpoint`}>验证接口</label>
             <select
               id={`${id}-endpoint`}
@@ -167,22 +166,9 @@ export function ModelProfileDetails({
               <option value="chat_completions">Chat Completions</option>
               <option value="responses">Responses</option>
             </select>
-            <label htmlFor={`${id}-feature`}>验证项目</label>
-            <select
-              id={`${id}-feature`}
-              value={feature}
-              onChange={(event) =>
-                setFeature(event.target.value as ModelVerification["feature"])
-              }
-            >
-              <option value="text">文本回复</option>
-              <option value="image">图片理解</option>
-              <option value="tools">合成工具调用（不执行工具）</option>
-              <option value="stream">流式回复与结束事件</option>
-            </select>
             <p id={`${id}-warning`}>
-              仅发送一条合成请求，最多请求 256 个输出
-              Token，可能计费。始终思考的模型可能耗尽该预算而显示待确认。不会发送会话、文件或执行工具；结果只代表本次条件，不自动覆盖设置。
+              仅发送一条 hi 请求，最多请求 16 个输出
+              Token，可能计费。不会发送会话、文件或执行工具；结果仅代表本次连接可用性，不验证图片、工具或流式能力。
             </p>
             <label>
               <input

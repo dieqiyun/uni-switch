@@ -94,7 +94,7 @@ export function ModelPicker({
         )}
       </div>
       <p className="model-selection-hint">
-        图片输入和并行工具调用默认开启，无需勾选；实际支持情况由上游接口决定。
+        图片输入和并行工具调用按模型资料配置；未知能力不自动声明支持。
       </p>
       <p
         id={`${selectionId}-hint`}

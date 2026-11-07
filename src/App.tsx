@@ -60,13 +60,15 @@ import { Modal } from "./components/Modal";
 import { TutorialDialog } from "./components/TutorialDialog";
 import { WindowChrome } from "./components/WindowChrome";
 import { ProviderName } from "./components/ProviderName";
+import { PlatformPanel } from "./components/PlatformPanel";
 import { ModelRegistryPanel } from "./components/ModelRegistryPanel";
 import {
   ClientConfigEditor,
   ConfigRestartNotice,
 } from "./components/ClientConfigEditor";
+import { ClientChooser } from "./components/ClientChooser";
+import { isExtraClient } from "./content/clients";
 import { ExtraClientPanel } from "./components/ExtraClientPanel";
-import { installRegistry } from "./lib/modelCapabilities";
 import {
   ProviderModelSelect,
   ProviderModelsDialog,
@@ -124,18 +126,6 @@ function Glyph({ family }: { family: Family }) {
   );
 }
 export default function App() {
-  useEffect(() => {
-    let active = true;
-    void api
-      .modelRegistry()
-      .then((status) => {
-        if (active) installRegistry(status.registry);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
   const [family, setFamily] = useState<Family>(() => loadTarget().family);
   const [extraClient, setExtraClient] = useState<ExtraClient | null>(null);
   const [claudeTarget, setClaudeTarget] = useState<Target>(
@@ -649,7 +639,7 @@ export default function App() {
     }
   }
   const switchFamily = (value: string) => {
-    if (["zcode", "dsh", "workbuddy"].includes(value)) {
+    if (isExtraClient(value)) {
       setExtraClient(value as ExtraClient);
       setNotice(null);
       return;
@@ -724,7 +714,14 @@ export default function App() {
               <span className="nav-indicator" aria-hidden />
             </Tabs.Trigger>
           ))}
+          {extraClient && !["zcode", "dsh", "workbuddy"].includes(extraClient) && (
+            <Tabs.Trigger value={extraClient} disabled={busy}>
+              <Terminal size={24} aria-hidden />
+              <span className="nav-copy"><strong>{clientNames[extraClient]}</strong><small>一键配置</small></span>
+            </Tabs.Trigger>
+          )}
         </Tabs.List>
+        <ClientChooser current={extraClient} disabled={busy} onSelect={switchFamily} />
         <div className="sidebar-bottom">
           <button
             className="help-link"
@@ -1787,6 +1784,7 @@ export default function App() {
             )}
           </section>
           <ModelRegistryPanel />
+          <PlatformPanel />
           <section className="settings-section" aria-labelledby="sync-heading">
             <h3 id="sync-heading">供应商更新</h3>
             <label className="settings-toggle">

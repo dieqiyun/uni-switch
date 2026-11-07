@@ -67,7 +67,7 @@ describe("自动接入的模型默认选择", () => {
       );
       if (target === "codex")
         expect(
-          hook.result.current.models.every((m) => m.contextWindow === 256000),
+          hook.result.current.models.every((m) => m.contextWindow === null),
         ).toBe(true);
     },
   );
@@ -248,7 +248,7 @@ describe("自动接入的模型默认选择", () => {
   });
 });
 
-it("刷新完成前的思考格式覆盖保留，旧能力开关不再生效", async () => {
+it("刷新完成前的思考格式覆盖保留，上游能力观测继续保留", async () => {
   vi.useFakeTimers();
   let finish!: (v: ModelSyncResult) => void;
   vi.spyOn(api, "discoverConnection")
@@ -281,6 +281,35 @@ it("刷新完成前的思考格式覆盖保留，旧能力开关不再生效", a
   expect(hook.result.current.models[0].capabilities?.imageInput).toBe(false);
   act(() => hook.result.current.setThinkingFormat("custom-model", undefined));
   expect(hook.result.current.models[0].capabilityOverrides).toEqual({});
+});
+
+it("资料合并的迟到结果不会覆盖另一地址的模型", async () => {
+  vi.useFakeTimers();
+  vi.spyOn(api, "discoverConnection")
+    .mockResolvedValueOnce(response(["old-model"]))
+    .mockResolvedValueOnce(response(["new-model"]));
+  let finish!: (models: ModelSyncResult["models"]) => void;
+  vi.spyOn(api, "resolveModelProfiles")
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    )
+    .mockImplementation(async (_base, models) => models);
+  const hook = renderHook(
+    ({ baseUrl }) =>
+      useConnectionDiscovery({ ...input, baseUrl }, "auto", "codex"),
+    { initialProps: { baseUrl: input.baseUrl } },
+  );
+  await tick();
+  expect(hook.result.current.busy).toBe(true);
+  hook.rerender({ baseUrl: "https://new.test/v1" });
+  await tick();
+  await act(async () => {
+    finish(response(["old-model"]).models);
+  });
+  expect(hook.result.current.models.map((m) => m.id)).toEqual(["new-model"]);
 });
 
 describe("Claude 桌面模型名称边界", () => {

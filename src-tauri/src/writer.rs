@@ -1,145 +1,21 @@
-use crate::error::{AppError, Result};
-use std::io::Write;
+//! Data-only file transport; Go owns writes, path checks and rollback.
+use crate::error::Result;
+use serde_json::json;
 use std::path::Path;
-
 pub fn private_directory(path: &Path) -> Result<()> {
-    std::fs::create_dir_all(path).map_err(|err| AppError::io(path, err))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))
-            .map_err(|err| AppError::io(path, err))?;
-    }
-    #[cfg(windows)]
-    private_permissions(path)?;
+    crate::metadata_transport::call("files.privateDirectory", json!({"path":path}))?;
     Ok(())
 }
-
-#[cfg(windows)]
-fn private_permissions(path: &Path) -> Result<()> {
-    use std::os::windows::process::CommandExt;
-    let user = std::env::var("USERNAME")
-        .map_err(|_| AppError::new("permissions", "无法确定文件权限所属的用户"))?;
-    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
-    let account = if domain.is_empty() {
-        user
-    } else {
-        format!("{domain}\\{user}")
-    };
-    let grant = if path.is_dir() {
-        format!("{account}:(OI)(CI)F")
-    } else {
-        format!("{account}:F")
-    };
-    let output = std::process::Command::new("icacls.exe")
-        .arg(path)
-        .args(["/inheritance:r", "/grant:r", &grant, "/Q"])
-        .creation_flags(0x08000000)
-        .output()
-        .map_err(|err| AppError::io(path, err))?;
-    if !output.status.success() {
-        return Err(AppError::new(
-            "permissions",
-            format!("无法为 {} 设置当前用户私有权限", path.display()),
-        ));
-    }
-    Ok(())
-}
-
 pub fn write(path: &Path, content: Option<&str>) -> Result<()> {
-    if std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) {
-        return Err(AppError::new(
-            "symlink",
-            format!("{} 是符号链接，请直接选择实际配置目录", path.display()),
-        ));
-    }
-    let Some(content) = content else {
-        return match std::fs::remove_file(path) {
-            Ok(()) => Ok(()),
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(err) => Err(AppError::io(path, err)),
-        };
-    };
-    let parent = path
-        .parent()
-        .ok_or_else(|| AppError::new("invalid_path", "配置文件缺少父目录"))?;
-    std::fs::create_dir_all(parent).map_err(|err| AppError::io(parent, err))?;
-    let mut temp =
-        tempfile::NamedTempFile::new_in(parent).map_err(|err| AppError::io(parent, err))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        temp.as_file()
-            .set_permissions(std::fs::Permissions::from_mode(0o600))
-            .map_err(|err| AppError::io(path, err))?;
-    }
-    #[cfg(windows)]
-    private_permissions(temp.path())?;
-    temp.write_all(content.as_bytes())
-        .map_err(|err| AppError::io(path, err))?;
-    temp.as_file()
-        .sync_all()
-        .map_err(|err| AppError::io(path, err))?;
-    #[cfg(windows)]
-    {
-        use std::os::windows::ffi::OsStrExt;
-        use windows_sys::Win32::Storage::FileSystem::{
-            MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
-        };
-        let source: Vec<u16> = temp
-            .path()
-            .as_os_str()
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
-        let destination: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
-        if unsafe {
-            MoveFileExW(
-                source.as_ptr(),
-                destination.as_ptr(),
-                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
-            )
-        } == 0
-        {
-            return Err(AppError::io(path, std::io::Error::last_os_error()));
-        }
-    }
-    #[cfg(not(windows))]
-    {
-        temp.persist(path)
-            .map_err(|err| AppError::io(path, err.error))?;
-        std::fs::File::open(parent)
-            .and_then(|file| file.sync_all())
-            .map_err(|err| AppError::io(parent, err))?;
-    }
+    crate::metadata_transport::call("files.write", json!({"path":path,"content":content}))?;
     Ok(())
 }
-
-/// Restore every safe file even when another file conflicts. The journal must
-/// remain pending on any error so external edits are never silently accepted.
+#[cfg(test)]
 pub(crate) fn rollback(
     changes: &[crate::adapters::Change],
     check_path: impl Fn(&Path) -> Result<()>,
 ) -> Result<()> {
-    let mut failure = None;
-    for change in changes.iter().rev() {
-        let result = (|| {
-            check_path(&change.path)?;
-            let current = crate::adapters::read(&change.path)?;
-            if current == change.before {
-                return Ok(());
-            }
-            if current != change.after {
-                return Err(AppError::new(
-                    "recovery_conflict",
-                    "恢复时发现外部修改，已保留该文件和操作备份；已继续尝试恢复其他文件",
-                ));
-            }
-            write(&change.path, change.before.as_deref())
-        })();
-        if let Err(error) = result {
-            failure.get_or_insert(error);
-        }
-    }
-    failure.map_or(Ok(()), Err)
+    let _ = check_path;
+    crate::metadata_transport::call("files.rollback", json!({"changes":changes}))?;
+    Ok(())
 }

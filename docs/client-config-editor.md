@@ -1,6 +1,6 @@
 # 多客户端配置与文件编辑
 
-左侧新增 ZCode、DSH（DeepSeek Harness）、WorkBuddy。一键配置使用现有供应商记录，不需要重复保存密钥。
+侧栏「全部客户端」提供 71 个附加客户端，可搜索选择并复用现有供应商。完整对照和特殊使用步骤见 [Magpie 第三方客户端清单](magpie-client-support.md)。下文保留原有 ZCode、DSH（DeepSeek Harness）、WorkBuddy 直连规则及历史 SDK 验证范围。
 
 | 客户端             | 默认文件                                                   | 原生协议                              |
 | ------------------ | ---------------------------------------------------------- | ------------------------------------- |
@@ -22,7 +22,7 @@ ZCode 遵循 ZCODE_DATA_BASE_DIR 和 ZCODE_PERSONAL_PROVIDER_CONFIG_FILE。DSH_H
 
 ## 请求地址与认证
 
-三个新增客户端直接连接供应商，使用各自原生适配器，不经过 Codex 的 Responses ↔ Messages 转换桥。
+ZCode、DSH、WorkBuddy 直接连接供应商，使用各自原生适配器。其他附加客户端采用 Go 本地网关和每客户端已应用快照，可转换协议；不受本节三者直连限制约束。
 
 - 裸站点地址（例如 https://gateway.example）用于 OpenAI 时，配置补入标准 /v1。显式填写 /proxy、/api/paas/v4 等 API 前缀时保持原路径，不盲目追加 /v1。
 - 填入完整 /messages、/responses 或 /chat/completions 时，仅去掉资源名再交给对应 SDK；末尾斜杠一并清理，避免重复资源路径。完整 https://gateway.example/chat/completions 表示明确的无版本路径，不自动改成 /v1。

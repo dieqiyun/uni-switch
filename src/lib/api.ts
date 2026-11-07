@@ -25,12 +25,11 @@ import type {
   ProtocolConversionResult,
   ApplyOverwriteConfirmation,
   ModelRegistryStatus,
-  ModelRegistry,
+  ProviderModel,
   ModelVerification,
 } from "../types";
 import { APP_VERSION } from "./appVersion";
 import releaseConfig from "../../release-config.json";
-import registry from "../content/model-capabilities.json";
 import {
   needsProtocolConversion,
   protocolConversionEnabled,
@@ -82,22 +81,38 @@ export const api = {
     desktopRuntime
       ? invoke("get_model_registry")
       : {
-          registry: registry as ModelRegistry,
+          registry: {
+            schemaVersion: 1,
+            version: 0,
+            verifiedAt: "浏览器预览",
+            entries: [],
+          },
           checkedAt: null,
           updated: false,
           updateAvailable: false,
-          message: "浏览器预览使用内置资料",
+          message: "浏览器预览不读取或下载模型目录",
         },
   updateModelRegistry: async (): Promise<ModelRegistryStatus> => {
     if (!desktopRuntime) throw new Error("请在桌面应用中更新模型资料。");
     return invoke("update_model_registry");
+  },
+  resolveModelProfiles: async (
+    baseUrl: string,
+    models: ProviderModel[],
+    providerContext: number | null = null,
+  ): Promise<ProviderModel[]> => {
+    if (!desktopRuntime) return models;
+    return invoke("resolve_model_profiles", {
+      baseUrl,
+      models,
+      providerContext,
+    });
   },
   verifyModel: async (
     input: ConnectionInput,
     model: string,
     authMode: Provider["authMode"],
     endpoint: ModelVerification["endpoint"],
-    feature: ModelVerification["feature"],
     consent: boolean,
   ): Promise<ModelVerification> => {
     if (!desktopRuntime) throw new Error("浏览器预览不发送推理验证请求。");
@@ -107,7 +122,6 @@ export const api = {
       model,
       authMode,
       endpoint,
-      feature,
       consent,
     });
   },

@@ -1005,13 +1005,65 @@ fn usage_audit_workbuddy_same_model_does_not_inherit_old_supplier_capabilities()
     let doc: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     assert!(doc["models"][0].get("maxInputTokens").is_none());
-    assert_eq!(doc["models"][0]["supportsImages"], true);
-    assert_eq!(doc["models"][0]["supportsToolCall"], true);
+    assert!(doc["models"][0].get("supportsImages").is_none());
+    assert!(doc["models"][0].get("supportsToolCall").is_none());
     assert_eq!(
         doc["availableModels"],
         json!([]),
         "an originally unrestricted list remains unrestricted"
     );
+}
+
+#[test]
+fn client_config_uses_go_limits_modalities_and_explicit_false() {
+    let (temp, mut store) = fixture();
+    let p = provider(&mut store, Family::Codex);
+    let mut saved = store.provider(&p.id).unwrap();
+    saved.summary.codex_options.context_window = Some(1_000_000);
+    let mut model = ProviderModel {
+        id: "qa-model".into(),
+        enabled: true,
+        ..Default::default()
+    };
+    model.metadata=Some(crate::model_capabilities::parse_upstream(&json!({"id":"qa-model","context_length":128000,"max_output_tokens":200000,"modalities":{"input":["text","image","audio"]}})).unwrap());
+    model.capability_overrides.image_input = Some(false);
+    saved.summary.codex_options.models = vec![model];
+    store
+        .conn
+        .execute(
+            "UPDATE providers SET data=?1 WHERE id=?2",
+            params![json(&saved).unwrap(), p.id],
+        )
+        .unwrap();
+    store
+        .apply_client_config(
+            ClientKind::Workbuddy,
+            &p.id,
+            NativeProtocol::ChatCompletions,
+            None,
+        )
+        .unwrap();
+    let doc: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(temp.path().join("workbuddy/models.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(doc["models"][0]["maxInputTokens"], 128000);
+    assert_eq!(doc["models"][0]["maxOutputTokens"], 128000);
+    assert_eq!(doc["models"][0]["supportsImages"], false);
+    assert!(doc["models"][0].get("supportsToolCall").is_none());
+    store
+        .apply_client_config(
+            ClientKind::Dsh,
+            &p.id,
+            NativeProtocol::ChatCompletions,
+            None,
+        )
+        .unwrap();
+    let patch = std::fs::read_to_string(temp.path().join("dsh/cordis.patch.yml")).unwrap();
+    assert!(patch.contains("contextWindow: 128000"), "{patch}");
+    assert!(patch.contains("maxTokens: 128000"), "{patch}");
+    assert!(patch.contains("- audio"), "{patch}");
+    assert!(!patch.contains("- image"), "{patch}");
 }
 
 #[test]

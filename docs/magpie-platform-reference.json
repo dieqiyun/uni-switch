@@ -1,0 +1,302 @@
+{
+  "repository": "https://github.com/yetone/magpie",
+  "commit": "665b9aff126e26eb5fa8931b7395feb6002185f3",
+  "scope": "Gemini shared representation, public API/Code Assist transports, signatures, subscription login and media/native routing. Independently rewritten in Go; hashes verify reference identity, not complete behavior equivalence.",
+  "files": [
+    {
+      "path": "docs/integrating.md",
+      "gitBlobSha1": "2d6e6b82b0b443b87bd3981559c2f9b03c4c3879",
+      "sha256": "21d0469613a230a5df874a9306304f5965ea47e0b0e72c8aa5909537ac0608d3"
+    },
+    {
+      "path": "internal/claudebridge/mcp.go",
+      "gitBlobSha1": "529ab9e7d39fb3cb4dd0104a4032c68b50754715",
+      "sha256": "e78a74ba4f0f8724c2604ecb3fa3ecbec70048ceb7c95193034f4f65047e32e1"
+    },
+    {
+      "path": "internal/claudecode/claudecode.go",
+      "gitBlobSha1": "d0e404f18b3171cbe72d5c741c4f780cec9c17de",
+      "sha256": "42ed3859940f109879a06b4a0c804fb53888831d809d0a37cdd97cf12095d046"
+    },
+    {
+      "path": "internal/claudecode/keep.go",
+      "gitBlobSha1": "e543ebcc9806cee8bb09a5c568a3d04aa64bc786",
+      "sha256": "61278025624b11dd04f17944943632d596e152c839ca3274b1494aabc4f5d32f"
+    },
+    {
+      "path": "internal/cli/main.go",
+      "gitBlobSha1": "e4115866d42d5f92a8412f2108c49ff8c52ac4ff",
+      "sha256": "a421804eb9c3f1da0d7f7328be0ad3ec0e5a0c285f1fd8938413bd8aa869a2dd"
+    },
+    {
+      "path": "internal/gateway/claude_replay.go",
+      "gitBlobSha1": "89c89212bc64c5c4fbfc4ccd4db5ffd72940a51c",
+      "sha256": "df45467bc088680d17450f87ef9b7c8bcacfa995faa97a7fd6e6d87705df899c"
+    },
+    {
+      "path": "internal/gateway/claude_room.go",
+      "gitBlobSha1": "ec68dcbc67a386af9ec086d8dd22f5f145c3b37e",
+      "sha256": "004d8cf0bd779c9754217ac93ee05b6feb178184e1824c54b0fa718b2f8ee44a"
+    },
+    {
+      "path": "internal/gateway/claude_runs.go",
+      "gitBlobSha1": "b791e36bbc764e2f0534e94a75efc99ed001ad45",
+      "sha256": "6b94e4d3ff20234ddf86238c705d5d71b5b8a6dea1385e88993ceed4b57d637f"
+    },
+    {
+      "path": "internal/gateway/claude_signin.go",
+      "gitBlobSha1": "2559c7ac27bef5197b74dc481572e5fff9cb5ea9",
+      "sha256": "45d87dc89dec3f22ad073ec04d7f54c72afe2cebb079fc4b3c632a649718325b"
+    },
+    {
+      "path": "internal/gateway/claude_subscription.go",
+      "gitBlobSha1": "1e38cc20c61f3cf9bb2d83c423cf1f0b7022bb94",
+      "sha256": "730c0c5080e9b32dea3c076bb1c2253f74eda3eb8b2fb3f4297986d3a5c911c2"
+    },
+    {
+      "path": "internal/gateway/claude_trusted.go",
+      "gitBlobSha1": "8e72f1ee42c6026b45ad539bae09fa9b24b66be6",
+      "sha256": "62c844aaf961f8a1d0827e5864e83247d5b4dd581be89b16273d064489da7490"
+    },
+    {
+      "path": "internal/gateway/codeassist.go",
+      "gitBlobSha1": "808923ff08ea84fad1579e8031b7e60f5a490f4f",
+      "sha256": "b089b2ab12c1f9cca387652387c0f0cc754fe545ccf4dbc37906f49c15a7cae6"
+    },
+    {
+      "path": "internal/gateway/draw.go",
+      "gitBlobSha1": "d083a3ae1c0a9e79736e7cd8f8e6dfae61338a0e",
+      "sha256": "3edd2ef46ac40045e646e8c640124139a12950c55795a3dd72d2e78614ba2087"
+    },
+    {
+      "path": "internal/gateway/draw_dashscope.go",
+      "gitBlobSha1": "8a6ae50a4808ca86f75e936acf58d084656d8934",
+      "sha256": "57e2eea2679044c5fff340f15c9c0f82d950bdc43991cc2dbd3375492fe891ad"
+    },
+    {
+      "path": "internal/gateway/draw_modelscope.go",
+      "gitBlobSha1": "5c7287a71283c8536f317b612a0f717a0e13a6a6",
+      "sha256": "4f29c7869066bf4b2dabba9b8884293a1dbfac258cf6566d12e47c08db51b3d0"
+    },
+    {
+      "path": "internal/gateway/draw_test.go",
+      "gitBlobSha1": "f29c38786b34188ec6f7feefe883a94c204ee59a",
+      "sha256": "6644954e63e2cfc00cab0157fc393bc927619f66e5fc286b7e11ac83dceda4d9"
+    },
+    {
+      "path": "internal/gateway/draw_volcengine.go",
+      "gitBlobSha1": "ffbd8f5e39a81dcc825af8bf91b90f6dbf8dca7c",
+      "sha256": "996acf799847dff3ea182ef6cb09d534c68dab2a131bb94a196eb7fd7423d11c"
+    },
+    {
+      "path": "internal/gateway/drawing_route.go",
+      "gitBlobSha1": "ab5f3591e0b35a66de6764d5b867a513c0695430",
+      "sha256": "a12bf3a9dc341477b97d663c30bba899e2e569495fbdecc871741013102d8447"
+    },
+    {
+      "path": "internal/gateway/gateway.go",
+      "gitBlobSha1": "122233bad47a3eb3cec765162310e233acb52c7b",
+      "sha256": "06c0f92c37461723b683ee43f7ec119aa0f1d45532608143a83f07975df493c0"
+    },
+    {
+      "path": "internal/gateway/gemini.go",
+      "gitBlobSha1": "445ba0921bf9d211a48a6fa337f3de0320cc1b00",
+      "sha256": "bdae18c00f6dd4685a16f38cd61bfd0d627d7d18f3758d7ec9ab8805d99cbc51"
+    },
+    {
+      "path": "internal/gateway/gemini_function_parts_test.go",
+      "gitBlobSha1": "b7124c77a9646f85a43023b3470080b56ad46708",
+      "sha256": "e0b96760c45c2bc00c1d929d4bd9b7fa86682a3e06d00aba904f015f27a949ab"
+    },
+    {
+      "path": "internal/gateway/gemini_gen_config_test.go",
+      "gitBlobSha1": "807c3aa95b6890862d23c926cbe764aa642264cb",
+      "sha256": "4709d741b58660801e3ddf27d911e010dbd503c1e50dd48aa3e95ce1b58d0333"
+    },
+    {
+      "path": "internal/gateway/gemini_pending_call_test.go",
+      "gitBlobSha1": "0447d835ebb0db3314ec5793d0b8714c7c033cef",
+      "sha256": "6b5d59d957b242ef80f1cb74ca18e8d4e2f7ced45d0e7e13bb639ff5c8f58fb2"
+    },
+    {
+      "path": "internal/gateway/gemini_schema.go",
+      "gitBlobSha1": "9e2706fb6fcdb59a93837d6879afe8e5a39aec75",
+      "sha256": "403a5fdf21bc5b26ff6da612e3a4ca0abe220cede4717b0aa83cb42f77a1a5f1"
+    },
+    {
+      "path": "internal/gateway/gemini_schema_test.go",
+      "gitBlobSha1": "fcc8af2a1f6326ee8bc3d37e88cb8e26e1101594",
+      "sha256": "0394801b26aa9e01d3ef88a9b656ae7a5b5f31e477992d9147f8e9340f2ac318"
+    },
+    {
+      "path": "internal/gateway/gemini_signature.go",
+      "gitBlobSha1": "41ccaeed4bf1a017a587f41450f6ee37fc8824fe",
+      "sha256": "2c0fa45619ef1d9184b65ca5a154f7622b6c94834bfa0e0397e89856c8e688da"
+    },
+    {
+      "path": "internal/gateway/gemini_signature_test.go",
+      "gitBlobSha1": "83db894ca19cd07af45bd5989c1421b76b5efa39",
+      "sha256": "6bd1507d0b753fcf0c0667ddd47e2f41973a42373785ca2ec4bbdf379c6b54c7"
+    },
+    {
+      "path": "internal/gateway/gemini_sigstore.go",
+      "gitBlobSha1": "c4e824842de09220b2840988bbd68b8f157f3c3a",
+      "sha256": "27383ce5c6816f3a7c648f8af529a4b40ef7ea937ebc38f7ae2b7a5784cb6584"
+    },
+    {
+      "path": "internal/gateway/gemini_tools_test.go",
+      "gitBlobSha1": "019bfae3fbd1cb54b8c3806ef5437c9eb5e34dae",
+      "sha256": "21b52a1cc01629d0da84db54cac7e8f59f2729bb0b13d503adca07f26712c8df"
+    },
+    {
+      "path": "internal/gateway/gemini_upstream_cut_test.go",
+      "gitBlobSha1": "e083c851ea80bab86bc9cf7df883a90fc70844c8",
+      "sha256": "0e8b566463ac11f65526054670f904ee21fde41c22b340fd9c19d2ebd4ade298"
+    },
+    {
+      "path": "internal/gateway/gemini_upstream_test.go",
+      "gitBlobSha1": "ab4f1bb68a157427ca2919f974951c72e6a2f443",
+      "sha256": "37ebc9a0d58495d5e27d3bf18fbb24fa159be2b3166b4c98c0a3d9d69b8feaa2"
+    },
+    {
+      "path": "internal/gateway/ir.go",
+      "gitBlobSha1": "8e746f14ed995874e3334e953b3d395a758670b9",
+      "sha256": "094b6ed4c683e6c0fe4755fbcc7abb2b8856981d2ca28150f4eeb085d1f27e2c"
+    },
+    {
+      "path": "internal/gateway/upstream.go",
+      "gitBlobSha1": "3f1d9fa8e54f7d962b5a7aa4b2872951861a7705",
+      "sha256": "da4c5a3435c8c1b19b0ede17b9351c52bdfd99354b2a4149dbbd3508fa529212"
+    },
+    {
+      "path": "internal/gateway/upstream_transport.go",
+      "gitBlobSha1": "4a2c2e9c21745c2ef2a66eef23cdcee9bcedfdbe",
+      "sha256": "e01db7d8cf454a4ac4cfc111ff7ca679cb1dff8c0168cb702f2f690b68a6ea1f"
+    },
+    {
+      "path": "internal/gateway/video.go",
+      "gitBlobSha1": "1373d29397fe8fcd9f89ff1d0ae32bb8f674c197",
+      "sha256": "49a92115b6a2187fca02f8aca1bc29296de2c09dca5ce73012dd698cf830b635"
+    },
+    {
+      "path": "internal/gateway/video_minimax.go",
+      "gitBlobSha1": "93be22a70bbe1f0cacf51fe94388f346d71f0313",
+      "sha256": "d9ffcd7f58ce3c44075f7567a0971be719d87d820a5fa43d4cb2eed28191a4a7"
+    },
+    {
+      "path": "internal/gateway/video_test.go",
+      "gitBlobSha1": "528ea9d739f367a039f133376d6259a09a81097d",
+      "sha256": "5592a25af08dfb511e06161886b0f22f53040c78105881063c4f9aadd8e74b22"
+    },
+    {
+      "path": "internal/provider/account.go",
+      "gitBlobSha1": "75a64d73657c11bfc6183d14421a53a3269d7dd9",
+      "sha256": "fe75d5392496d8f004a00714f6f268b4bcac00e51e0bf33e4c2a32db81027a0b"
+    },
+    {
+      "path": "internal/provider/account_models.go",
+      "gitBlobSha1": "4caf0968a7fb7b5504581d7f3238bacfffc1623d",
+      "sha256": "f03433f0db0e6a4563ff75dbf2f936c45ace72d3316cc4ea3d3f8554b6af5cfa"
+    },
+    {
+      "path": "internal/provider/chatgpt_api.go",
+      "gitBlobSha1": "4546e3536bab4c21508abc54c17da0db6760e968",
+      "sha256": "a10f7cfc701010bb42bf6fde40dae1a2ea49267ab943c4efa38608507b87a91f"
+    },
+    {
+      "path": "internal/provider/claude_auth.go",
+      "gitBlobSha1": "83706f8ef5e0935375b5f26d8aa70b8d7f6f51d6",
+      "sha256": "45782aa910818dcc1e70d950bc5e721121c8e84b31f50ac038d57089dc8d6e1a"
+    },
+    {
+      "path": "internal/provider/claude_signin.go",
+      "gitBlobSha1": "34bc61a58e23f3f3f171a1c76708cd327f4dde98",
+      "sha256": "72f3443af98eb32cabe940f7dd0296b738e166ebf0e9ba0adedd6bc79e2c4e84"
+    },
+    {
+      "path": "internal/provider/codex_device_signin.go",
+      "gitBlobSha1": "bb6a757d83e54f33e4cb939f869f291fa2b9f0b2",
+      "sha256": "615aeeaf171d3f809e249c4c69d6b28c879a6f9c81a5c5aee67f512a97510726"
+    },
+    {
+      "path": "internal/provider/codex_entries.go",
+      "gitBlobSha1": "b0ecbb3fa51134da9bcd79356eaaa7abf8148d91",
+      "sha256": "5a823aaf2df82c72dfa1ec3394a369be52a3ca5ec89a3854ad142bd5dc916b49"
+    },
+    {
+      "path": "internal/provider/codex_request.go",
+      "gitBlobSha1": "85e6c03a12c36cf4a21d2e29a133d86a954463df",
+      "sha256": "2255a7b6bf291e8bc8bf641ad7e56b702c2bc515be63bdcdb7ce9be7af5a1fb8"
+    },
+    {
+      "path": "internal/provider/codex_store.go",
+      "gitBlobSha1": "493888068d4c89439f5782f48b253187641d1d45",
+      "sha256": "0332643acf62992fe9a241118e9875697367166e6af377340ec5588e855bdada"
+    },
+    {
+      "path": "internal/provider/copilot_accounts.go",
+      "gitBlobSha1": "10914a182e61cb1920677829720ae0e5f6a72899",
+      "sha256": "d72c31dd9d7cfb793c20cd9572b574fd0ed28dd5bd185b8ac9f187b30cee8a03"
+    },
+    {
+      "path": "internal/provider/copilot_cli.go",
+      "gitBlobSha1": "cb4de01c9d7559b84178fce10eb0b528fb946af7",
+      "sha256": "875ecd159a86db4fe5ce2ca9f39ce7766438e5d3f81acd7226bd00c93bbbf428"
+    },
+    {
+      "path": "internal/provider/copilot_signin.go",
+      "gitBlobSha1": "31786e7ebc61171d653b13feee151006ff4ae688",
+      "sha256": "35a3fb104c0719a638a8185db762b367e96225a8d64dbec1daadfa783db10365"
+    },
+    {
+      "path": "internal/provider/gemini_api.go",
+      "gitBlobSha1": "69d70374422f9d49ec3341e23f5008fbd7cfc61e",
+      "sha256": "350521ef1040dac7de90fc5ed353e2481ed4c42e3a773da19e8a79df440d3597"
+    },
+    {
+      "path": "internal/provider/google.go",
+      "gitBlobSha1": "732cf326db96a8d53abd0df94c618be80593b2c0",
+      "sha256": "08977b54f2551569cd01f2ad0740728d21fe1e1515ec9a62781c70fe873b044a"
+    },
+    {
+      "path": "internal/provider/google_import.go",
+      "gitBlobSha1": "48959f48301052faa364668564929f136dea1e2a",
+      "sha256": "9c99850a13d287c9d79e67884c6fa32449921cbe1dc0e309709d159768821919"
+    },
+    {
+      "path": "internal/provider/logins.go",
+      "gitBlobSha1": "08bcb3b8dd082def6cc27cd8bcc3f6d4b4b2a030",
+      "sha256": "c758232adb05e16f8d46e1bd5485819a9aba8f17a940cd379b3a991003b1564b"
+    },
+    {
+      "path": "internal/provider/logins_on.go",
+      "gitBlobSha1": "27a0383c618b79ad90a5af0be5a32a9c01e24563",
+      "sha256": "644a9e182068c888a57e4c676bb1ca741fc43b7181a64142ff9d05e712a77a58"
+    },
+    {
+      "path": "internal/provider/native_endpoints.go",
+      "gitBlobSha1": "47ff9264282d61abdc2e102a5d4429ca5f2c4a4d",
+      "sha256": "f30cb879391cf3abe0ecca0fe7a3f856a61421e40b78ca7aaf63203f824ab7a0"
+    },
+    {
+      "path": "internal/provider/provider.go",
+      "gitBlobSha1": "a82e4aa59961b8de4d52b867366a2bd27edd4538",
+      "sha256": "98367d97ce72f3101db69d03d14226c447c776486ff2aa6469d8b3255885e0c2"
+    },
+    {
+      "path": "internal/provider/signin.go",
+      "gitBlobSha1": "08fb27ac35c991cf08f828596a1e7ff18635d14a",
+      "sha256": "2ae3eb64707df098cc2669890659c036b7e399a589226ede1121782d574d14a7"
+    },
+    {
+      "path": "internal/provider/signin_pasted.go",
+      "gitBlobSha1": "5a29af0eada791dd77b2c19233a0078e08525588",
+      "sha256": "7177f0edbb37c0038ba29c1a289a3b1093a237e014d32d237b8c3728541b63b2"
+    },
+    {
+      "path": "internal/provider/signin_revoked.go",
+      "gitBlobSha1": "17ca048104b1035e48acfaab5fd68e1f3514cbaa",
+      "sha256": "af61cefee26cd560bba953dcfbb5b0be5e23e329fc3e3817ebbc37f568f5c1de"
+    }
+  ]
+}

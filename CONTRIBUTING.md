@@ -11,13 +11,14 @@
 
 ## 环境与启动
 
-项目使用 Tauri 2、Rust、React、TypeScript、Vite 和 SQLite。
+项目使用 React / TypeScript 界面、Tauri 2 桌面壳和 SQLite，业务后端正在迁移到我们自己实现的 Go 核心。当前模型发现、供应商协议识别、模型资料解析/目录补全/用户覆盖/最终合并和余额查询走 Go；推理协议、SSE、工具/思考续接、原子文件写入和 SQLite 执行已接 Go；Rust 保留桌面集成、状态编排与保留注释的 TOML 写入，迁移范围见 [Go 后端说明](docs/go-backend.md) 和 [模型资料说明](docs/model-metadata.md)。
 
 - Node.js **22**、Corepack / pnpm **10.12.3**（由 package.json 指定）。
 - Rust stable，最低 **1.89**；安装 Clippy。
+- Go **1.26 或更新版本**；CI 固定 **1.26.8**。Go 核心依赖由 go.mod/go.sum 锁定的 YAML 和纯 Go SQLite 模块，不依赖 Magpie 程序或模块。
 - Windows：Visual Studio C++ Build Tools、Windows SDK、WebView2。
 - Linux：WebKitGTK 4.1 / GTK 和构建工具，参考下方命令；CI 使用 Ubuntu 22.04。
-- macOS：Xcode Command Line Tools；CI 使用 macOS 15。
+- macOS：Xcode Command Line Tools；Go 核心对应的最低运行版本为 macOS 12，CI 使用 macOS 15。
 
 Fork 本仓库后，克隆自己的 Fork 并创建功能分支：
 
@@ -48,7 +49,12 @@ corepack pnpm docs:check
 corepack pnpm typecheck
 corepack pnpm test
 corepack pnpm build
+go -C backend test ./...
+go -C backend vet ./...
+corepack pnpm build:go
 cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
+cargo build --locked --manifest-path src-tauri/Cargo.toml --no-default-features --example go_core_fixture
+python scripts/test-go-bridge.py
 cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
@@ -83,7 +89,7 @@ node scripts/qa-app-update-remote.mjs
 
 1. 提交并推送功能分支，向上游 `main` 创建 PR；尚未完成可以先开 Draft。
 2. 按 PR 模板说明问题、改动、验证、影响范围和未完成项；不要勾选没有执行的验证。
-3. 等待 `Frontend`、三平台 `Rust` 检查及汇总 `PR checks` 成功。首次从 Fork 贡献可能需要维护者批准运行工作流。
+3. 等待 `Frontend`、三平台 `Rust`（包含 Go 测试及 Rust → Go 合同测试）和汇总 `PR checks` 成功。首次从 Fork 贡献可能需要维护者批准运行工作流。
 4. 维护者 @dieqiyun 审核。新增修改会使先前批准失效，需要重新审核；审核讨论需处理完成。
 5. 根据提示将分支更新到最新 `main`，再通过检查；维护者决定是否合并。
 

@@ -1700,7 +1700,7 @@ fn old_database_custom_directories_migrate_as_manually_selected() {
     let temp = tempfile::tempdir().unwrap();
     let data = temp.path().join("data");
     std::fs::create_dir_all(&data).unwrap();
-    let conn = Connection::open(data.join("uni-switch.db")).unwrap();
+    let conn = rusqlite::Connection::open(data.join("uni-switch.db")).unwrap();
     conn.execute_batch("CREATE TABLE targets (id TEXT PRIMARY KEY, directory TEXT NOT NULL, active TEXT, baseline TEXT);").unwrap();
     let custom = temp.path().join("custom");
     conn.execute(
@@ -1743,7 +1743,10 @@ fn bridge_routes_use_private_applied_snapshot_and_restore_transactionally() {
     let status = store.apply(Target::Codex, &provider.id).unwrap();
     assert_eq!(status.state, "applied");
     let config = std::fs::read_to_string(temp.path().join("codex/config.toml")).unwrap();
-    assert!(config.contains(&route.base_url(&provider.id)));
+    assert!(config.contains(&format!(
+        "http://127.0.0.1:{}/v1/{}",
+        route.port, provider.id
+    )));
     assert!(config.contains("web_search = \"disabled\""));
     let catalog = read_json(&temp.path().join("codex/uni-switch-models.json"));
     assert_eq!(catalog["models"][0]["apply_patch_tool_type"], "freeform");
@@ -3261,6 +3264,12 @@ fn model_capabilities_write_repair_and_upgrade_preserve_client_choices() {
         id: "gpt-4o".into(),
         context_window: Some(256000),
         enabled: true,
+        metadata: Some(
+            crate::model_capabilities::parse_upstream(
+                &json!({"id":"gpt-4o","modalities":{"input":["text","image"]}}),
+            )
+            .unwrap(),
+        ),
         ..Default::default()
     }];
     let provider = store.save(value).unwrap();
@@ -3350,7 +3359,7 @@ fn model_capabilities_write_repair_and_upgrade_preserve_client_choices() {
 }
 
 #[test]
-fn default_capabilities_ignore_legacy_false_and_survive_fast() {
+fn explicit_user_capabilities_survive_fast_and_image_false_is_respected() {
     let (temp, mut store) = fixture();
     let mut value = input(Family::Codex, "Custom image model");
     value.codex_options.models = vec![ProviderModel {
@@ -3379,7 +3388,7 @@ fn default_capabilities_ignore_legacy_false_and_survive_fast() {
     store.quick_model_settings(input).unwrap();
     assert_eq!(
         read_json(&path)["models"][0]["input_modalities"],
-        json!(["text", "image"])
+        json!(["text"])
     );
 }
 
@@ -3392,7 +3401,7 @@ fn capability_upgrade_does_not_overwrite_external_catalog_edits() {
     store.apply(Target::Codex, &provider.id).unwrap();
     let path = temp.path().join("codex/uni-switch-models.json");
     let mut catalog = read_json(&path);
-    catalog["models"][0]["input_modalities"] = json!(["text"]);
+    catalog["models"][0]["input_modalities"] = json!(["text", "audio"]);
     put(&path, &serde_json::to_string_pretty(&catalog).unwrap());
     let before = adapters::read(&path).unwrap();
     let data = store.data_directory.clone();
@@ -3545,7 +3554,7 @@ fn confirmed_overwrite_applies_all_targets_and_backs_up_external_files() {
 }
 
 #[test]
-fn confirmed_overwrite_rejects_modified_files_provider_target_or_expired_approval() {
+fn confirmed_overwrite_rejects_modified_files_provider_target_or_invalid_approval() {
     for change in [
         "file",
         "provider",
@@ -3553,7 +3562,6 @@ fn confirmed_overwrite_rejects_modified_files_provider_target_or_expired_approva
         "wrong_target",
         "wrong_provider",
         "invalid_token",
-        "expired",
     ] {
         let (temp, mut store) = fixture();
         let provider = store.save(input(Family::Codex, "A")).unwrap();
@@ -3583,10 +3591,6 @@ fn confirmed_overwrite_rejects_modified_files_provider_target_or_expired_approva
                         [],
                     )
                     .unwrap();
-            }
-            "expired" => {
-                store.overwrite_approval.as_mut().unwrap().created_at =
-                    std::time::Instant::now() - std::time::Duration::from_secs(301)
             }
             _ => {}
         }
@@ -3622,7 +3626,6 @@ fn confirmed_overwrite_rejects_modified_files_provider_target_or_expired_approva
                 .as_deref(),
             Some(provider.id.as_str())
         );
-        assert!(store.overwrite_approval.is_none());
     }
 }
 
@@ -3691,7 +3694,6 @@ fn confirmed_overwrite_requires_valid_configuration_and_one_time_preparation() {
             .code,
         "invalid_json"
     );
-    assert!(store.overwrite_approval.is_none());
     assert_eq!(
         adapters::read(&path).unwrap().as_deref(),
         Some("{ invalid json")
@@ -4111,7 +4113,7 @@ fn legacy_claude_model_projections_offer_update_without_writing_or_masking_exter
             .unwrap();
         let mut doc: Value = serde_json::from_str(file.expected.as_deref().unwrap()).unwrap();
         if target == Target::ClaudeDesktop {
-            doc["inferenceModels"] = json!([{"name": crate::bridge::reverse::legacy_model_alias(&provider.model), "labelOverride": provider.model}]);
+            doc["inferenceModels"] = json!([{"name": crate::bridge::reverse::legacy_model_alias(&provider.model).unwrap(), "labelOverride": provider.model}]);
         } else {
             doc["env"]
                 .as_object_mut()
