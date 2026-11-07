@@ -1,109 +1,100 @@
-name: Build desktop releases
+name: Publish verified v0.5.28
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 concurrency:
-  group: desktop-${{ github.ref }}
+  group: publish-verified-v0.5.28
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: ${{ matrix.platform }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-x64
-            runner: windows-2022
-            targets: x86_64-pc-windows-msvc
-            build_args: --bundles nsis
-          - platform: linux-x64
-            runner: ubuntu-22.04
-            targets: x86_64-unknown-linux-gnu
-            build_args: --bundles deb,appimage
-          - platform: macos-universal
-            runner: macos-15-intel
-            targets: aarch64-apple-darwin,x86_64-apple-darwin
-            build_args: --target universal-apple-darwin --bundles app,dmg
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    env:
-      CARGO_TERM_COLOR: always
-      APPIMAGE_EXTRACT_AND_RUN: '1'
+  publish:
+    name: Verify artifacts and publish v0.5.28
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: caa0cebd8f8f81e4b408717ad9ad4b1361046e35
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '22'
-      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
-        with:
-          targets: ${{ matrix.targets }}
-          components: clippy
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
-        with:
-          go-version: '1.26.8'
-          cache: false
-      - name: Go core tests and vet
+      - name: Require exact source and all three native builds
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          go -C backend test ./...
-          go -C backend vet ./...
-      - name: Go race detector
-        if: runner.os == 'Linux'
-        run: go -C backend test -race ./...
-      - name: Build own Go core
-        run: node scripts/build-go.mjs
-      - name: Linux desktop dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev xdg-utils xvfb dbus
-      - name: Dependencies
-        run: |
-          corepack enable
-          corepack pnpm install --frozen-lockfile
-      - name: Verify source and documentation
+          python - <<'PY'
+          import json, subprocess
+          def api(endpoint):
+              return json.loads(subprocess.check_output(['gh', 'api', endpoint], text=True))
+          repo = 'dieqiyun/uni-switch'
+          revision = 'caa0cebd8f8f81e4b408717ad9ad4b1361046e35'
+          run = api(f'repos/{repo}/actions/runs/42389463325')
+          assert run['status'] == 'completed' and run['conclusion'] == 'success'
+          assert run['head_sha'] == revision and run['head_branch'] == 'v0.5.28'
+          assert run['path'] == '.github/workflows/build-desktop.yml'
+          jobs = api(f'repos/{repo}/actions/runs/42389463325/jobs')['jobs']
+          assert {j['name'] for j in jobs} == {'windows-x64', 'linux-x64', 'macos-universal'}
+          assert all(j['conclusion'] == 'success' for j in jobs)
+          assert api(f'repos/{repo}/git/ref/heads/main')['object']['sha'] == revision
+          assert api(f'repos/{repo}/git/ref/tags/v0.5.28')['object']['sha'] == revision
+          checks = api(f'repos/{repo}/actions/runs/42389435096')
+          assert checks['head_sha'] == revision and checks['conclusion'] == 'success'
+          assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() == revision
+          print('Verified main, release tag, main checks and all native platform jobs:', revision)
+          PY
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42389463325
+          pattern: uni-switch-*
+          path: .qa/github-artifacts/v0.5.28
+      - name: Audit exact source and prepare verified release assets
         run: |
           python scripts/audit-source.py
-          corepack pnpm docs:check
-          corepack pnpm typecheck
-      - name: Frontend tests
-        if: runner.os == 'Linux'
-        run: corepack pnpm test
-      - name: Rust tests
-        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
-      - name: Rust to Go isolated contract
-        run: |
-          cargo build --locked --manifest-path src-tauri/Cargo.toml --no-default-features --example go_core_fixture
-          python scripts/test-go-bridge.py
-      - name: Clippy
-        run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-      - name: Build native packages
-        run: corepack pnpm tauri build ${{ matrix.build_args }}
-      - name: Linux isolated launch
-        if: runner.os == 'Linux'
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('CHANGELOG.md').read_text(encoding='utf-8')
+          section = text.split('\n## ', 2)[1].split('\n', 1)[1].strip()
+          notes = '# uni-switch 0.5.28\n\n' + section + '\n\n'
+          notes = re.sub(r'\]\((docs/[^)]+)\)', lambda m: '](https://github.com/dieqiyun/uni-switch/blob/v0.5.28/' + m[1] + ')', notes)
+          notes += '下载：Windows 使用 x64-setup.exe 或便携包；Linux 使用 amd64.deb / x86_64.AppImage；macOS 12+ 使用 universal.dmg。安装和配置步骤见附件 README-zh-CN.md。Windows 安装包未新增商业代码签名；macOS 包未公证，Linux/macOS 应用配置后请手动重启客户端。\n\n'
+          notes += '三平台原生构建、隔离启动、源码及附件校验通过后发布。本版同时公开完整源码及 SHA256SUMS.txt，标签对应实际构建提交。历史版本与附件保持不变。\n\n'
+          notes += '对应源码：`caa0cebd8f8f81e4b408717ad9ad4b1361046e35`。\n'
+          target = Path('release/notes/0.5.28.md')
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(notes, encoding='utf-8')
+          PY
+          python scripts/prepare-multiplatform-release.py --artifacts .qa/github-artifacts/v0.5.28
+      - name: Publish draft only after complete upload readback verification
         env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
-        run: dbus-run-session -- xvfb-run -a python scripts/smoke-platform.py linux-x64
-      - name: macOS isolated launch and universal signature
-        if: runner.os == 'macOS'
-        run: python scripts/smoke-platform.py macos-universal
-      - name: Windows isolated launch
-        if: runner.os == 'Windows'
-        run: python scripts/smoke-platform.py windows-x64
-      - name: Collect versioned artifacts
-        run: python scripts/collect-platform-assets.py ${{ matrix.platform }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: uni-switch-${{ matrix.platform }}
-          path: release/ci/${{ matrix.platform }}/*
-          if-no-files-found: error
-          retention-days: 14
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, subprocess, sys
+          releases = json.loads(subprocess.check_output(['gh', 'api', 'repos/dieqiyun/uni-switch/releases?per_page=100'], text=True))
+          matching = [r for r in releases if r['tag_name'] == 'v0.5.28']
+          args = [sys.executable, 'scripts/publish-multiplatform-release.py', '--gh', 'gh']
+          if matching:
+              assert len(matching) == 1 and matching[0]['draft'], 'Will not overwrite a public release'
+              args.append('--resume-draft')
+          subprocess.run(args, check=True)
+          PY
+      - name: Summarize verified public release
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads(Path('.qa/published-0.5.28.json').read_text())
+          assert result['sourceRevision'] == 'caa0cebd8f8f81e4b408717ad9ad4b1361046e35'
+          assert len(result['assets']) == 10
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
+              f.write('Published verified v0.5.28: ' + result['url'] + '\n\n')
+              f.write('Source: `' + result['sourceRevision'] + '`\n\n')
+              for a in result['assets']:
+                  f.write('- ' + a['name'] + ' — ' + str(a['size']) + ' bytes — `' + a['digest'] + '`\n')
+          print(json.dumps(result, indent=2))
+          PY
