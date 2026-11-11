@@ -391,3 +391,10 @@ is unknown. Released 2.2.2 asks for an aionui.com sign-in before any page,
 Settings included, so the form, the saved row and gateway traffic have not
 been tried end to end. As with Cindy and Lody, the TUI leaves the row out
 because there is nothing to pick. `magpie aionui add` opens the link.
+
+
+Codex owned catalog recognition compares normalized absolute local paths as well
+as the configured native/relative spelling. On Windows, an older forward-slash
+model_catalog_json reference is therefore removed when its owned list is gone;
+WSL paths retain their own spelling rules. TestCodexSyncMendsGoneCatalog covers
+the disconnected case.

@@ -30808,8 +30808,8 @@
     },
     {
       "path": "internal/agent/codex.go",
-      "sha256": "d59c3ffa8d807ada066d4d76f8dbd11e91bad8c2a24f8256f5def2ce3ddb8916",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Preserve externally applied provider URLs and do not reconnect from stale API preferences during background sync.; enforce maintainer-requested Codex zh-CN UI and requires_openai_auth=true, with atomic TOML migration and regression coverage"
+      "sha256": "a99cac3387469ffefbed8750a5c17d9596864f90b42e100b88b3632d3503d6e2",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Preserve externally applied provider URLs and do not reconnect from stale API preferences during background sync.; enforce maintainer-requested Codex zh-CN UI and requires_openai_auth=true, with atomic TOML migration and regression coverage Normalize absolute catalog paths on Windows so missing owned catalogs are removed from disconnected Codex configuration regardless of slash spelling."
     },
     {
       "path": "internal/agent/commandcode_test.go",
@@ -54216,8 +54216,8 @@
     },
     {
       "path": "docs/subsystems/agent-wiring.md",
-      "sha256": "dc3feb55067c4dfd7d2f1f1864ed6a2719c3f89e23e0c802a1f16da4e62de70d",
-      "reason": "Document external configuration precedence and Desktop profile selection and restart behavior.; enforce maintainer-requested Codex zh-CN UI and requires_openai_auth=true, with atomic TOML migration and regression coverage"
+      "sha256": "6d84f01f422563fabe7d00518b35f5659532e98c8367d26bfe8598b08ef9b931",
+      "reason": "Document external configuration precedence and Desktop profile selection and restart behavior.; enforce maintainer-requested Codex zh-CN UI and requires_openai_auth=true, with atomic TOML migration and regression coverage Document normalized local Codex catalog ownership."
     }
   ],
   "removedFiles": [
