@@ -149,6 +149,7 @@ func TestClaudeClientCacheKeepsEarlierTranscriptBoundary(t *testing.T) {
 // private header. Its marks must be kept like an opted-in client's (#3835),
 // and the transcript boundary must survive the round's growth.
 func TestClaudeClientCacheClassifierWithoutHeader(t *testing.T) {
+	printMode(t, true)
 	s := New()
 	t.Cleanup(s.subscription.abortAll)
 	var rounds [2]*Request
@@ -185,6 +186,7 @@ func TestClaudeClientCacheClassifierWithoutHeader(t *testing.T) {
 // one, which Anthropic refuses) never asked for them through uni-switch's
 // header, so it is served the default way, as before #3835, not refused.
 func TestClaudeClientCacheClassifierBadMarksServedAsBefore(t *testing.T) {
+	printMode(t, true)
 	body := classifierBody(t, false)
 	body = bytes.Replace(body, []byte(`"cache_control":{"ttl":"1h","type":"ephemeral"}`), []byte(`"cache_control":{"ttl":"5m","type":"ephemeral"}`), 1)
 	if !bytes.Contains(body, []byte(`"ttl":"5m"`)) {

@@ -12,6 +12,21 @@ macOS 最低版本为 12。应用采用 ad-hoc 签名，未进行 Apple Develope
 
 本地保存的账号不代表该服务授予所有模型或工具权限。真实登录、套餐和额度由对应服务确认。不要把 API Key 发给他人或提交到公开源码。
 
+## Google OAuth 注册信息
+
+Gemini CLI / Antigravity 登录和账号导入需要使用者提供自己拥有或获准使用的 Google OAuth 注册信息。程序不再附带其他应用的 Client ID / Secret。
+
+在应用数据目录创建私有文件 `google-oauth.json`（设置了 `UNI_SWITCH_DATA_DIR` 时就在该目录），格式如下；只填写实际需要的订阅：
+
+```json
+{
+  "gemini": { "clientId": "你的 Client ID", "clientSecret": "你的 Client Secret" },
+  "antigravity": { "clientId": "你的 Client ID", "clientSecret": "你的 Client Secret" }
+}
+```
+
+缺少配置时，登录提示会显示文件的完整路径。注册信息必须支持该订阅所需权限及本机回调；导入的刷新令牌必须属于同一个注册信息。每个新账号保存最初使用的注册信息，之后修改此文件不会改变旧账号的刷新客户端。没有记录原始注册信息的旧账号需要重新登录。把此文件与账号凭据一样保管，不要提交到 GitHub。
+
 ## 客户端配置
 
 uni-switch 写入客户端原生配置，保留无关设置，并使用原子写入和失败回滚。遇到外部修改时，先查看冲突提示与实际配置。连接或切换模型后，根据客户端提示重新打开客户端；旧会话遇到供应商或签名错误时可新建对话。

@@ -3,8 +3,8 @@ package provider
 // Google's subscriptions: Gemini CLI's and Antigravity's Google sign-ins.
 // Both are served by Google's Code Assist backend (cloudcode-pa), which
 // speaks Gemini's API wrapped in an envelope of its own, under a Google
-// Cloud project Code Assist gives the account. uni-switch signs in with each
-// app's own OAuth client, keeps the tokens in logins.json and refreshes
+// Cloud project Code Assist gives the account. uni-switch uses a user-supplied
+// OAuth registration, keeps the tokens in logins.json and refreshes
 // them in memory; Gemini CLI's own sign-in (~/.gemini/oauth_creds.json) is
 // read, never written. The gateway speaks the envelope (gateway/codeassist.go).
 //

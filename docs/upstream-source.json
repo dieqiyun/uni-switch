@@ -32596,8 +32596,8 @@
     },
     {
       "path": "internal/browsermcp/browsermcp.go",
-      "sha256": "5714073a0b7399793d2af8dc7e127ae0b0bb56c75bef051338976996f3c3f654",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "3722faba80ed031537c5b07b37ff804472173e2ad435a3427db5feeda23fc855",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Preserve rooted image paths on Windows instead of joining them to the agent working directory a second time."
     },
     {
       "path": "internal/budget/budget_test.go",
@@ -34651,8 +34651,8 @@
     },
     {
       "path": "internal/gateway/claude_client_cache_boundary_test.go",
-      "sha256": "83e22626ceb2ce44c3c212758372441e4352377eba1b37da5810f8e87c5f12d9",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "b5ced5b5df56b02e35eb225e20e69aac7779238cbb444cf0f16dbdc4d8408670",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Explicitly select print mode for tests of print-mode cache-boundary behavior, independent of the interactive-mode default."
     },
     {
       "path": "internal/gateway/claude_client_cache_test.go",
@@ -36501,8 +36501,8 @@
     },
     {
       "path": "internal/gateway/glm_responses_test.go",
-      "sha256": "ef947408b97524c14932749c1817221175f76e05214d9e83544cba8580e81b55",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "be7343c9797b2ad0578a4f9fb23b6bce13459d0d064b3f317f7fbf34569db560",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use explicitly configured native API endpoints to retain GLM protocol coverage after removing vendor presets; avoid nil preset panic."
     },
     {
       "path": "internal/gateway/goroutines_test.go",
@@ -50304,8 +50304,8 @@
     },
     {
       "path": "internal/provider/google_import.go",
-      "sha256": "510c5c01aa7227877850b0b43d1a83bfba53838d37ed613bfd4794795bb11c08",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Require user-owned or authorized Google OAuth registrations, persist the minting registration with each account, and reject missing registrations before sign-in/import/refresh; remove bundled third-party credentials."
+      "sha256": "dac72157751a30e0db756cd063486bedca44ee81d2a37c51547d801cf230e92c",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Require user-owned or authorized Google OAuth registrations, persist the minting registration with each account, and reject missing registrations before sign-in/import/refresh; remove bundled third-party credentials. Require user-authorized Google OAuth registration for imported tokens."
     },
     {
       "path": "internal/provider/google_test.go",
@@ -50314,8 +50314,8 @@
     },
     {
       "path": "internal/provider/google.go",
-      "sha256": "960ad3d65d926d0cb0e5036e6495e5544c9dff944de81628f6c40e3af542eb33",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Require user-owned or authorized Google OAuth registrations, persist the minting registration with each account, and reject missing registrations before sign-in/import/refresh; remove bundled third-party credentials."
+      "sha256": "91e2dc5fa9d89af4ec26ce481ef6fed90f5992718c49cf8d11ae85ed850ea321",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Require user-owned or authorized Google OAuth registrations, persist the minting registration with each account, and reject missing registrations before sign-in/import/refresh; remove bundled third-party credentials. Remove bundled OAuth registrations and require the user-authorized minting registration for each account."
     },
     {
       "path": "internal/provider/grok_accounts.go",

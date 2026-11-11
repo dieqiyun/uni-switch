@@ -112,7 +112,7 @@ func imageFrom(b []byte, wd string) []byte {
 	}
 	image = strings.TrimSpace(image)
 	low := strings.ToLower(image)
-	if image == "" || filepath.IsAbs(image) || strings.HasPrefix(image, "~") || strings.Contains(low[:min(len(low), 12)], ":") {
+	if image == "" || filepath.IsAbs(image) || strings.HasPrefix(image, "/") || strings.HasPrefix(image, `\`) || strings.HasPrefix(image, "~") || strings.Contains(low[:min(len(low), 12)], ":") {
 		return b // absolute, the home's, or a URL (data:, http:, file:) or a drive (C:)
 	}
 	a["image"], _ = json.Marshal(filepath.Join(wd, image))

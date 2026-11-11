@@ -6,8 +6,8 @@ package provider
 // keeps each account as {email, token: {refresh_token, project_id, …}},
 // CLIProxyAPI as {type: "antigravity", email, refresh_token, project_id, …},
 // and Cockpit also takes bare refresh tokens, one a line. The user must
-// supply the same OAuth registration that minted the imported tokens. Each is checked the way a sign-in is
-// finished: the token refreshed with Google, whose account it is asked,
+// supply the same OAuth registration that minted the imported tokens. Each is
+// checked the way a sign-in is finished: the token refreshed with Google, whose account it is asked,
 // the Code Assist project found; only then is it kept, as a signed-in
 // account is. Tokens are never logged or sent back.
 
