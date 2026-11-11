@@ -4,6 +4,7 @@ Does not print matched values. This is a focused release check, not a complete
 secret-detection guarantee. Only synthetic URL fixtures under .test are exempt.
 """
 from pathlib import Path
+import hashlib
 from urllib.parse import urlsplit
 import json
 import re
@@ -23,16 +24,40 @@ PRIVATE_PATH = r"(^|/)(\.git|\.qa|\.tools|node_modules|target|release|output|__p
 
 
 def audit():
-    files = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")[:-1]
-    findings, fixtures, size = [], [], 0
-    for name in files:
-        if re.search(PRIVATE_PATH, name):
+    # Read the exact index, including each staged blob, in one batch. Thousands
+    # of imported source files must not require thousands of git processes.
+    entries = subprocess.check_output(["git", "ls-files", "--stage", "-z"], cwd=ROOT).decode("utf-8").split("\0")[:-1]
+    files = []
+    for entry in entries:
+        header, name = entry.split("\t", 1)
+        mode, oid, stage = header.split()
+        if stage != "0":
+            raise RuntimeError("Resolve the index conflict before auditing: " + name)
+        files.append((name, oid))
+    data_stream = subprocess.check_output(["git", "cat-file", "--batch"], cwd=ROOT,
+                                         input="".join(oid + "\n" for _, oid in files).encode())
+    exceptions_path = ROOT / "docs/upstream-source-audit.json"
+    exceptions = {x["file"]: x for x in json.loads(exceptions_path.read_text(encoding="utf-8"))} if exceptions_path.exists() else {}
+    findings, fixtures, size, cursor = [], [], 0, 0
+    for name, oid in files:
+        end = data_stream.index(b"\n", cursor)
+        returned, kind, length = data_stream[cursor:end].decode().split()
+        if returned != oid or kind != "blob":
+            raise RuntimeError("Unexpected staged object: " + name)
+        cursor = end + 1
+        data = data_stream[cursor:cursor + int(length)]
+        cursor += int(length) + 1
+        exception = exceptions.get(name, {})
+        verified = exception.get("sha256") == hashlib.sha256(data).hexdigest() and bool(exception.get("reason"))
+        if re.search(PRIVATE_PATH, name) and not (verified and "private_or_generated_path" in exception.get("types", [])):
             findings.append({"file": name, "type": "private_or_generated_path"})
-        data = subprocess.check_output(["git", "show", ":" + name], cwd=ROOT)
         size += len(data)
         for kind, pattern in PATTERNS.items():
             for match in re.finditer(pattern, data):
                 item = {"file": name, "line": data[:match.start()].count(b"\n") + 1, "type": kind}
+                if verified and kind in exception.get("types", []):
+                    fixtures.append(item)
+                    continue
                 if kind == "credential_url" and name.endswith((".test.ts", ".test.tsx")):
                     host = urlsplit(match.group().decode()).hostname or ""
                     if host.endswith(".test"):

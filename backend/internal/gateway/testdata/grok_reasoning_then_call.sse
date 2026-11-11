@@ -1,0 +1,123 @@
+event: response.created
+data: {"sequence_number":0,"type":"response.created","response":{"created_at":1793540079,"completed_at":null,"id":"9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","max_output_tokens":100,"model":"grok-4.6-build","object":"response","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":"concise"},"temperature":1.0,"text":{"format":{"type":"text"}},"tool_choice":{"type":"function","name":"session_title"},"tools":[{"type":"function","description":"Generate the session_title which we use for the user_message","name":"session_title","parameters":{"type":"object","required":["session_title"],"properties":{"session_title":{"type":"string","description":"Final session title, just 5-10 word descriptive title for the session. Super info dense, no filler."}},"additionalProperties":false},"strict":null}],"top_p":0.95,"usage":null,"user":null,"incomplete_details":null,"status":"in_progress","store":false,"metadata":{"system_fingerprint":"fp_21c045be27"},"background":false,"service_tier":"default","truncation":"disabled","top_logprobs":0,"presence_penalty":0.0,"frequency_penalty":0.0,"prompt_cache_key":null,"max_tool_calls":null,"safety_identifier":null,"error":null,"instructions":null}}
+
+event: response.in_progress
+data: {"sequence_number":1,"type":"response.in_progress","response":{"created_at":1793540079,"completed_at":null,"id":"9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","max_output_tokens":100,"model":"grok-4.6-build","object":"response","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":"concise"},"temperature":1.0,"text":{"format":{"type":"text"}},"tool_choice":{"type":"function","name":"session_title"},"tools":[{"type":"function","description":"Generate the session_title which we use for the user_message","name":"session_title","parameters":{"type":"object","required":["session_title"],"properties":{"session_title":{"type":"string","description":"Final session title, just 5-10 word descriptive title for the session. Super info dense, no filler."}},"additionalProperties":false},"strict":null}],"top_p":0.95,"usage":null,"user":null,"incomplete_details":null,"status":"in_progress","store":false,"metadata":{"system_fingerprint":"fp_21c045be27"},"background":false,"service_tier":"default","truncation":"disabled","top_logprobs":0,"presence_penalty":0.0,"frequency_penalty":0.0,"prompt_cache_key":null,"max_tool_calls":null,"safety_identifier":null,"error":null,"instructions":null}}
+
+event: response.output_item.added
+data: {"sequence_number":2,"type":"response.output_item.added","item":{"id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","summary":[],"type":"reasoning","status":"in_progress"},"output_index":0}
+
+event: response.reasoning_summary_part.added
+data: {"sequence_number":3,"type":"response.reasoning_summary_part.added","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"part":{"text":"","type":"summary_text"},"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":4,"type":"response.reasoning_summary_text.delta","delta":"I will read a.txt and","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+: xai-usage {"input_tokens":472,"input_tokens_details":{"cached_tokens":384},"output_tokens":75,"output_tokens_details":{"reasoning_tokens":75},"total_tokens":0,"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":8180000,"context_details":{"input_tokens":472,"output_tokens":75}}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":5,"type":"response.reasoning_summary_text.delta","delta":" b.txt, sum all numbers,","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":6,"type":"response.reasoning_summary_text.delta","delta":" write the result to","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":7,"type":"response.reasoning_summary_text.delta","delta":" c.txt, and report the","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":8,"type":"response.reasoning_summary_text.delta","delta":" total.","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":9,"type":"response.reasoning_summary_text.delta","delta":"\n\nI am generating a ","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+: xai-usage {"input_tokens":472,"input_tokens_details":{"cached_tokens":384},"output_tokens":190,"output_tokens_details":{"reasoning_tokens":190},"total_tokens":0,"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":15080000,"context_details":{"input_tokens":472,"output_tokens":190}}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":10,"type":"response.reasoning_summary_text.delta","delta":"session title for this","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":11,"type":"response.reasoning_summary_text.delta","delta":" task.","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":12,"type":"response.reasoning_summary_text.delta","delta":"\n\nI will generate a ","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+: xai-usage {"input_tokens":472,"input_tokens_details":{"cached_tokens":384},"output_tokens":338,"output_tokens_details":{"reasoning_tokens":338},"total_tokens":0,"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":23960000,"context_details":{"input_tokens":472,"output_tokens":338}}
+
+event: response.reasoning_summary_text.delta
+data: {"sequence_number":13,"type":"response.reasoning_summary_text.delta","delta":"session title using the `session_title` tool. I do not need to read or write files.","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0}
+
+event: response.reasoning_summary_text.done
+data: {"sequence_number":14,"type":"response.reasoning_summary_text.done","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"summary_index":0,"text":"I will read a.txt and b.txt, sum all numbers, write the result to c.txt, and report the total.\n\nI am generating a session title for this task.\n\nI will generate a session title using the `session_title` tool. I do not need to read or write files."}
+
+event: response.reasoning_summary_part.done
+data: {"sequence_number":15,"type":"response.reasoning_summary_part.done","item_id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":0,"part":{"text":"I will read a.txt and b.txt, sum all numbers, write the result to c.txt, and report the total.\n\nI am generating a session title for this task.\n\nI will generate a session title using the `session_title` tool. I do not need to read or write files.","type":"summary_text"},"summary_index":0}
+
+event: response.output_item.done
+data: {"sequence_number":16,"type":"response.output_item.done","item":{"id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","summary":[{"text":"I will read a.txt and b.txt, sum all numbers, write the result to c.txt, and report the total.\n\nI am generating a session title for this task.\n\nI will generate a session title using the `session_title` tool. I do not need to read or write files.","type":"summary_text"}],"type":"reasoning","status":"completed","encrypted_content":"IeheMCJfUzv1OoYVvraxUKikvuQ2TmTBkNZRf2NVuthBc1Fg3fV5Wn5XcO6YLDE2lutAkET/XbWRuOlL7BHThdo26qqk7FY6LdTDKQJ284n0iSEfFYOtxFrGs0uW57hYvKLckNAEjoHFflXGjWd6nlJr246LfTpdFEFl/GWPEJBm4PahKbwLNxpQaNZOt2tWDq3RbFjGabxHKKJvSsXxPNbycRgKLKjzF+kOjF6ynbIWlMcDkOm92lurmd8sglev7rX2EixWYaV+WLW6w2HM4x5yCzBg+WQrAkXk3BQIlm8rJpaX8fwyhvwZTKaW4VsblyDRtEYWxITtqJnEFXA+dxtzCNMEUlFpIl2n6jLSVRoxrBnissYxJzVxRSiFBlFWV7ws+zvuO+zeLf9koMjaGGJ/kO+dXO+cJq1S2tJwJu5uQMvztCsGg70B6+xvsN+vQLORfDPRxc+9IvNplIbqLRDzUWSrB7KW2ZlK7R8vfxucKtTE6moyg2XObRw5nV5M9H+qhexIHob4P35EpBovJstiB1T7Y2NdNfQi+MEmwI7LQNsGTt94yz5sql8a/i4Yeu63+H7TRQCqr3DJlujEPihCRISfnwOjGo8/tl/J8KHK0L3681JE1b2/Jt0o9ViLC+Uk5L4XHFBKm/F2GD6jOefeAxha4q0BHAhpYIhRuOqfbMwAmYaPS9X9ubr2Tds1xmFViAdM0q2CQrA0tW5WzkBv3DT+Nalk3YaR2A+rMhiue8rKQaDJBbh2CSrzRVcIubpkw3J6imBWlHgG2uWgmsQDFYf9o59WCi1iQpQQ9vi+hK1voui6eYJqC7nzZOjr116TMzHcwFeG6t+0X33zU0K8Z8nv10N5OFOsyNJb+SxBFGaZZ6jRlT+OpcrhqfTUl5Cjf6JW539BFF9nANpAdz8EtBlpDowEofUgweGAi3Knx4V3xEFbW40SX9s4TtC83g6dk3Np71TtCKf2pJfbFJbCTNcyagsey3yoAXc7UmGemqjzy8XLdARTW0KWUMFqB0zrVRWvM2j9DhZ2cLLXpAt7Ia1xZz1g8DtxU/Hzgk1ioTmYjLR20572xW2hD3GrzPGnolV3cp7qsOByTOt1UX1QYjTyOFuHjDdm0aoMbQRQTpkHCA21OpdVTdNzKVby9M2dGHZjFRsoESp5q1pU2MNQmcdlkV0HIHnXZB/EwpRCRZaM/7BOvHNbu1BHXvCQv0cuuhZV1mZhUfa6cTuZ+D1L3/re2fOrDEkGxkGhXgmbN5qbj0L4DMEaJzuvFtCDc02OtaLNx4s1AnsLjBKmHA+up/tpi2Eu/RgpSsX3/ZZDvL3okzA50FT9cq10QbkPAKLz9TcZ65Sp3Sm/G/8+vKFNMsFD5EspwcHrEnd/1eEu1TzWXi7fAWDoptuMQk1MSolOYZvv/1cDotGU9uAddBaFoFCEWwTcVdy0TNT1FTTmzeskw/PAomcWQX+Wa3SK+BstWp0vG2dvRI+1UOZUaf5hdKCXJNKCHO6ETRCRPaTVweJP3CQb0D2LePrxAupYSuMdARfHnJaf9WTufBAa9HV4I/bgZtX7piG+Tb47kxRG5No2+JZLZlRLnjyDIm2+BuJMpSR+xXAVM8GjBQM8WqNhRTAVGosAFIpTctg4+TbZfttygJNjDL1tP5fKOKkCte51vsWEmaW6p7i0RuQ7yqKy/4rG80yvDStZ87Ed/DaBHALNdmzPtU5e93r3LV3XAujSSsrvi1FMmwJQmOpMOAHUPWeZL3hecd0e/uJhmmJKfyHqt3MDT7/w66rHudK0a/Yq4+JjP9OhT/XZ9Ry6ih/2+OI4onMuySjflcgg2wGTtOsq7Ng6Zb7bPPZ8f77W6j2QnnO9Yi+CalF9/PP3jSrNQxl8wpRhxXmZ3XDqvUitLcOVzGPMHiuaseZX4lCu51umueTcHSDmf9YpX0hx7iJhBehebhe/gbfytSX8qYb0g2gKoqTC8pJgvHnkqvUKr3mwzUk"},"output_index":0}
+
+event: response.output_item.added
+data: {"sequence_number":17,"type":"response.output_item.added","item":{"content":[],"id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","role":"assistant","type":"message","status":"in_progress"},"output_index":1}
+
+event: response.content_part.added
+data: {"sequence_number":18,"type":"response.content_part.added","content_index":0,"item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"part":{"type":"output_text","text":"","logprobs":[],"annotations":[]}}
+
+event: response.output_text.delta
+data: {"sequence_number":19,"type":"response.output_text.delta","content_index":0,"delta":"I'll","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":20,"type":"response.output_text.delta","content_index":0,"delta":" create","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":21,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":22,"type":"response.output_text.delta","content_index":0,"delta":" short","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":23,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":24,"type":"response.output_text.delta","content_index":0,"delta":" descriptive","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":25,"type":"response.output_text.delta","content_index":0,"delta":" session","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":26,"type":"response.output_text.delta","content_index":0,"delta":" title","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":27,"type":"response.output_text.delta","content_index":0,"delta":" from","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":28,"type":"response.output_text.delta","content_index":0,"delta":" that","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":29,"type":"response.output_text.delta","content_index":0,"delta":" request","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_text.delta
+data: {"sequence_number":30,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"logprobs":[]}
+
+event: response.output_item.added
+data: {"sequence_number":31,"type":"response.output_item.added","item":{"arguments":"","call_id":"call-b35b8754-d11f-46c5-9c64-fed82640a7f7-0","name":"session_title","type":"function_call","id":"fc_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874_0","status":"in_progress"},"output_index":2}
+
+event: response.function_call_arguments.delta
+data: {"sequence_number":32,"type":"response.function_call_arguments.delta","delta":"{\"session_title\":\"Sum a.txt and b.txt numbers into c.txt\"}","item_id":"fc_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874_0","output_index":2}
+
+event: response.function_call_arguments.done
+data: {"sequence_number":33,"type":"response.function_call_arguments.done","arguments":"{\"session_title\":\"Sum a.txt and b.txt numbers into c.txt\"}","item_id":"fc_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874_0","name":"session_title","output_index":2}
+
+event: response.output_item.done
+data: {"sequence_number":34,"type":"response.output_item.done","item":{"arguments":"{\"session_title\":\"Sum a.txt and b.txt numbers into c.txt\"}","call_id":"call-b35b8754-d11f-46c5-9c64-fed82640a7f7-0","name":"session_title","type":"function_call","id":"fc_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874_0","status":"completed"},"output_index":2}
+
+event: response.output_text.done
+data: {"sequence_number":35,"type":"response.output_text.done","content_index":0,"item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"text":"I'll create a short, descriptive session title from that request.","logprobs":[]}
+
+event: response.content_part.done
+data: {"sequence_number":36,"type":"response.content_part.done","content_index":0,"item_id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","output_index":1,"part":{"type":"output_text","text":"I'll create a short, descriptive session title from that request.","logprobs":[],"annotations":[]}}
+
+event: response.output_item.done
+data: {"sequence_number":37,"type":"response.output_item.done","item":{"content":[{"type":"output_text","text":"I'll create a short, descriptive session title from that request.","logprobs":[],"annotations":[]}],"id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","role":"assistant","type":"message","status":"completed"},"output_index":1}
+
+event: response.completed
+data: {"sequence_number":38,"type":"response.completed","response":{"created_at":1793540079,"completed_at":1793540083,"id":"9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","max_output_tokens":100,"model":"grok-4.6-build","object":"response","output":[{"id":"rs_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","summary":[{"text":"I will read a.txt and b.txt, sum all numbers, write the result to c.txt, and report the total.\n\nI am generating a session title for this task.\n\nI will generate a session title using the `session_title` tool. I do not need to read or write files.","type":"summary_text"}],"type":"reasoning","status":"completed","encrypted_content":"IeheMCJfUzv1OoYVvraxUKikvuQ2TmTBkNZRf2NVuthBc1Fg3fV5Wn5XcO6YLDE2lutAkET/XbWRuOlL7BHThdo26qqk7FY6LdTDKQJ284n0iSEfFYOtxFrGs0uW57hYvKLckNAEjoHFflXGjWd6nlJr246LfTpdFEFl/GWPEJBm4PahKbwLNxpQaNZOt2tWDq3RbFjGabxHKKJvSsXxPNbycRgKLKjzF+kOjF6ynbIWlMcDkOm92lurmd8sglev7rX2EixWYaV+WLW6w2HM4x5yCzBg+WQrAkXk3BQIlm8rJpaX8fwyhvwZTKaW4VsblyDRtEYWxITtqJnEFXA+dxtzCNMEUlFpIl2n6jLSVRoxrBnissYxJzVxRSiFBlFWV7ws+zvuO+zeLf9koMjaGGJ/kO+dXO+cJq1S2tJwJu5uQMvztCsGg70B6+xvsN+vQLORfDPRxc+9IvNplIbqLRDzUWSrB7KW2ZlK7R8vfxucKtTE6moyg2XObRw5nV5M9H+qhexIHob4P35EpBovJstiB1T7Y2NdNfQi+MEmwI7LQNsGTt94yz5sql8a/i4Yeu63+H7TRQCqr3DJlujEPihCRISfnwOjGo8/tl/J8KHK0L3681JE1b2/Jt0o9ViLC+Uk5L4XHFBKm/F2GD6jOefeAxha4q0BHAhpYIhRuOqfbMwAmYaPS9X9ubr2Tds1xmFViAdM0q2CQrA0tW5WzkBv3DT+Nalk3YaR2A+rMhiue8rKQaDJBbh2CSrzRVcIubpkw3J6imBWlHgG2uWgmsQDFYf9o59WCi1iQpQQ9vi+hK1voui6eYJqC7nzZOjr116TMzHcwFeG6t+0X33zU0K8Z8nv10N5OFOsyNJb+SxBFGaZZ6jRlT+OpcrhqfTUl5Cjf6JW539BFF9nANpAdz8EtBlpDowEofUgweGAi3Knx4V3xEFbW40SX9s4TtC83g6dk3Np71TtCKf2pJfbFJbCTNcyagsey3yoAXc7UmGemqjzy8XLdARTW0KWUMFqB0zrVRWvM2j9DhZ2cLLXpAt7Ia1xZz1g8DtxU/Hzgk1ioTmYjLR20572xW2hD3GrzPGnolV3cp7qsOByTOt1UX1QYjTyOFuHjDdm0aoMbQRQTpkHCA21OpdVTdNzKVby9M2dGHZjFRsoESp5q1pU2MNQmcdlkV0HIHnXZB/EwpRCRZaM/7BOvHNbu1BHXvCQv0cuuhZV1mZhUfa6cTuZ+D1L3/re2fOrDEkGxkGhXgmbN5qbj0L4DMEaJzuvFtCDc02OtaLNx4s1AnsLjBKmHA+up/tpi2Eu/RgpSsX3/ZZDvL3okzA50FT9cq10QbkPAKLz9TcZ65Sp3Sm/G/8+vKFNMsFD5EspwcHrEnd/1eEu1TzWXi7fAWDoptuMQk1MSolOYZvv/1cDotGU9uAddBaFoFCEWwTcVdy0TNT1FTTmzeskw/PAomcWQX+Wa3SK+BstWp0vG2dvRI+1UOZUaf5hdKCXJNKCHO6ETRCRPaTVweJP3CQb0D2LePrxAupYSuMdARfHnJaf9WTufBAa9HV4I/bgZtX7piG+Tb47kxRG5No2+JZLZlRLnjyDIm2+BuJMpSR+xXAVM8GjBQM8WqNhRTAVGosAFIpTctg4+TbZfttygJNjDL1tP5fKOKkCte51vsWEmaW6p7i0RuQ7yqKy/4rG80yvDStZ87Ed/DaBHALNdmzPtU5e93r3LV3XAujSSsrvi1FMmwJQmOpMOAHUPWeZL3hecd0e/uJhmmJKfyHqt3MDT7/w66rHudK0a/Yq4+JjP9OhT/XZ9Ry6ih/2+OI4onMuySjflcgg2wGTtOsq7Ng6Zb7bPPZ8f77W6j2QnnO9Yi+CalF9/PP3jSrNQxl8wpRhxXmZ3XDqvUitLcOVzGPMHiuaseZX4lCu51umueTcHSDmf9YpX0hx7iJhBehebhe/gbfytSX8qYb0g2gKoqTC8pJgvHnkqvUKr3mwzUk"},{"content":[{"type":"output_text","text":"I'll create a short, descriptive session title from that request.","logprobs":[],"annotations":[]}],"id":"msg_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874","role":"assistant","type":"message","status":"completed"},{"arguments":"{\"session_title\":\"Sum a.txt and b.txt numbers into c.txt\"}","call_id":"call-b35b8754-d11f-46c5-9c64-fed82640a7f7-0","name":"session_title","type":"function_call","id":"fc_9ce0c0aa-ec8c-9b9b-af10-50b60ef9c874_0","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":"concise"},"temperature":1.0,"text":{"format":{"type":"text"}},"tool_choice":{"type":"function","name":"session_title"},"tools":[{"type":"function","description":"Generate the session_title which we use for the user_message","name":"session_title","parameters":{"type":"object","required":["session_title"],"properties":{"session_title":{"type":"string","description":"Final session title, just 5-10 word descriptive title for the session. Super info dense, no filler."}},"additionalProperties":false},"strict":null}],"top_p":0.95,"usage":{"input_tokens":472,"input_tokens_details":{"cached_tokens":384},"output_tokens":373,"output_tokens_details":{"reasoning_tokens":339},"total_tokens":845,"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":26060000,"context_details":{"input_tokens":472,"output_tokens":379}},"user":null,"incomplete_details":null,"status":"completed","store":false,"metadata":{"system_fingerprint":"fp_21c045be27"},"background":false,"service_tier":"default","truncation":"disabled","top_logprobs":0,"presence_penalty":0.0,"frequency_penalty":0.0,"prompt_cache_key":null,"max_tool_calls":null,"safety_identifier":null,"error":null,"instructions":null}}
+

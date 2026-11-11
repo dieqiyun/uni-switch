@@ -1,729 +1,165 @@
-pub mod adapters;
 #[cfg(feature = "desktop")]
-pub mod background;
-pub mod bridge;
-mod browser;
-pub mod client_config;
-pub mod discovery;
-pub mod error;
-pub mod go_backend;
-mod go_state;
-mod metadata_transport;
-pub mod model_capabilities;
-pub mod model_registry;
-pub mod model_verification;
-pub mod project_links;
-pub mod restart;
-pub mod service_website;
-pub mod store;
-pub mod supplier;
-pub mod types;
-pub mod updates;
-pub mod writer;
+mod core;
 
-#[cfg(feature = "desktop")]
-mod desktop {
-    use crate::{
-        error::{AppError, Result},
-        store::Store,
-        types::*,
-    };
-    use std::sync::{Arc, Mutex};
-    use tauri::{Manager, State};
-    type AppState = Arc<Mutex<Store>>;
-    fn locked<'a>(state: &'a State<'_, AppState>) -> Result<std::sync::MutexGuard<'a, Store>> {
-        state
-            .lock()
-            .map_err(|_| AppError::new("busy", "配置服务异常，请重新打开应用"))
+#[cfg(any(feature = "desktop", test))]
+fn instance_identifier(identifier: &str, directory: &std::path::Path) -> std::io::Result<String> {
+    use sha2::{Digest, Sha256};
+    if !directory.is_absolute() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "UNI_SWITCH_DATA_DIR 必须为绝对路径",
+        ));
     }
-
-    #[tauri::command]
-    fn get_overview(state: State<AppState>) -> Result<Overview> {
-        locked(&state)?.overview()
-    }
-    #[tauri::command]
-    fn get_client_config_status(
-        state: State<AppState>,
-        client: crate::client_config::ClientKind,
-    ) -> Result<crate::client_config::ClientConfigStatus> {
-        locked(&state)?.client_config_status(client)
-    }
-    #[tauri::command]
-    fn read_client_config(
-        state: State<AppState>,
-        client: crate::client_config::ClientKind,
-        file_id: String,
-    ) -> Result<crate::client_config::ConfigDocument> {
-        locked(&state)?.read_client_config(client, &file_id)
-    }
-    #[tauri::command]
-    fn save_client_config(
-        state: State<AppState>,
-        document: crate::client_config::ConfigDocument,
-    ) -> Result<crate::client_config::ConfigWriteResult> {
-        locked(&state)?.save_client_config(document)
-    }
-    #[tauri::command]
-    fn set_client_config_directory(
-        state: State<AppState>,
-        client: crate::client_config::ClientKind,
-        directory: String,
-    ) -> Result<()> {
-        locked(&state)?.set_client_config_directory(client, directory)
-    }
-    #[tauri::command]
-    fn apply_client_config(
-        state: State<AppState>,
-        client: crate::client_config::ClientKind,
-        provider_id: String,
-        protocol: crate::client_config::NativeProtocol,
-        expected_revision: Option<String>,
-    ) -> Result<crate::client_config::ConfigWriteResult> {
-        locked(&state)?.apply_client_config(
-            client,
-            &provider_id,
-            protocol,
-            expected_revision.as_deref(),
-        )
-    }
-    #[tauri::command]
-    fn restore_client_config(
-        state: State<AppState>,
-        client: crate::client_config::ClientKind,
-    ) -> Result<crate::client_config::ConfigWriteResult> {
-        locked(&state)?.restore_client_config(client)
-    }
-    #[tauri::command]
-    fn set_client_config_profile(state: State<AppState>, client:crate::client_config::ClientKind, profile:String)->Result<()> {
-        locked(&state)?.set_client_config_profile(client,profile)
-    }
-
-    #[tauri::command]
-    fn get_background_settings() -> Result<crate::background::BackgroundSettings> {
-        crate::background::settings()
-    }
-    #[tauri::command]
-    fn get_update_source() -> crate::updates::UpdateSource {
-        crate::updates::source()
-    }
-    #[tauri::command]
-    async fn check_app_update() -> Result<crate::updates::UpdateCheck> {
-        crate::updates::check().await
-    }
-    #[tauri::command]
-    async fn start_app_update_download(
-        version: String,
-        state: State<'_, crate::updates::UpdateManager>,
-    ) -> Result<crate::updates::DownloadStatus> {
-        state.start(&version)
-    }
-    #[tauri::command]
-    fn get_app_update_download(
-        state: State<'_, crate::updates::UpdateManager>,
-    ) -> Result<Option<crate::updates::DownloadStatus>> {
-        state.status()
-    }
-    #[tauri::command]
-    fn cancel_app_update_download(
-        id: String,
-        state: State<'_, crate::updates::UpdateManager>,
-    ) -> Result<()> {
-        state.cancel(&id)
-    }
-    #[tauri::command]
-    async fn install_app_update(
-        id: String,
-        app: tauri::AppHandle,
-        state: State<'_, crate::updates::UpdateManager>,
-    ) -> Result<crate::updates::InstallResult> {
-        let result = state.install(&id)?;
-        if result.exit_required {
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                app.exit(0);
-            });
-        }
-        Ok(result)
-    }
-    #[tauri::command]
-    fn open_app_release(url: String) -> Result<()> {
-        crate::updates::open_release(&url)
-    }
-    #[tauri::command]
-    fn open_project_page(page: crate::project_links::ProjectPage) -> Result<()> {
-        crate::project_links::open(page)
-    }
-    #[tauri::command]
-    fn open_service_website() -> Result<()> {
-        crate::service_website::open()
-    }
-    #[tauri::command]
-    fn set_background_start(enabled: bool) -> Result<crate::background::BackgroundSettings> {
-        crate::background::set(enabled)
-    }
-    #[tauri::command]
-    async fn get_runtime_status(
-        state: State<'_, AppState>,
-        target: Target,
-    ) -> Result<serde_json::Value> {
-        let (directory, applied_at, required, route) = locked(&state)?.runtime_context(target)?;
-        let (client_running, restart_required, desktop) =
-            tauri::async_runtime::spawn_blocking(move || {
-                let desktop = crate::restart::client_runtime(target, &directory, applied_at);
-                if target != Target::Codex {
-                    return (desktop.running, desktop.restart_required, desktop);
-                }
-                let (running, restart) =
-                    crate::discovery::client_runtime(target, &directory, applied_at);
-                (
-                    running || desktop.running,
-                    restart || desktop.restart_required,
-                    desktop,
-                )
-            })
-            .await
-            .map_err(|_| AppError::new("runtime", "客户端状态检查未完成"))?;
-        let healthy = match route {
-            Some(route) => crate::bridge::healthy(&route).await,
-            None => false,
-        };
-        Ok(
-            serde_json::json!({"target":target,"clientRunning":client_running,"restartRequired":restart_required,"bridgeRequired":required,"bridgeHealthy":healthy,"configurationRevision":applied_at,"desktopRunning":target != Target::ClaudeCli && desktop.running,"desktopRestartRequired":target != Target::ClaudeCli && desktop.restart_required,"canRestartDesktop":target != Target::ClaudeCli && desktop.can_restart,"canRestartClient":desktop.can_restart,"restartInProgress":desktop.restart_in_progress,"restartReason":desktop.reason}),
-        )
-    }
-    #[tauri::command]
-    async fn restart_codex_desktop(
-        state: State<'_, AppState>,
-        configuration_revision: u64,
-    ) -> Result<crate::restart::RestartResult> {
-        restart_client(state, Target::Codex, configuration_revision).await
-    }
-    #[tauri::command]
-    async fn restart_client(
-        state: State<'_, AppState>,
-        target: Target,
-        configuration_revision: u64,
-    ) -> Result<crate::restart::RestartResult> {
-        let (directory, revision, _, _) = locked(&state)?.runtime_context(target)?;
-        if revision != configuration_revision {
-            return Err(AppError::new(
-                "restart_configuration_changed",
-                "配置刚刚发生变化，请稍后重试以加载最新配置",
-            ));
-        }
-        tauri::async_runtime::spawn_blocking(move || {
-            crate::restart::restart_client(target, &directory)
-        })
-        .await
-        .map_err(|_| {
-            AppError::new(
-                "restart_failed",
-                "重启操作未完成，请手动退出对应客户端后重新打开；新配置已保存",
-            )
-        })?
-    }
-    #[tauri::command]
-    fn save_provider(state: State<AppState>, input: ProviderInput) -> Result<Provider> {
-        locked(&state)?.save(input)
-    }
-    #[tauri::command]
-    async fn commit_provider(
-        state: State<'_, AppState>,
-        input: ProviderInput,
-        target: Target,
-        apply: bool,
-    ) -> Result<serde_json::Value> {
-        let upstream =
-            input
-                .codex_options
-                .upstream_protocol
-                .unwrap_or(if input.family == Family::Codex {
-                    input.codex_options.protocol
-                } else if input.codex_options.claude_protocol == ClaudeProtocol::Openai {
-                    CodexProtocol::Openai
-                } else {
-                    CodexProtocol::Anthropic
-                });
-        if apply && ((target == Target::Codex) != (upstream == CodexProtocol::Openai)) {
-            let route = locked(&state)?
-                .runtime_context(target)?
-                .3
-                .ok_or_else(|| AppError::new("bridge_unavailable", "兼容服务尚未启动"))?;
-            if !crate::bridge::healthy(&route).await {
-                return Err(AppError::new(
-                    "bridge_unavailable",
-                    "兼容服务正在自动恢复，请稍后再使用；原供应商与配置未改变",
-                ));
-            }
-        }
-        let (provider, reused) = locked(&state)?.commit_unique_provider(input, target, apply)?;
-        let mut result = serde_json::to_value(provider)
-            .map_err(|_| AppError::new("serialization", "供应商结果无法读取"))?;
-        result["reusedExisting"] = serde_json::json!(reused);
-        Ok(result)
-    }
-    #[tauri::command]
-    async fn discover_provider_connection(
-        state: State<'_, AppState>,
-        core: State<'_, Arc<crate::go_backend::GoBackend>>,
-        input: ConnectionInput,
-        protocol: Option<CodexProtocol>,
-        auth_mode: Option<String>,
-    ) -> Result<ModelSyncResult> {
-        let (base_url, key) = locked(&state)?.connection(input)?;
-        core.discover(&base_url, &key, protocol, auth_mode.as_deref())
-            .await
-    }
-    #[tauri::command]
-    fn resolve_model_profiles(
-        base_url: String,
-        mut models: Vec<ProviderModel>,
-        provider_context: Option<i64>,
-    ) -> Result<Vec<ProviderModel>> {
-        crate::types::validate_url(&base_url)?;
-        crate::model_registry::resolve_models(&mut models, &base_url, provider_context)?;
-        Ok(models)
-    }
-    #[tauri::command]
-    async fn platform_command(state: State<'_, AppState>, action: String, params: serde_json::Value) -> Result<serde_json::Value> {
-        let directory = locked(&state)?.data_directory.clone();
-        let allowed = ["sources", "save", "delete", "accounts", "login", "loginStatus", "loginCancel", "loginCallback", "accountSwitch", "accountEnable", "accountDelete", "accountProject", "accountRefresh", "info", "openLogin"];
-        if !allowed.contains(&action.as_str()) { return Err(AppError::new("platform_action", "未知账号或网关操作")); }
-        tauri::async_runtime::spawn_blocking(move || {
-            let mut input = params.as_object().cloned().unwrap_or_default();
-            input.insert("directory".into(), serde_json::json!(directory));
-            if action == "info" { return crate::metadata_transport::call("gateway.listen", serde_json::json!({"directory":directory})); }
-            let method = if action == "openLogin" { "loginStatus" } else { &action };
-            let result = crate::metadata_transport::call(&format!("platform.{method}"), serde_json::Value::Object(input))?;
-            if action == "openLogin" {
-                let raw = result["url"].as_str().ok_or_else(|| AppError::new("login_url", "登录页面尚未就绪"))?;
-                let url = url::Url::parse(raw).map_err(|_| AppError::new("login_url", "登录地址无效"))?;
-                let host = url.host_str().unwrap_or_default();
-                if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() || !["auth.openai.com", "accounts.google.com", "github.com", "claude.ai", "console.anthropic.com", "platform.claude.com"].contains(&host) {
-                    return Err(AppError::new("login_url", "账号服务返回了未知登录地址"));
-                }
-                crate::browser::open(raw, "login_browser", "无法打开登录页面，请复制登录链接到浏览器")?;
-            }
-            Ok(result)
-        }).await.map_err(|_| AppError::new("platform_worker", "账号服务任务异常"))?
-    }
-    #[tauri::command]
-    fn get_model_registry(state: State<AppState>) -> Result<crate::model_registry::Status> {
-        crate::model_registry::status(&locked(&state)?.data_directory)
-    }
-    #[tauri::command]
-    async fn update_model_registry(
-        state: State<'_, AppState>,
-    ) -> Result<crate::model_registry::Status> {
-        let directory = locked(&state)?.data_directory.clone();
-        crate::model_registry::update(&directory).await
-    }
-    #[tauri::command]
-    async fn verify_model_connection(
-        state: State<'_, AppState>,
-        core: State<'_, Arc<crate::go_backend::GoBackend>>,
-        input: ConnectionInput,
-        model: String,
-        auth_mode: String,
-        endpoint: crate::model_verification::Endpoint,
-        consent: bool,
-    ) -> Result<crate::model_verification::Observation> {
-        crate::model_verification::require_consent(consent)?;
-        let (base, key) = locked(&state)?.connection(input)?;
-        core.test_model(&base, &key, &auth_mode, &model, endpoint, consent)
-            .await
-    }
-    #[tauri::command]
-    fn delete_provider(state: State<AppState>, provider_id: String) -> Result<()> {
-        locked(&state)?.delete(&provider_id)
-    }
-    #[tauri::command]
-    fn prepare_apply_overwrite(
-        state: State<AppState>,
-        target: Target,
-        provider_id: String,
-    ) -> Result<ApplyOverwriteConfirmation> {
-        locked(&state)?.prepare_apply_overwrite(target, &provider_id)
-    }
-
-    #[tauri::command]
-    async fn apply_provider(
-        state: State<'_, AppState>,
-        target: Target,
-        provider_id: String,
-        confirmation_token: Option<String>,
-    ) -> Result<TargetStatus> {
-        let (required, route) = {
-            let store = locked(&state)?;
-            (
-                store.provider_requires_bridge(target, &provider_id)?,
-                store.runtime_context(target)?.3,
-            )
-        };
-        if required
-            && !crate::bridge::healthy(
-                &route.ok_or_else(|| AppError::new("bridge_unavailable", "兼容服务尚未启动"))?,
-            )
-            .await
-        {
-            return Err(AppError::new(
-                "bridge_unavailable",
-                "兼容服务正在自动恢复，请稍后重试",
-            ));
-        }
-        let mut store = locked(&state)?;
-        match confirmation_token {
-            Some(token) => store.apply_overwrite(target, &provider_id, &token),
-            None => store.apply(target, &provider_id),
-        }
-    }
-    #[tauri::command]
-    async fn sync_provider_targets(
-        state: State<'_, AppState>,
-        provider_id: String,
-    ) -> Result<serde_json::Value> {
-        let targets = locked(&state)?.overview()?.targets;
-        let mut results = Vec::new();
-        for status in targets
-            .into_iter()
-            .filter(|s| s.active_provider_id.as_deref() == Some(&provider_id))
-        {
-            if status.state == "applied" {
-                continue;
-            }
-            let result =
-                {
-                    let (required, route) = {
-                        let store = locked(&state)?;
-                        (
-                            store.provider_requires_bridge(status.target, &provider_id)?,
-                            store.runtime_context(status.target)?.3,
-                        )
-                    };
-                    if required
-                        && !crate::bridge::healthy(&route.ok_or_else(|| {
-                            AppError::new("bridge_unavailable", "兼容服务尚未启动")
-                        })?)
-                        .await
-                    {
-                        Err(AppError::new(
-                            "bridge_unavailable",
-                            "后台兼容服务正在恢复，请稍后重试",
-                        ))
-                    } else {
-                        locked(&state)?.sync_connection(status.target, &provider_id)
-                    }
-                };
-            match result {
-                Ok(_) => results.push(serde_json::json!({"target":status.target,"success":true})),
-                Err(error) => results.push(
-                    serde_json::json!({"target":status.target,"success":false,"error":error}),
-                ),
-            }
-        }
-        Ok(serde_json::json!(results))
-    }
-    #[tauri::command]
-    fn set_provider_fast_mode(
-        state: State<AppState>,
-        provider_id: String,
-        enabled: bool,
-    ) -> Result<FastModeResult> {
-        locked(&state)?.set_provider_fast_mode(&provider_id, enabled)
-    }
-    #[tauri::command]
-    async fn detect_provider_protocol(
-        state: State<'_, AppState>,
-        core: State<'_, Arc<crate::go_backend::GoBackend>>,
-        expected: Provider,
-    ) -> Result<Provider> {
-        let (base, key, protocol, auth) = locked(&state)?.protocol_probe_connection(&expected)?;
-        let result = core
-            .discover(&base, &key, protocol, auth.as_deref())
-            .await?;
-        locked(&state)?.accept_protocol_detection(expected, result)
-    }
-    #[tauri::command]
-    fn set_protocol_conversion(
-        state: State<AppState>,
-        expected: Provider,
-        target: Target,
-        enabled: bool,
-    ) -> Result<ProtocolConversionResult> {
-        locked(&state)?.set_protocol_conversion(expected, target, enabled)
-    }
-    #[tauri::command]
-    fn repair_reasoning_levels(
-        state: State<AppState>,
-        provider_id: String,
-    ) -> Result<ReasoningRepairResult> {
-        locked(&state)?.repair_reasoning_levels(&provider_id)
-    }
-    #[tauri::command]
-    fn rename_provider(
-        state: State<AppState>,
-        expected: Provider,
-        name: String,
-    ) -> Result<Provider> {
-        locked(&state)?.rename_provider(expected, name)
-    }
-    #[tauri::command]
-    async fn quick_model_settings(
-        state: State<'_, AppState>,
-        input: QuickModelInput,
-    ) -> Result<ModelWriteResult> {
-        let route = {
-            let store = locked(&state)?;
-            if store.status(input.target)?.active_provider_id.as_deref() == Some(&input.expected.id)
-                && store.provider_requires_bridge(input.target, &input.expected.id)?
-            {
-                store.runtime_context(input.target)?.3
-            } else {
-                None
-            }
-        };
-        if let Some(route) = route {
-            if !crate::bridge::healthy(&route).await {
-                return Err(AppError::new(
-                    "bridge_unavailable",
-                    "兼容服务正在恢复，请稍后重试；此次没有写入",
-                ));
-            }
-        }
-        locked(&state)?.quick_model_settings(input)
-    }
-    #[tauri::command]
-    fn update_provider_models(
-        state: State<AppState>,
-        input: ModelWriteInput,
-    ) -> Result<ModelWriteResult> {
-        locked(&state)?.update_provider_models(input)
-    }
-    #[tauri::command]
-    fn restore_original(state: State<AppState>, target: Target) -> Result<TargetStatus> {
-        locked(&state)?.restore(target)
-    }
-    #[tauri::command]
-    fn set_directory(state: State<AppState>, target: Target, directory: String) -> Result<()> {
-        locked(&state)?.set_directory(target, directory)
-    }
-
-    #[tauri::command]
-    async fn sync_provider_models(
-        state: State<'_, AppState>,
-        core: State<'_, Arc<crate::go_backend::GoBackend>>,
-        input: ConnectionInput,
-        auth_mode: Option<String>,
-        protocol: Option<CodexProtocol>,
-    ) -> Result<ModelSyncResult> {
-        let (base_url, key) = locked(&state)?.connection(input)?;
-        core.discover(
-            &base_url,
-            &key,
-            Some(if protocol == Some(CodexProtocol::Anthropic) {
-                CodexProtocol::Anthropic
-            } else {
-                CodexProtocol::Openai
-            }),
-            Some(auth_mode.as_deref().unwrap_or("bearer")),
-        )
-        .await
-    }
-
-    #[tauri::command]
-    async fn query_provider_balance(
-        state: State<'_, AppState>,
-        core: State<'_, Arc<crate::go_backend::GoBackend>>,
-        input: ConnectionInput,
-        query: Option<BalanceQuery>,
-    ) -> Result<BalanceResult> {
-        let (base_url, key, fallback, token) =
-            locked(&state)?.auto_balance_connection(input, query)?;
-        core.balance(&base_url, &key, fallback, token.as_deref())
-            .await
-    }
-
-    pub fn run() {
-        let mut context = tauri::generate_context!();
-        if std::env::args().any(|a| a == "--background") {
-            context.config_mut().app.windows[0].visible = false;
-        }
-        #[cfg(feature = "qa-webview")]
-        let context = {
-            let mut context = context;
-            context.config_mut().app.windows[0].additional_browser_args = Some(
-                "--remote-debugging-port=9223 --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection".into(),
-            );
-            context
-        };
-        let mut builder = tauri::Builder::default();
-        if !cfg!(feature = "qa-webview") {
-            builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _| {
-                if !args.iter().any(|a| a == "--background") {
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.unminimize();
-                        let _ = window.set_focus();
-                    }
-                }
-            }));
-        }
-        let result = builder
-            .plugin(tauri_plugin_dialog::init())
-            .setup(|app| {
-                let directory = match std::env::var_os("UNI_SWITCH_DATA_DIR") {
-                    Some(directory) => std::path::PathBuf::from(directory),
-                    None => app.path().app_local_data_dir()?,
-                };
-                crate::model_registry::initialize(&directory);
-                let core = Arc::new(crate::go_backend::GoBackend::bundled()?);
-                tauri::async_runtime::block_on(core.check())?;
-                app.manage(core.clone());
-                #[cfg(feature = "qa-webview")]
-                if let Some(delay) = std::env::var("UNI_SWITCH_QA_EXIT_AFTER_MS").ok()
-                    .and_then(|v| v.parse::<u64>().ok()).filter(|v| (250..=180_000).contains(v)) {
-                    let handle = app.handle().clone();
-                    tauri::async_runtime::spawn(async move {
-                        tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
-                        handle.exit(0);
-                    });
-                }
-                let mut store = Store::open(directory.clone())?;
-                tauri::async_runtime::spawn(crate::model_registry::auto_update(directory.clone()));
-                let (route, listener) = crate::bridge::Route::start(&directory)?;
-                store.set_bridge_route(route.clone());
-                let state = Arc::new(Mutex::new(store));
-                app.manage(state.clone());
-                app.manage(crate::updates::UpdateManager::default());
-                tauri::async_runtime::spawn(async move {
-                    crate::bridge::maintain(listener, route, state, core).await;
-                });
-                let show = tauri::menu::MenuItem::with_id(
-                    app,
-                    "show",
-                    "打开 uni-switch",
-                    true,
-                    None::<&str>,
-                )?;
-                let exit = tauri::menu::MenuItem::with_id(
-                    app,
-                    "exit",
-                    "退出应用…",
-                    true,
-                    None::<&str>,
-                )?;
-                let menu = tauri::menu::Menu::with_items(app, &[&show, &exit])?;
-                let mut tray = tauri::tray::TrayIconBuilder::new()
-                    .tooltip("uni-switch · 后台运行")
-                    .menu(&menu)
-                    .show_menu_on_left_click(false)
-                    .on_menu_event(|app, event| match event.id.as_ref() {
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.unminimize();
-                                let _ = window.set_focus();
-                            }
-                        }
-                        "exit" => {
-                            let required = app.state::<AppState>().lock().is_ok_and(|store| store.bridge_required());
-                            if required {
-                                use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
-                                let handle = app.clone();
-                                app.dialog().message("退出后，使用兼容转换的 Codex / Claude 将暂时无法连接。重新打开 uni-switch 即可恢复。").title("退出 uni-switch？").buttons(MessageDialogButtons::OkCancel).show(move |confirmed| { if confirmed { handle.exit(0); } });
-                            } else { app.exit(0); }
-                        },
-                        _ => {}
-                    })
-                    .on_tray_icon_event(|tray, event| {
-                        if matches!(event, tauri::tray::TrayIconEvent::DoubleClick { .. }) {
-                            if let Some(window) = tray.app_handle().get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.unminimize();
-                                let _ = window.set_focus();
-                            }
-                        }
-                    });
-                if let Some(icon) = app.default_window_icon() {
-                    tray = tray.icon(icon.clone());
-                }
-                tray.build(app)?;
-                Ok(())
-            })
-            .on_window_event(|window, event| {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
-                    let _ = window.hide();
-                }
-            })
-            .invoke_handler(tauri::generate_handler![
-                get_overview,
-                get_client_config_status,
-                read_client_config,
-                save_client_config,
-                set_client_config_directory,
-		set_client_config_profile,
-                apply_client_config,
-                restore_client_config,
-                get_update_source,
-                check_app_update,
-                start_app_update_download,
-                get_app_update_download,
-                cancel_app_update_download,
-                install_app_update,
-                open_app_release,
-                open_service_website,
-                open_project_page,
-                get_background_settings,
-                set_background_start,
-                sync_provider_targets,
-                get_runtime_status,
-                restart_codex_desktop,
-                restart_client,
-                save_provider,
-                commit_provider,
-                discover_provider_connection,
-                get_model_registry,
-                platform_command,
-                update_model_registry,
-                verify_model_connection,
-                resolve_model_profiles,
-                delete_provider,
-                apply_provider,
-                prepare_apply_overwrite,
-                set_provider_fast_mode,
-                repair_reasoning_levels,
-                update_provider_models,
-                quick_model_settings,
-                detect_provider_protocol,
-                set_protocol_conversion,
-                rename_provider,
-                restore_original,
-                set_directory,
-                sync_provider_models,
-                query_provider_balance
-            ])
-            .build(context);
-        match result {
-            Ok(app) => app.run(|handle, event| {
-                if matches!(event, tauri::RunEvent::Exit) {
-                    crate::metadata_transport::shutdown();
-                    if let Some(core) = handle.try_state::<Arc<crate::go_backend::GoBackend>>() {
-                        match tauri::async_runtime::block_on(async {
-                            tokio::time::timeout(std::time::Duration::from_secs(3), core.shutdown())
-                                .await
-                        }) {
-                            Ok(Ok(())) => {}
-                            Ok(Err(error)) => eprintln!("Go 后端退出清理失败：{error}"),
-                            Err(_) => eprintln!("Go 后端退出清理超时"),
-                        }
-                    }
-                }
-            }),
-            Err(error) => eprintln!("uni-switch 无法启动：{error}"),
-        }
-    }
+    std::fs::create_dir_all(directory)?;
+    let canonical = directory.canonicalize()?;
+    let digest = Sha256::digest(canonical.as_os_str().as_encoded_bytes());
+    Ok(format!("{identifier}.data-{digest:x}"))
 }
 
 #[cfg(feature = "desktop")]
-pub use desktop::run;
+pub fn run() {
+    use std::sync::Arc;
+    use tauri::Manager;
+    #[tauri::command]
+    fn core_endpoint(state: tauri::State<Arc<core::Core>>) -> String {
+        state.endpoint.clone()
+    }
+    let mut context = tauri::generate_context!();
+    // Explicit data directories are independent installations. Keep their
+    // single-instance handoff away from the user's ordinary running app.
+    if let Some(directory) = std::env::var_os("UNI_SWITCH_DATA_DIR") {
+        match instance_identifier(
+            &context.config().identifier,
+            std::path::Path::new(&directory),
+        ) {
+            Ok(identifier) => context.config_mut().identifier = identifier,
+            Err(error) => {
+                eprintln!("uni-switch 无法启动：{error}");
+                return;
+            }
+        }
+    }
+    if std::env::args().any(|a| a == "--background") {
+        context.config_mut().app.windows[0].visible = false;
+    }
+    #[cfg(feature = "qa-webview")]
+    {
+        let port = std::env::var("UNI_SWITCH_QA_DEBUG_PORT")
+            .ok()
+            .and_then(|v| v.parse::<u16>().ok())
+            .filter(|p| *p > 0)
+            .unwrap_or(9223);
+        context.config_mut().app.windows[0].additional_browser_args = Some(format!("--remote-debugging-port={port} --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
+    }
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .args(["--background"])
+                .build(),
+        );
+    if !cfg!(feature = "qa-webview") {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            if !args.iter().any(|a| a == "--background") {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.show();
+                    let _ = w.unminimize();
+                    let _ = w.set_focus();
+                }
+            }
+        }));
+    }
+    let result = builder
+        .setup(|app| {
+            let directory = match std::env::var_os("UNI_SWITCH_DATA_DIR") {
+                Some(d) => std::path::PathBuf::from(d),
+                None => app.path().app_local_data_dir()?,
+            };
+            if !directory.is_absolute() {
+                return Err("UNI_SWITCH_DATA_DIR 必须为绝对路径".into());
+            }
+            std::fs::create_dir_all(&directory)?;
+            let core = Arc::new(core::Core::start(&directory, app.handle().clone())?);
+            app.manage(core);
+            let show =
+                tauri::menu::MenuItem::with_id(app, "show", "打开 uni-switch", true, None::<&str>)?;
+            let exit =
+                tauri::menu::MenuItem::with_id(app, "exit", "退出应用…", true, None::<&str>)?;
+            let menu = tauri::menu::Menu::with_items(app, &[&show, &exit])?;
+            let mut tray = tauri::tray::TrayIconBuilder::new()
+                .tooltip("uni-switch · 后台运行")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "show" {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.unminimize();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    if event.id.as_ref() == "exit" {
+                        // The page's original quit flow names connected clients and
+                        // confirms first. No configuration decision lives in Rust.
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.unminimize();
+                            let _ = w.eval("window.uniSwitchQuit?.()");
+                        }
+                    }
+                });
+            if let Some(icon) = app.default_window_icon() {
+                tray = tray.icon(icon.clone());
+            }
+            tray.build(app)?;
+            #[cfg(feature = "qa-webview")]
+            if let Some(ms) = std::env::var("UNI_SWITCH_QA_EXIT_AFTER_MS")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .filter(|v| (250..=180_000).contains(v))
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(ms));
+                    handle.exit(0);
+                });
+            }
+            Ok(())
+        })
+        .on_window_event(|w, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = w.hide();
+            }
+        })
+        .invoke_handler(tauri::generate_handler![core_endpoint])
+        .build(context);
+    match result {
+        Ok(app) => app.run(|handle, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                if let Some(core) = handle.try_state::<Arc<core::Core>>() {
+                    core.shutdown();
+                }
+            }
+        }),
+        Err(e) => eprintln!("uni-switch 无法启动：{e}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::instance_identifier;
+
+    #[test]
+    fn explicit_data_directories_have_independent_instances() {
+        let root = tempfile::tempdir().unwrap();
+        let first = root.path().join("first");
+        let second = root.path().join("second");
+        let id = "io.uni-switch.desktop";
+        let first_id = instance_identifier(id, &first).unwrap();
+        assert_ne!(first_id, id);
+        assert_ne!(first_id, instance_identifier(id, &second).unwrap());
+        assert_eq!(first_id, instance_identifier(id, &first.join(".")).unwrap());
+        assert!(instance_identifier(id, std::path::Path::new("relative-data")).is_err());
+    }
+}

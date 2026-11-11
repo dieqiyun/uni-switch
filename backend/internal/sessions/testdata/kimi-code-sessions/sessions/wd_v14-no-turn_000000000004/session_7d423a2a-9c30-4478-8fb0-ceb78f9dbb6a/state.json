@@ -1,0 +1,14 @@
+{
+  "createdAt": "2026-07-02T21:09:07.020Z",
+  "updatedAt": "2026-07-02T21:09:07.020Z",
+  "title": "[redacted]",
+  "isCustomTitle": false,
+  "agents": {
+    "main": {
+      "homedir": "[redacted]",
+      "type": "main",
+      "parentAgentId": null
+    }
+  },
+  "custom": {}
+}

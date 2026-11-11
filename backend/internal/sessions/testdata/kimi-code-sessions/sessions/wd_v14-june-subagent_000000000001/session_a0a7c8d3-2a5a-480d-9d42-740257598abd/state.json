@@ -1,0 +1,20 @@
+{
+  "createdAt": "2026-06-15T05:49:26.333Z",
+  "updatedAt": "2026-06-15T06:04:27.094Z",
+  "title": "[redacted]",
+  "isCustomTitle": false,
+  "agents": {
+    "main": {
+      "homedir": "[redacted]",
+      "type": "main",
+      "parentAgentId": null
+    },
+    "agent-0": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]"
+    }
+  },
+  "custom": {},
+  "lastPrompt": "[redacted]"
+}

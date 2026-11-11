@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-27T10:02:00.000Z",
+  "agent": "lead",
+  "sessionId": "1790503200000_ab12c",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "<mode_notice>Act mode</mode_notice>\n<user_input mode=\"act\">Speed up the importer</user_input>"
+        }
+      ],
+      "ts": 1790503200000
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "..."
+        }
+      ],
+      "ts": 1790503210000,
+      "modelInfo": {
+        "id": "claude-opus-5-5",
+        "provider": "anthropic"
+      },
+      "metrics": {
+        "inputTokens": 1600,
+        "outputTokens": 50,
+        "cacheReadTokens": 1000,
+        "cacheWriteTokens": 500,
+        "cost": 0.01
+      }
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "t",
+          "content": "ok"
+        }
+      ],
+      "ts": 1790503211000
+    },
+    {
+      "role": "assistant",
+      "content": "done",
+      "ts": 1790503320000,
+      "modelInfo": {
+        "id": "claude-haiku-4-5",
+        "provider": "anthropic"
+      },
+      "metrics": {
+        "inputTokens": 30,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "cost": 0.01
+      }
+    }
+  ]
+}

@@ -1,0 +1,433 @@
+package provider
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/catalog"
+	"github.com/dieqiyun/uni-switch/backend/internal/filememo"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/settings"
+	"github.com/dieqiyun/uni-switch/backend/internal/testenv"
+)
+
+// A request that only reads builds the catalog once for all its look-ups
+// (/api/state took 4s, resolving each agent's models anew); outside one,
+// and after a write, it is built again.
+func TestHoldBuildsOnce(t *testing.T) {
+	n := 0
+	build := func() int { n++; return n }
+	heldOf("t", build)
+	heldOf("t", build)
+	if n != 2 {
+		t.Fatalf("not held: built %d times, want 2", n)
+	}
+	release := Hold()
+	heldOf("t", build)
+	heldOf("t", build)
+	if n != 3 {
+		t.Fatalf("held: built %d times, want 3", n)
+	}
+	Changed()
+	if heldOf("t", build); n != 4 {
+		t.Fatalf("after a write: built %d times, want 4", n)
+	}
+	release()
+	release() // a second release is no second one
+	if heldOf("t", build); n != 5 {
+		t.Fatalf("released: built %d times, want 5", n)
+	}
+	if held.holds != 0 {
+		t.Fatalf("holds left: %d", held.holds)
+	}
+}
+
+// One request after another within heldFor builds the catalog once, as
+// requests that overlap do: each built it again from every provider's
+// files and accounts (a fifth of a request's CPU with 30 providers). A
+// write between them (Changed), or another environment (a test's HOME),
+// has it built again.
+func TestHoldKeptForTheNextRequest(t *testing.T) {
+	defer func(d time.Duration) { heldFor = d }(heldFor)
+	heldFor = time.Minute // a loaded machine's pause between requests isn't the change
+	t.Setenv("UNI_SWITCH_HOLD_TEST", "1")
+	n := 0
+	build := func() int { n++; return n }
+	for range 5 {
+		release := Hold()
+		heldOf("t-next", build)
+		heldOf("t-next", build)
+		release()
+	}
+	if n != 1 {
+		t.Fatalf("five requests one after another: built %d times, want 1", n)
+	}
+	Changed()
+	func() {
+		defer Hold()()
+		if heldOf("t-next", build); n != 2 {
+			t.Fatalf("after a write: built %d times, want 2", n)
+		}
+	}()
+	t.Setenv("UNI_SWITCH_HOLD_TEST", "2")
+	func() {
+		defer Hold()()
+		if heldOf("t-next", build); n != 3 {
+			t.Fatalf("in another environment: built %d times, want 3", n)
+		}
+	}()
+	if heldOf("t-next", build); n != 4 {
+		t.Fatalf("unheld: built %d times, want 4", n)
+	}
+}
+
+// What is held across requests is built again when anything it was built
+// from may have moved: a write that only tells filememo (settings.Save, an
+// account's file), the providers' or the settings' file written by
+// another process (the CLI's "uni-switch group add"), the groups served or
+// not (GateGroups, ServeGroups), and the models.dev catalog read again.
+func TestHoldKeptUntilAWrite(t *testing.T) {
+	defer func(d time.Duration) { heldFor = d }(heldFor)
+	heldFor = time.Minute // a loaded machine's pause between requests isn't the change
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	n := 0
+	build := func() int { n++; return n }
+	request := func() {
+		defer Hold()()
+		heldOf("t-write", build)
+	}
+	request()
+	request()
+	if n != 1 {
+		t.Fatalf("two requests: built %d times, want 1", n)
+	}
+	for _, c := range []struct {
+		what  string
+		write func()
+	}{
+		{"filememo told", filememo.Forget},
+		{"providers.json written by another process", func() {
+			os.MkdirAll(filepath.Dir(Path()), 0o700)
+			os.WriteFile(Path(), []byte(`{"providers":[]}`), 0o600)
+		}},
+		{"settings.json written by another process", func() {
+			os.MkdirAll(filepath.Dir(settings.Path()), 0o700)
+			os.WriteFile(settings.Path(), []byte(`{}`), 0o600)
+		}},
+		// models.dev's catalog read again: the entries' windows and
+		// output limits come from it (Pi's maxTokens, Crush's default)
+		{"the catalog reset", catalog.Reset},
+	} {
+		was := n
+		c.write()
+		request()
+		if n != was+1 {
+			t.Fatalf("%s: built %d times, want 1", c.what, n-was)
+		}
+		request()
+		if n != was+1 {
+			t.Fatalf("%s, then a request: built again", c.what)
+		}
+	}
+}
+
+// The settings are read once while a request holds the catalog (a look at
+// the agents read settings.json for every model of every agent), and a
+// setting saved meanwhile is seen at once.
+func TestHoldReadsSettingsOnce(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir()) // a run starts from no files, not the last run's
+	defer Hold()()
+	if _, ok := VisibleTo("held-agent"); ok {
+		t.Fatal("a visibility before any was set")
+	}
+	// written by something else: the held read stands
+	path := settings.Path()
+	os.MkdirAll(filepath.Dir(path), 0o755)
+	os.WriteFile(path, []byte(`{"visible":{"held-agent":["a"]}}`), 0o600)
+	if _, ok := VisibleTo("held-agent"); ok {
+		t.Fatal("settings.json read again while held")
+	}
+	s := settings.Load()
+	s.Visible = map[string][]string{"held-agent": {"b"}}
+	if err := settings.Save(s); err != nil {
+		t.Fatal(err)
+	}
+	if names, ok := VisibleTo("held-agent"); !ok || len(names) != 1 || names[0] != "b" {
+		t.Fatalf("a setting saved while held: %v %v", names, ok)
+	}
+}
+
+// A provider saved while a request holds the catalog is in it at once.
+func TestHoldSeesWrites(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir()) // a run starts from no files, not the last run's
+	if err := Save(Provider{ID: "held", Name: "Held", Chat: "https://held.example/v1", Key: "k", Models: []string{"a"}}); err != nil {
+		t.Fatal(err)
+	}
+	defer Hold()()
+	ids := func() []string {
+		var out []string
+		for _, e := range Catalog() {
+			out = append(out, e.ID)
+		}
+		return out
+	}
+	if !slices.Contains(ids(), "held/a") || slices.Contains(ids(), "held/b") {
+		t.Fatalf("before: %v", ids())
+	}
+	if err := Save(Provider{ID: "held", Name: "Held", Chat: "https://held.example/v1", Key: "k", Models: []string{"a", "b"}}); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(ids(), "held/b") {
+		t.Fatalf("a model picked meanwhile is missing: %v", ids())
+	}
+	if p, m, ok := Resolve("held/b"); !ok || p.ID != "held" || m != "b" {
+		t.Fatalf("Resolve: %v %q %v", p.ID, m, ok)
+	}
+}
+
+// cursor-agent's token is read from the Keychain once a while, not on
+// each look at the accounts (#746: some 200 `security` runs a request); a
+// sign-in or out in uni-switch, and CursorToken renewing it, read it afresh.
+func TestCursorKeychainReadOnce(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a shell script stands in for security")
+	}
+	dir := t.TempDir()
+	log := filepath.Join(dir, "runs")
+	script := "#!/bin/sh\necho run >> " + log + "\necho tok-$(wc -l < " + log + " | tr -d ' ')\n"
+	testenv.Program(t, filepath.Join(dir, "security"), script)
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	forgetCursorStatus()
+	t.Cleanup(forgetCursorStatus)
+	runs := func() int {
+		b, _ := os.ReadFile(log)
+		return strings.Count(string(b), "run")
+	}
+	for range 3 {
+		if tok := cursorKeychainToken(false); tok != "tok-1" {
+			t.Fatalf("token %q", tok)
+		}
+	}
+	if runs() != 1 {
+		t.Fatalf("security ran %d times, want 1", runs())
+	}
+	forgetCursorStatus() // signed in or out in uni-switch
+	if tok := cursorKeychainToken(false); tok != "tok-2" || runs() != 2 {
+		t.Fatalf("after a sign-in: %q, %d runs", tok, runs())
+	}
+	if tok := cursorKeychainToken(true); tok != "tok-3" {
+		t.Fatalf("fresh: %q", tok)
+	}
+	if tok := cursorKeychainToken(false); tok != "tok-3" || runs() != 3 {
+		t.Fatalf("after a fresh read: %q, %d runs", tok, runs())
+	}
+}
+
+// migrations.json is read once while a request holds the catalog (the
+// GUI's state looked at it thousands of times, one per provider's API),
+// and a move written meanwhile, even one read from the file as it was
+// before, is seen at once.
+func TestHoldReadsMigrationsOnce(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir()) // a run starts from no files, not the last run's
+	defer Hold()()
+	if Moved("held-sub") {
+		t.Fatal("moved before any move")
+	}
+	os.MkdirAll(filepath.Dir(migrationsPath()), 0o755)
+	os.WriteFile(migrationsPath(), []byte(`{"other-sub":{"state":"plugin"}}`), 0o600)
+	if Moved("other-sub") {
+		t.Fatal("migrations.json read again while held")
+	}
+	if err := setMigration("held-sub", func(m *Migration) { m.State = MovePlugin }); err != nil {
+		t.Fatal(err)
+	}
+	if !Moved("held-sub") || !Moved("other-sub") {
+		t.Fatalf("a move written while held: %v %v", Moved("held-sub"), Moved("other-sub"))
+	}
+}
+
+// Pricing an agent's models (agent.uniSwitchModels) asks All for each model,
+// under one Hold: settings.json is read with the providers, not once per
+// signed-in account per model. Asked for each account, a uni-switch at rest
+// parsed it hundreds of times on every drift look the GUI makes each 15s
+// and every dsh round each 30s, most of its idle CPU (xsw on Discord).
+func TestAllReadsNoSettingsPerLookWhileHeld(t *testing.T) {
+	signIn(t)
+	t.Setenv("UNI_SWITCH_NO_ACCOUNTS", "")
+	if err := settings.Save(settings.Settings{Proxy: "direct"}); err != nil {
+		t.Fatal(err)
+	}
+	accounts := 0
+	for _, p := range All() {
+		if p.Account != nil {
+			accounts++
+		}
+	}
+	if accounts < 2 {
+		t.Fatalf("the fixture signs in %d accounts; the test needs at least two", accounts)
+	}
+	// The first look under the Hold builds the providers, which reads the
+	// settings a number of times of its own; what is counted is that the
+	// looks after it, each of every model's prices, don't add a read per
+	// account each. Looks is far above what the build reads, so a second
+	// build (the held catalog is kept 1s) stays under it.
+	const looks = 200
+	release := Hold()
+	defer release()
+	before := settings.Parses()
+	for range looks {
+		if len(All()) == 0 {
+			t.Fatal("no providers")
+		}
+		EffectivePriceIn(HeldSettings(), "codex", "gpt-5.5")
+	}
+	if n := settings.Parses() - before; n >= looks {
+		t.Fatalf("settings.json parsed %d times for %d looks at %d accounts under one Hold: once a look or more", n, looks, accounts)
+	}
+	// turned off, the accounts are still left out
+	t.Setenv("UNI_SWITCH_NO_ACCOUNTS", "1")
+	for _, p := range All() {
+		if p.Account != nil {
+			t.Fatalf("%s's account listed with discovery off", p.ID)
+		}
+	}
+}
+
+// heldBuilding starts a build of key that waits for its go-ahead, and
+// returns once it is under way: a caller missing key now waits on it.
+func heldBuilding[T any](t *testing.T, key string, v T) (goAhead func(), got <-chan T) {
+	t.Helper()
+	started, ahead, out := make(chan struct{}), make(chan struct{}), make(chan T, 1)
+	go func() {
+		out <- heldOf(key, func() T { close(started); <-ahead; return v })
+	}()
+	<-started
+	return sync.OnceFunc(func() { close(ahead) }), out
+}
+
+// heldWaiting is a caller missing key while the build above is under
+// way, its build counted in n; it returns once that caller waits.
+func heldWaiting[T any](t *testing.T, key string, n *atomic.Int64, v T) <-chan T {
+	t.Helper()
+	out := make(chan T, 1)
+	go func() { out <- heldOf(key, func() T { n.Add(1); return v }) }()
+	for deadline := time.Now().Add(10 * time.Second); ; {
+		held.Lock()
+		c := heldFlight[key]
+		held.Unlock()
+		if c != nil && waiting() {
+			return out
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the second caller never waited on the build")
+		}
+		runtime.Gosched()
+	}
+}
+
+// waiting says a goroutine is parked in heldCall.wait: the second
+// caller has missed and waits.
+func waiting() bool {
+	buf := make([]byte, 1<<20)
+	return strings.Contains(string(buf[:runtime.Stack(buf, true)]), "(*heldCall).wait")
+}
+
+// A caller that missed while another built takes what was built, unless a
+// write came meanwhile: a sign-in, a sign-out or a setting saved while the
+// list was built made it stale, and the caller, which may have asked
+// after the write, builds again (#5104). A filememo-only write
+// (settings.Save tells only filememo) counts too: kept, the value read
+// before it was given for a second after it.
+func TestHeldWaiterBuildsAgainAfterAWrite(t *testing.T) {
+	for name, write := range map[string]func(){"Changed": Changed, "filememo.Forget": filememo.Forget} {
+		t.Run(name, func(t *testing.T) {
+			release := Hold()
+			defer release()
+			dropHeld()
+			var n atomic.Int64
+			goAhead, first := heldBuilding(t, "t-write", "before")
+			defer goAhead()
+			second := heldWaiting(t, "t-write", &n, "after")
+			write()
+			goAhead()
+			if v := <-first; v != "before" {
+				t.Fatalf("the builder got %q", v)
+			}
+			if v := <-second; v != "after" || n.Load() != 1 {
+				t.Fatalf("after a write meanwhile: got %q, built %d times; want what is there now, built once", v, n.Load())
+			}
+			if v := heldOf("t-write", func() string { return "later" }); v != "after" {
+				t.Fatalf("what was read before the write was kept: %q", v)
+			}
+		})
+	}
+}
+
+// With nothing written meanwhile, a caller that missed while another
+// built takes what it built: a value held for no time at all (heldFor 0)
+// too, which a look at what was kept would never find.
+func TestHeldWaiterTakesTheBuild(t *testing.T) {
+	old := heldFor
+	heldFor = 0
+	defer func() { heldFor = old }()
+	release := Hold()
+	defer release()
+	var n atomic.Int64
+	goAhead, first := heldBuilding(t, "t-take", 1)
+	defer goAhead()
+	second := heldWaiting(t, "t-take", &n, 2)
+	goAhead()
+	if v, w := <-first, <-second; v != 1 || w != 1 || n.Load() != 0 {
+		t.Fatalf("got %d and %d, the second built %d times; want 1, 1 and 0", v, w, n.Load())
+	}
+}
+
+// A build that never ends, or panics, keeps no one waiting for good: a
+// waiter builds on its own after heldWait, as every caller did before
+// (#5104), and one whose builder panicked builds at once.
+func TestHeldWaiterNeverStuck(t *testing.T) {
+	old := heldWait
+	heldWait = 50 * time.Millisecond
+	defer func() { heldWait = old }()
+	release := Hold()
+	defer release()
+	goAhead, _ := heldBuilding(t, "t-stuck", "never")
+	defer goAhead()
+	var n atomic.Int64
+	start := time.Now()
+	if v := heldOf("t-stuck", func() string { n.Add(1); return "own" }); v != "own" || n.Load() != 1 {
+		t.Fatalf("got %q, built %d times; want its own", v, n.Load())
+	}
+	if d := time.Since(start); d < heldWait {
+		t.Fatalf("built on its own after %v, before heldWait", d)
+	}
+
+	heldWait = time.Minute
+	ahead := make(chan struct{})
+	started := make(chan struct{})
+	go func() {
+		defer func() { recover() }()
+		heldOf("t-panic", func() string { close(started); <-ahead; panic("build") })
+	}()
+	<-started
+	second := heldWaiting(t, "t-panic", &n, "own")
+	close(ahead)
+	select {
+	case v := <-second:
+		if v != "own" {
+			t.Fatalf("after a build that panicked: %q", v)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("a build that panicked kept its waiter")
+	}
+}

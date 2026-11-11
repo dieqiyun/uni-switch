@@ -1,0 +1,4 @@
+body { margin: 0; padding: 16px; font: 13px/1.5 var(--uni-switch-font, system-ui); color: var(--uni-switch-fg); background: var(--uni-switch-bg); }
+h1 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+p { margin: 0 0 4px; }
+button { font: inherit; color: var(--uni-switch-accent); background: none; border: 0; padding: 0; cursor: pointer; }

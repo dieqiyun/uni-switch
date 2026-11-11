@@ -1,0 +1,7 @@
+{
+  "createdAt": 1790510400000,
+  "updatedAt": 1790510460000,
+  "migratedFrom": "agent-history",
+  "sourceConversationId": "0123456789abcdef0123456789abcdef",
+  "cwd": "/work/wb-old"
+}

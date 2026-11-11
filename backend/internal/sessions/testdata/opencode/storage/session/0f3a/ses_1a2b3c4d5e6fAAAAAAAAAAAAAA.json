@@ -1,0 +1,12 @@
+{
+  "id": "ses_1a2b3c4d5e6fAAAAAAAAAAAAAA",
+  "slug": "brave-otter",
+  "version": "1.1.53",
+  "projectID": "0f3a",
+  "directory": "/work/oc",
+  "title": "Flaky test hunt",
+  "time": {
+    "created": 1790416800000,
+    "updated": 1790416980000
+  }
+}
