@@ -153,7 +153,7 @@ func TestLoginsKeepAnotherUniSwitchsWrite(t *testing.T) {
 	otherDone := make(chan error, 1)
 	beforeLoginsWrite = func() {
 		beforeLoginsWrite = func() {}
-		other = exec.Command(os.Args[0], "-test.run=^TestLoginsOtheruni-switch$", "-test.count=1")
+		other = exec.Command(os.Args[0], "-test.run=^TestLoginsOtherUniSwitch$", "-test.count=1")
 		other.Env = append(os.Environ(), "UNI_SWITCH_LOGINS_WRITER=1")
 		var out bytes.Buffer
 		other.Stdout, other.Stderr = &out, &out

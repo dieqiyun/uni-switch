@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -8,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"testing"
+	"time"
 )
 
 // A right-click on KDE opens the tray's menu, and Wails calls the click
@@ -44,17 +46,8 @@ func TestTrayMenuOpeningIsNoClick(t *testing.T) {
 // click handler on the menu's "opened" event; an upgrade that renames it
 // or stops calling the handler there fails here.
 func TestTrayMenuOpenFrameIsWails(t *testing.T) {
-	// go list -m names no folder for a module not yet unpacked, as on CI;
-	// go mod download unpacks it and names its folder
-	out, err := exec.Command("go", "mod", "download", "-json", "github.com/wailsapp/wails/v3").Output()
-	if err != nil {
-		t.Skip("go mod download:", err)
-	}
-	var mod struct{ Dir string }
-	if err := json.Unmarshal(out, &mod); err != nil || mod.Dir == "" {
-		t.Fatalf("go mod download named no folder: %s", out)
-	}
-	src, err := os.ReadFile(filepath.Join(mod.Dir, "pkg", "application", "systemtray_linux.go"))
+	moduleDir := cachedWailsModule(t)
+	src, err := os.ReadFile(filepath.Join(moduleDir, "pkg", "application", "systemtray_linux.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,15 +97,7 @@ func TestTrayClickIn(t *testing.T) {
 // handler; an upgrade that renames them or stops keeping the click fails
 // here.
 func TestTrayClickIsWails(t *testing.T) {
-	out, err := exec.Command("go", "mod", "download", "-json", "github.com/wailsapp/wails/v3").Output()
-	if err != nil {
-		t.Skip("go mod download:", err)
-	}
-	var mod struct{ Dir string }
-	if err := json.Unmarshal(out, &mod); err != nil || mod.Dir == "" {
-		t.Fatalf("go mod download named no folder: %s", out)
-	}
-	app := filepath.Join(mod.Dir, "pkg", "application")
+	app := filepath.Join(cachedWailsModule(t), "pkg", "application")
 	src, err := os.ReadFile(filepath.Join(app, "systemtray_linux.go"))
 	if err != nil {
 		t.Fatal(err)
@@ -130,4 +115,27 @@ func TestTrayClickIsWails(t *testing.T) {
 	if !regexp.MustCompile(`(?s)type SystemTray struct \{.*?\n\s*impl\s+systemTrayImpl\n`).Match(src) {
 		t.Fatal("Wails' SystemTray keeps its platform tray in no impl; see trayImpl")
 	}
+}
+
+// cachedWailsModule inspects the locked dependency already prepared by the
+// build. A regression test must never download modules or hang on a registry.
+func cachedWailsModule(t *testing.T) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	goBinary := os.Getenv("UNI_SWITCH_GO")
+	if goBinary == "" {
+		goBinary = "go"
+	}
+	cmd := exec.CommandContext(ctx, goBinary, "list", "-m", "-json", "github.com/wailsapp/wails/v3")
+	cmd.Env = append(os.Environ(), "GOPROXY=off", "GOSUMDB=off")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("read locked Wails module from cache: %v: %s; prepare locked build dependencies before running tests", err, out)
+	}
+	var mod struct{ Dir string }
+	if err := json.Unmarshal(out, &mod); err != nil || mod.Dir == "" {
+		t.Fatalf("locked Wails module is not unpacked in the build cache: %s", out)
+	}
+	return mod.Dir
 }

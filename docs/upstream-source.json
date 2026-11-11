@@ -47214,8 +47214,8 @@
     },
     {
       "path": "internal/gui/trayclick_test.go",
-      "sha256": "3c879840a1c8d9545e2c134a0d5ec328a60af14bfc81dc684a1a505fa4f226e6",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "6ad364ac9dd4b2a3be096f2a6fbe55b882e284d222b85570b4661a0aa48b5b1f",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Read the locked Wails module already prepared in the build cache with networking disabled and a bounded command; never download a module inside the regression test."
     },
     {
       "path": "internal/gui/trayimage_darwin_test.go",
@@ -50689,8 +50689,8 @@
     },
     {
       "path": "internal/provider/logins_lock_test.go",
-      "sha256": "a815c37d72ca6541687fd7ae22f857f83b886e46243d9d345a1f3993ae6a2a50",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "d139e7d19fd85dd5d47147c8c708faef2e31f7339eb3c1a06e2293970ed62879",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Select the correctly renamed child test so the competing account writer actually runs, retaining concurrency coverage."
     },
     {
       "path": "internal/provider/logins_on_test.go",
