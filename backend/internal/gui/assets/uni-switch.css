@@ -18,7 +18,10 @@ html.uni-switch .uni-logo { width:26px; height:26px; object-fit:contain; }
 html.uni-switch #sideToggle, html.uni-switch #sideEdge { display:none!important; }
 html.uni-switch .side-scroll { display:flex; flex-direction:column; overflow:hidden; padding:12px 16px; }
 html.uni-switch .side-foot { display:none; }
-html.uni-switch #nav { display:flex!important; flex:none; margin-top:18px; }
+html.uni-switch #nav { display:flex!important; flex:0 1 auto; min-height:0; margin-top:18px; }
+html.uni-switch body.side-nav #nav > button, html.uni-switch #nav > .uni-sidebar-update { flex:none; }
+/* At large text sizes, tabs give up height before the permanent lower rows. */
+html.uni-switch body.side-nav #nav > .nav-sub { flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; }
 html.uni-switch #nav [data-view="agents"], html.uni-switch #nav [data-view="providers"], html.uni-switch #nav .nav-gl { display:none!important; }
 html.uni-switch body.side-nav #nav #update {
   display:flex; align-items:center; justify-content:flex-start; gap:9px;
@@ -35,7 +38,7 @@ html.uni-switch body.side-nav #nav #update.uni-update-available > svg { color:in
 html.uni-switch body.side-nav #nav #updateHide { top:7px; right:7px; width:16px; height:16px; box-shadow:none; background:transparent; }
 html.uni-switch body.side-nav #nav #update:hover { background:var(--pill); color:var(--fg); }
 html.uni-switch body.side-nav #nav #update:active { transform:none; }
-html.uni-switch .uni-clients { display:flex; flex:1; min-height:0; flex-direction:column; gap:6px; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:6px; }
+html.uni-switch .uni-clients { display:flex; flex:1 0 72px; min-height:0; flex-direction:column; gap:6px; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:6px; }
 html.uni-switch .uni-clients::-webkit-scrollbar { width:6px; }
 html.uni-switch .uni-clients::-webkit-scrollbar-track { background:transparent; }
 html.uni-switch .uni-clients::-webkit-scrollbar-thumb { background:var(--muted); border:0; border-radius:6px; background-clip:border-box; }

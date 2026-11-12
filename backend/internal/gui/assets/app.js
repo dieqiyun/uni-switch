@@ -19716,7 +19716,7 @@ function renderSideGw(g) {
 }
 if (mode === "window") {
   $("#sideGw").onclick = () => { openSettingsAt(null, "gateway"); $("#sideGw").blur(); };
-  sideQuery.addEventListener?.("change", layoutNav);
+  sideQuery.addEventListener?.("change", () => layoutNav());
   layoutNav();
   $("#sideToggle").onclick = toggleSideNav;
   sideDrag($("#sideEdge"));
@@ -19828,7 +19828,7 @@ setInterval(async () => {
   if (changed) renderAgents();
 }, 15000);
 window.addEventListener("focus", () => loadBack());
-setInterval(renderUpdateBadge, 15 * 60 * 1000); // a window left open still hears of a new version
+setInterval(() => renderUpdateBadge(), 15 * 60 * 1000); // resolve the product's renderer when the timer fires
 // a browser's page on screen hears of it within a minute (servedAnew)
 if (web) setInterval(() => { if (!document.hidden) renderUpdateBadge(); }, 60e3);
 // ---------- hiding accounts, for a screenshot to share ----------

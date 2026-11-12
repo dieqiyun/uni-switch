@@ -80,11 +80,7 @@ if (window.bootPrefs?.uniSwitch) (() => {
   }
   const sourceLayoutNav=layoutNav;
   layoutNav=(...args)=>{sourceLayoutNav(...args);layoutSidebarInfo();};
-  renderUpdateBadge=async()=>{
-    const u=await api(updatePath("update")).catch(()=>null);
-    if(servedAnew(u))return;
-    if(u)updateLast=u,u.at=Date.now();
-    const current=u||updateLast;
+  function renderSidebarVersion(current){
     const available=!!current?.latest && current.latest!==pageVersion && ["available","found","ready"].includes(current.state);
     const b=$("#update"), label=b.querySelector("span");
     b.hidden=false;
@@ -94,6 +90,13 @@ if (window.bootPrefs?.uniSwitch) (() => {
     b.onclick=available ? openReleases : e=>openSettingsAt(e,"about");
     b.oncontextmenu=null;
     $("#updateHide").hidden=true;
+  }
+  renderUpdateBadge=async()=>{
+    renderSidebarVersion(updateLast);
+    const u=await api(updatePath("update")).catch(()=>null);
+    if(servedAnew(u))return;
+    if(u)updateLast=u,u.at=Date.now();
+    renderSidebarVersion(u||updateLast);
   };
   const sourceRenderAgents = renderAgents;
   renderAgents = (...args) => {
@@ -341,5 +344,6 @@ if (window.bootPrefs?.uniSwitch) (() => {
     }
   };
   layoutSidebarInfo();
+  renderSidebarVersion(updateLast);
   renderClientNav();
 })();

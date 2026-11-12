@@ -1110,6 +1110,19 @@ The local `cmd/uni-switch-core` entry compiles these packages into its own core,
 
 The product sidebar keeps Settings and one combined version/update row in the same fixed lower navigation as Sessions. Only the client list above it scrolls, with a visible scrollbar on its right; wheel and keyboard scrolling do not move the lower navigation. Client list refreshes preserve its scroll position and focused button. Expanded navigation sections take space from the client list instead of moving lower controls off screen. The local credential note is removed. The combined row shows the current version normally and adds New version only when a different release is available. The Gateway page row also shows the local address and running state, without a duplicate footer control. Settings retains its original handler and expanding tabs; the combined version row opens Settings › About normally, and opens the product's release page when an update is available because distribution updates are managed by this desktop bundle. `layoutSidebarInfo` preserves these positions when the shared shell changes layouts. Repeating a click on a selected navigation section collapses or expands its tabs. The buttons expose aria-expanded and aria-controls and work with Enter and Space; background refreshes preserve the collapsed state.
 
+The shared width-query listener resolves the current `layoutNav` when it fires:
+crossing 1024 CSS pixels must restore Settings to the visible navigation rather
+than leaving it in the hidden shared footer. The current version renders during
+startup and before each update request, so a pending or failed check cannot hide
+it. The periodic check also resolves the current `renderUpdateBadge` rather
+than retaining the shared shell's earlier renderer, which could hide this row
+after 15 minutes. At large text sizes in a short window, expanded tabs scroll within their
+remaining space; the permanent navigation rows keep their height and the client
+list retains enough room to scroll. `scripts/qa-source-sidebar.mjs` verifies
+pending update responses, periodic checks, repeated width changes, keyboard tab selection and
+the minimum window's effective 150% viewport in Chromium and WebKit across all
+five languages.
+
 The product's Add-provider sheet passes presentation options to `renderAdd`: subscription sign-in and excluded-account recovery rows belong only to the selected client, relays are labelled uni-switch recommended providers, and the local-preset section is omitted even during search. The retained relay is displayed as 蝶祈云API. Clients with no currently supported native subscription have no subscription section; retired extension subscriptions are not reintroduced. This filters the picker only: the native subscription registry, account handlers, local-server presets, saved providers and gateway execution retain their existing behavior. The shared shell keeps its default picker presentation when these options are absent. `scripts/qa-source-client-flow.mjs` covers all eleven sidebar clients in both browser engines and five languages, including search and the retained backend preset directory.
 
 See `TestUniSwitchDistributionNeverInstallsAnotherProduct`, `TestUniSwitchManagementUsesCookieAndSameOrigin`, and the repository's `docs/source-integration.md`.
