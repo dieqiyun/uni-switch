@@ -7,7 +7,7 @@ import {startIsolated} from './qa-source-core.mjs';
 const root=resolve(import.meta.dirname,'..');
 const platform={win32:'pc-windows-msvc',linux:'unknown-linux-gnu',darwin:'apple-darwin'}[process.platform];
 const arch=process.arch==='arm64'?'aarch64':'x86_64';
-const app=await startIsolated(resolve(root,`src-tauri/binaries/uni-switch-core-${arch}-${platform}${process.platform==='win32'?'.exe':''}`));
+const app=await startIsolated(resolve(root,process.argv[2]||`src-tauri/binaries/uni-switch-core-${arch}-${platform}${process.platform==='win32'?'.exe':''}`));
 const checks=[];
 const clients=[['codex','ChatGPT'],['claude','Claude'],['dsh',null],['workbuddy',null],['zcode',null],['pi',null],['opencode',null],['gemini','Gemini CLI'],['kimi',null],['qoder',null],['qoder-cn',null]];
 try{
@@ -29,7 +29,9 @@ try{
     const url=new URL(link);url.searchParams.set('locale',language);await page.goto(url.href);
     await page.locator('#uniClients').waitFor();await page.waitForFunction(()=>!!providers);
     assert.equal(await page.locator('#providerDiscovery,#reviewProviderDiscovery,#dismissProviderDiscovery').count(),0,'local configuration discovery has no UI');
-    assert.deepEqual(await page.locator('#uniClients button').evaluateAll(buttons=>buttons.map(b=>b.dataset.uniClient)),clients.map(([id])=>id));
+    assert.deepEqual(await page.locator('#uniClients [data-uni-client]').evaluateAll(buttons=>buttons.map(b=>b.dataset.uniClient)),clients.map(([id])=>id));
+    assert.equal(await page.locator('#uniClients [data-uni-client]:visible').count(),8);
+    await page.locator('#uniClientsToggle').click();
     assert.equal(await page.locator('#addSheet').isVisible(),false,'first use waits for Add');
     assert.equal(await page.locator('.editor').count(),0);
     const closeEditor=async()=>{await page.locator('.editor > .bar button').first().click();await page.locator('#modal').waitFor({state:'hidden'});};

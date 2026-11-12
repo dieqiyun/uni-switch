@@ -1108,7 +1108,7 @@ The local `cmd/uni-switch-core` entry compiles these packages into its own core,
 
 `assets/uni-switch-boot.js`, `uni-switch.js` and `uni-switch.css` apply the application's existing client-sidebar/provider-card presentation only when bootPrefs.uniSwitch is true. All original built-in page contracts remain available. The source application's native Wails entry and web modes retain their existing visual behavior.
 
-The product sidebar keeps Settings and one combined version/update row in the same fixed lower navigation as Sessions. Only the client list above it scrolls, with a visible scrollbar on its right; wheel and keyboard scrolling do not move the lower navigation. Client list refreshes preserve its scroll position and focused button. Expanded navigation sections take space from the client list instead of moving lower controls off screen. The local credential note is removed. The combined row shows the current version normally and adds New version only when a different release is available. The Gateway page row also shows the local address and running state, without a duplicate footer control. Settings retains its original handler and expanding tabs; the combined version row opens Settings › About normally, and opens the product's release page when an update is available because distribution updates are managed by this desktop bundle. `layoutSidebarInfo` preserves these positions when the shared shell changes layouts. Repeating a click on a selected navigation section collapses or expands its tabs. The buttons expose aria-expanded and aria-controls and work with Enter and Space; background refreshes preserve the collapsed state.
+The product sidebar shows the first eight clients by default. Show more clients widens the sidebar and lays out all eleven clients in two columns; Show fewer clients restores the original width and eight entries. The client list has no independent scrolling or scrollbar. The disclosure exposes aria-expanded and aria-controls, works with Enter and Space, and preserves expansion and keyboard focus across background refreshes. Short windows omit client subtitles to keep the controls within the supported 760 × 600 viewport. Sessions, Library, Settings and one combined version/update row stay at the bottom with space above and below them. Settings and Library keep their section tabs in the content pane, so selecting a page does not displace the lower navigation. The whole sidebar retains a scrollbar-free overflow fallback for unusually short viewports or enlarged text; the supported viewport needs no scrolling in either client layout. The local credential note is removed. The combined row shows the current version normally and adds New version only when a different release is available. Settings retains its original handler; the version row opens Settings › About normally, and opens the product's release page when an update is available because distribution updates are managed by this desktop bundle. `layoutSidebarInfo` preserves these positions when the shared shell changes layouts. `scripts/qa-source-sidebar.mjs` checks both client layouts, fixed lower navigation, settings tabs, keyboard focus, refreshes, themes and three window sizes in both browser engines and five languages.
 
 The shared width-query listener resolves the current `layoutNav` when it fires:
 crossing 1024 CSS pixels must restore Settings to the visible navigation rather
@@ -1116,10 +1116,10 @@ than leaving it in the hidden shared footer. The current version renders during
 startup and before each update request, so a pending or failed check cannot hide
 it. The periodic check also resolves the current `renderUpdateBadge` rather
 than retaining the shared shell's earlier renderer, which could hide this row
-after 15 minutes. At large text sizes in a short window, expanded tabs scroll within their
-remaining space; the permanent navigation rows keep their height and the client
-list retains enough room to scroll. `scripts/qa-source-sidebar.mjs` verifies
-pending update responses, periodic checks, repeated width changes, keyboard tab selection and
+after 15 minutes. At large text sizes in a short window, the whole sidebar may
+scroll so the lower navigation stays reachable; section tabs remain in the
+content pane and clients have no separate scroller. `scripts/qa-source-sidebar.mjs` verifies
+pending update responses, periodic checks, repeated width changes, keyboard navigation and
 the minimum window's effective 150% viewport in Chromium and WebKit across all
 five languages.
 

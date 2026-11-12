@@ -9,6 +9,8 @@ if (window.bootPrefs?.uniSwitch) (() => {
     "Connect this client above, then choose a model.":["请先在上方接入当前客户端，再选择模型。","請先在上方連接目前用戶端，再選擇模型。","上でクライアントを接続してからモデルを選択してください。","Diesen Client oben verbinden, dann ein Modell wählen."],
     "Client not detected. Add a provider to prepare its configuration.":["未检测到此客户端。可先添加供应商准备配置。","未偵測到此用戶端。可先新增供應商準備設定。","クライアント未検出。プロバイダーを追加して設定を準備できます。","Client nicht erkannt. Einen Anbieter hinzufügen, um die Einrichtung vorzubereiten."],
     "Choose client":["选择客户端","選擇用戶端","クライアントを選択","Client wählen"],
+    "Show more clients":["查看更多客户端","查看更多用戶端","他のクライアントを表示","Weitere Clients anzeigen"],
+    "Show fewer clients":["收起客户端","收起用戶端","クライアントを折りたたむ","Weniger Clients anzeigen"],
     "Desktop and CLI":["桌面端与 CLI","桌面版與 CLI","デスクトップと CLI","Desktop und CLI"],
     "Model configuration":["模型配置","模型設定","モデル設定","Modelleinstellungen"],
     "Use →":["使用 →","使用 →","使用 →","Verwenden →"],
@@ -45,7 +47,10 @@ if (window.bootPrefs?.uniSwitch) (() => {
   translateStatic();
   const zh = () => locale.startsWith("zh");
   const say = (_cn, en) => t(en);
-  let selected = "codex", clientNav;
+  let selected = "codex", clientNav, clientsExpanded = false;
+  const visibleClients = 8;
+  // Keep page sections in the content pane so the lower navigation stays put.
+  NAV_SUBS.settings = NAV_SUBS.library = () => null;
   const primary = [
     ["codex","Codex","codex-color","桌面端与 CLI","Desktop and CLI"],
     ["claude","Claude Code","claude-color","桌面端与 CLI","Desktop and CLI"],
@@ -69,9 +74,9 @@ if (window.bootPrefs?.uniSwitch) (() => {
     if(mode!=="window")return;
     if(sideNav()){
       const nav=$("#nav"), prefs=$("#prefs");
-      // Keep the real Settings control and its expanding tabs in the page list.
-      const sub=$("#side .nav-sub[data-view='settings']:not(.leaving)");
-      const tail=[prefs,...(sub?[sub]:[]),updateWrap];
+      prefs.hidden=false;
+      // Keep the real Settings control beside Sessions and Library.
+      const tail=[prefs,updateWrap];
       const pages=[...nav.children].filter(n=>!tail.includes(n));
       replaceKeeping(nav,[...pages,...tail]);
     }else{
@@ -124,11 +129,14 @@ if (window.bootPrefs?.uniSwitch) (() => {
       const brand = $(".brand");
       brand.replaceChildren(Object.assign(document.createElement("img"), {src:"uni-switch-logo.png",alt:"",className:"uni-logo"}),el("span","","uniswitch"));
     }
-    // Keep focused sidebar controls across the periodic state refresh.
+    // Keep focus and the disclosure state across periodic client refreshes.
     const focused = document.activeElement?.dataset.uniClient;
-    const scrollTop = clientNav.scrollTop;
+    const toggleFocused = document.activeElement?.id === "uniClientsToggle";
+    const scrollBox = clientNav.parentElement, scrollTop = scrollBox.scrollTop;
+    document.body.classList.toggle("uni-clients-expanded",clientsExpanded);
     clientNav.replaceChildren(el("p","uni-nav-label",say("选择客户端","Choose client")));
-    for (const [id,name,logo,cn,en] of primary) {
+    const more = el("div","uni-clients-more"); more.id="uniClientsMore"; more.hidden=!clientsExpanded;
+    for (const [index,[id,name,logo,cn,en]] of primary.entries()) {
       const b = button("","uni-client",async () => {
         if(id!==selected && (editing!==null || importing) && !await cancelEdit(true))return;
         const before=selected; selected=id;
@@ -139,10 +147,26 @@ if (window.bootPrefs?.uniSwitch) (() => {
       b.dataset.uniClient=id;
       if (view==="providers" && selected===id) b.setAttribute("aria-current","page");
       const label=el("span",""); label.append(el("strong","",name),el("small","",say(cn,en)));
-      b.append(icon(logo),label); clientNav.append(b);
+      b.append(icon(logo),label); (index<visibleClients?clientNav:more).append(b);
+    }
+    if(primary.length>visibleClients){
+      clientNav.append(more);
+      const toggle=button("","uni-clients-toggle",()=>{
+        clientsExpanded=!clientsExpanded;
+        renderClientNav();
+        $("#uniClientsToggle").focus(NO_SCROLL);
+        fitTop();
+      });
+      toggle.id="uniClientsToggle";
+      toggle.setAttribute("aria-expanded",String(clientsExpanded));
+      toggle.setAttribute("aria-controls",more.id);
+      toggle.append(el("span","",t(clientsExpanded?"Show fewer clients":"Show more clients")),el("span","uni-clients-chevron",clientsExpanded?"⌃":"⌄"));
+      toggle.lastElementChild.setAttribute("aria-hidden","true");
+      clientNav.append(toggle);
     }
     if(focused) clientNav.querySelector(`[data-uni-client="${focused}"]`)?.focus(NO_SCROLL);
-    clientNav.scrollTop = scrollTop;
+    if(toggleFocused) $("#uniClientsToggle")?.focus(NO_SCROLL);
+    scrollBox.scrollTop = scrollTop;
   }
   function renderHeading() {
     const add = document.querySelector(".uni-add");

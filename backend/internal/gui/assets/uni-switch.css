@@ -9,19 +9,18 @@ html.uni-switch:not([data-theme="dark"]) {
   --seg-track:#ededed; --green:#246e43;
 }
 html.uni-switch body.window { background:var(--bg); font-size:13px; --side-w:202px; }
+html.uni-switch body.window.uni-clients-expanded { --side-w:360px!important; }
 html.uni-switch body.side-nav #side { background:#f7f7f7; border-right:1px solid var(--line); }
 html.uni-switch[data-theme="dark"] body.side-nav #side { background:var(--card-2); }
-html.uni-switch .side-top { height:106px; padding:22px 28px 8px; }
+html.uni-switch .side-top { height:84px; padding:18px 28px 8px; }
 html.uni-switch .side-top .brand { display:flex!important; gap:12px; font-size:21px; font-weight:650; letter-spacing:-.7px; }
 html.uni-switch .side-top.tight .brand > span { display:inline!important; }
 html.uni-switch .uni-logo { width:26px; height:26px; object-fit:contain; }
 html.uni-switch #sideToggle, html.uni-switch #sideEdge { display:none!important; }
-html.uni-switch .side-scroll { display:flex; flex-direction:column; overflow:hidden; padding:12px 16px; }
+html.uni-switch .side-scroll { display:flex; flex-direction:column; overflow-y:auto; padding:8px 16px 24px; }
+html.uni-switch .side-bar { display:none; }
 html.uni-switch .side-foot { display:none; }
-html.uni-switch #nav { display:flex!important; flex:0 1 auto; min-height:0; margin-top:18px; }
-html.uni-switch body.side-nav #nav > button, html.uni-switch #nav > .uni-sidebar-update { flex:none; }
-/* At large text sizes, tabs give up height before the permanent lower rows. */
-html.uni-switch body.side-nav #nav > .nav-sub { flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; }
+html.uni-switch #nav { display:flex!important; flex:none; margin-top:auto; padding-top:32px; }
 html.uni-switch #nav [data-view="agents"], html.uni-switch #nav [data-view="providers"], html.uni-switch #nav .nav-gl { display:none!important; }
 html.uni-switch body.side-nav #nav #update {
   display:flex; align-items:center; justify-content:flex-start; gap:9px;
@@ -38,19 +37,25 @@ html.uni-switch body.side-nav #nav #update.uni-update-available > svg { color:in
 html.uni-switch body.side-nav #nav #updateHide { top:7px; right:7px; width:16px; height:16px; box-shadow:none; background:transparent; }
 html.uni-switch body.side-nav #nav #update:hover { background:var(--pill); color:var(--fg); }
 html.uni-switch body.side-nav #nav #update:active { transform:none; }
-html.uni-switch .uni-clients { display:flex; flex:1 0 72px; min-height:0; flex-direction:column; gap:6px; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:6px; }
-html.uni-switch .uni-clients::-webkit-scrollbar { width:6px; }
-html.uni-switch .uni-clients::-webkit-scrollbar-track { background:transparent; }
-html.uni-switch .uni-clients::-webkit-scrollbar-thumb { background:var(--muted); border:0; border-radius:6px; background-clip:border-box; }
-html.uni-switch .uni-clients::-webkit-scrollbar-thumb:hover { background:var(--fg-2); }
+html.uni-switch .uni-clients { display:flex; flex:none; flex-direction:column; gap:4px; padding:6px; }
+html.uni-switch .uni-clients-more { display:flex; flex-direction:column; gap:4px; }
+html.uni-switch .uni-clients-more[hidden] { display:none; }
+html.uni-switch .uni-clients-expanded .uni-clients { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; }
+html.uni-switch .uni-clients-expanded .uni-clients-more:not([hidden]) { display:contents; }
+html.uni-switch .uni-clients-expanded .uni-nav-label, html.uni-switch .uni-clients-expanded .uni-clients-toggle { grid-column:1/-1; }
+html.uni-switch .uni-clients-toggle { display:flex; flex:none; align-items:center; justify-content:space-between; gap:8px; min-height:34px; margin-top:6px; padding:7px 12px; border-radius:8px; background:transparent; color:var(--muted); font-size:12px; text-align:left; }
+html.uni-switch .uni-clients-toggle:hover { background:var(--pill-hover); color:var(--fg); }
+html.uni-switch .uni-clients-chevron { flex:none; font-size:16px; line-height:1; }
 html.uni-switch .uni-nav-label { flex:none; font-size:12px; color:var(--muted); margin:0 14px 2px; }
-html.uni-switch .uni-client { display:flex; flex:none; align-items:center; gap:14px; width:100%; padding:10px 14px; text-align:left; border:1px solid transparent; border-radius:12px; background:transparent; color:var(--fg-2); min-height:62px; }
+html.uni-switch .uni-client { display:flex; flex:none; align-items:center; gap:14px; width:100%; padding:7px 12px; text-align:left; border:1px solid transparent; border-radius:12px; background:transparent; color:var(--fg-2); min-height:52px; }
 html.uni-switch .uni-client:hover { background:var(--pill-hover); }
 html.uni-switch .uni-client[aria-current="page"] { color:var(--fg); background:var(--card); border-color:var(--line); box-shadow:0 1px 3px #00000003; }
 html.uni-switch .uni-client .ic { width:28px; height:28px; flex:none; }
 html.uni-switch .uni-client > span { min-width:0; }
 html.uni-switch .uni-client strong { display:block; font-size:13px; font-weight:550; }
 html.uni-switch .uni-client small { display:block; margin-top:5px; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html.uni-switch body.side-nav #setTabs, html.uni-switch body.side-nav #view-library .lib-tabs { display:flex!important; flex-wrap:wrap; }
+html.uni-switch body.side-nav #view-settings .set-head, html.uni-switch body.side-nav #view-library .lib-head { position:relative; top:auto; left:auto; right:auto; height:auto; min-height:36px; margin:8px 0 16px; padding:0; flex-wrap:wrap; justify-content:flex-start; }
 html.uni-switch body.window.side-nav .top { height:96px; min-height:96px; padding:28px 32px 0; gap:16px; }
 html.uni-switch #crumb { font-size:24px; font-weight:650; flex:1; }
 html.uni-switch #crumb .uni-count { font-size:11px; font-weight:400; margin-left:12px; color:var(--muted); }
@@ -119,6 +124,7 @@ html.uni-switch .update-download-row, html.uni-switch .update-restart-row, html.
 html.uni-switch button:focus-visible, html.uni-switch a:focus-visible { outline:2px solid var(--fg); outline-offset:3px; }
 @media(max-width:900px) {
   html.uni-switch body.window { --side-w:180px; }
+  html.uni-switch body.window.uni-clients-expanded { --side-w:330px!important; }
   html.uni-switch .side-top { padding-left:22px; }
   html.uni-switch .side-top .brand { font-size:18px; }
   html.uni-switch .side-scroll { padding:10px; }
@@ -136,12 +142,20 @@ html.uni-switch button:focus-visible, html.uni-switch a:focus-visible { outline:
   html.uni-switch .uni-card-connection { grid-column:1/-1; }
 }
 @media(prefers-reduced-motion:reduce) { html.uni-switch *, html.uni-switch *::before, html.uni-switch *::after { animation:none!important; transition:none!important; } }
-@media(max-height:720px) {
-  html.uni-switch .side-top { height:80px; padding-top:18px; }
-  html.uni-switch .side-scroll { padding-top:5px; padding-bottom:5px; }
-  html.uni-switch .uni-clients { gap:3px; }
-  html.uni-switch .uni-client { min-height:46px; padding:4px 12px; }
+@media(max-height:850px) {
+  html.uni-switch .side-top { height:72px; padding-top:12px; }
+  html.uni-switch .uni-clients, html.uni-switch .uni-clients-more { gap:2px; }
+  html.uni-switch .uni-client { min-height:44px; padding:4px 12px; }
   html.uni-switch .uni-client small { margin-top:3px; }
+}
+@media(max-height:720px) {
+  html.uni-switch .side-top { height:60px; padding-top:8px; }
+  html.uni-switch .side-scroll { padding-top:4px; padding-bottom:16px; }
+  html.uni-switch #nav { padding-top:24px; }
+  html.uni-switch .uni-clients, html.uni-switch .uni-clients-more { gap:1px; }
+  html.uni-switch .uni-client { min-height:34px; padding-top:4px; padding-bottom:4px; }
+  html.uni-switch .uni-client small { display:none; }
+  html.uni-switch .uni-client .ic { width:24px; height:24px; }
 }
 
 html.uni-switch .uni-client-controls { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 0 8px; }

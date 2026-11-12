@@ -5,6 +5,8 @@
 const I18N = {
   zh: {
     "Not available on this system yet": "此系统暂不支持",
+    "Gateway settings": "网关设置",
+    "Local gateway status, request records and advanced connection settings": "本机网关状态、请求记录及高级连接设置",
     "Prefix": "前缀",
     "Regex": "正则",
     "As written here": "这台电脑上的",
@@ -4311,6 +4313,8 @@ const I18N = {
   },
   "zh-TW": {
     "Not available on this system yet": "此系統暫不支援",
+    "Gateway settings": "閘道設定",
+    "Local gateway status, request records and advanced connection settings": "本機閘道狀態、請求記錄與進階連線設定",
     "Prefix": "字首",
     "Regex": "正則",
     "Bucket": "儲存桶",
@@ -8596,6 +8600,8 @@ const I18N = {
   },
   ja: {
     "Not available on this system yet": "このシステムではまだ使えません",
+    "Gateway settings": "ゲートウェイ設定",
+    "Local gateway status, request records and advanced connection settings": "ローカルゲートウェイの状態、リクエスト履歴、接続の詳細設定",
     "Prefix": "前方一致",
     "Regex": "正規表現",
     "Bucket": "バケット",
@@ -12885,6 +12891,8 @@ const I18N = {
   },
   de: {
     "Not available on this system yet": "Auf diesem System noch nicht verfügbar",
+    "Gateway settings": "Gateway-Einstellungen",
+    "Local gateway status, request records and advanced connection settings": "Lokaler Gateway-Status, Anfrageprotokolle und erweiterte Verbindungseinstellungen",
     "Prefix": "Präfix",
     "Regex": "Regex",
     "Bucket": "Bucket",

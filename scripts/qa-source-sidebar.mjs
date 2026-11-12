@@ -2,40 +2,66 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {chromium,webkit} from 'playwright';
+import AxeBuilder from '@axe-core/playwright';
 import {startIsolated} from './qa-source-core.mjs';
 const root=resolve(import.meta.dirname,'..');
-const version=JSON.parse(readFileSync(resolve(root,'package.json'),'utf8')).version;
-const app=await startIsolated(resolve(root,'src-tauri/binaries/uni-switch-core-x86_64-pc-windows-msvc.exe'));
+const app=await startIsolated(resolve(root,process.argv[2]||'src-tauri/binaries/uni-switch-core-x86_64-pc-windows-msvc.exe'));
 const checks=[];
-async function checkClientScroll(page){
- const lower=()=>page.locator('#nav button[data-view="sessions"],#nav button[data-view="library"],#prefs,#update').evaluateAll(buttons=>buttons.map(b=>{const r=b.getBoundingClientRect();return {id:b.id||b.dataset.view,top:r.top,bottom:r.bottom,height:r.height,reachable:b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};}));
- const list=page.locator('#uniClients');
- const initial=await lower();
- const geometry=await list.evaluate(b=>({top:b.getBoundingClientRect().top,bottom:b.getBoundingClientRect().bottom,height:b.clientHeight,content:b.scrollHeight,overflow:getComputedStyle(b).overflowY}));
- assert.ok(geometry.height>60&&geometry.content>geometry.height,'clients have their own bounded scroll area');
- assert.equal(geometry.overflow,'auto');
- assert.equal(initial.length,4,'all four lower controls belong to the visible navigation');
- assert.ok(initial.every(b=>b.height>=29&&b.reachable&&b.top>=geometry.bottom&&b.bottom<=page.viewportSize().height),'all lower navigation remains visible and clickable below clients');
- await list.evaluate(b=>b.scrollTop=0);
- await list.hover();await page.mouse.wheel(0,900);
- await page.waitForFunction(()=>document.querySelector('#uniClients').scrollTop>0);
- assert.deepEqual(await lower(),initial,'scrolling clients does not move lower navigation');
+const version=JSON.parse(readFileSync(resolve(root,'package.json'),'utf8')).version;
+const lower=page=>page.locator('#nav [data-view="sessions"],#nav [data-view="library"],#prefs,#update').evaluateAll(buttons=>buttons.map(b=>{const r=b.getBoundingClientRect();return {id:b.id||b.dataset.view,top:r.top,bottom:r.bottom};}));
+async function checkFit(page){
+ const geometry=await page.locator('#uniClients').evaluate(b=>({bottom:b.getBoundingClientRect().bottom,height:b.clientHeight,content:b.scrollHeight,overflow:getComputedStyle(b).overflowY}));
+ assert.equal(geometry.overflow,'visible','the client list has no independent scroll area');
+ assert.ok(geometry.content<=geometry.height+1,'all client rows fit');
+ const buttons=await lower(page);
+ assert.equal(buttons.length,4,'Sessions, Library, Settings and Version are present');
+ assert.ok(buttons.every(b=>b.top>=geometry.bottom+20&&b.bottom<=page.viewportSize().height-12),'lower navigation has space above and below: '+JSON.stringify({viewport:page.viewportSize(),geometry,buttons}));
+ assert.equal(await page.locator('.side-scroll').evaluate(b=>b.scrollTop),0,'the sidebar stays at the top');
+ assert.ok(await page.locator('.side-scroll').evaluate(b=>b.scrollHeight<=b.clientHeight+1),'the supported window needs no sidebar scrolling');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page has no horizontal overflow');
+ // Read in one browser task: a state refresh can replace nodes between a
+ // locator resolving and its later evaluation, especially in WebKit.
+ const names=await page.evaluate(()=>[...document.querySelectorAll('#uniClients [data-uni-client]')].filter(b=>b.getClientRects().length).map(button=>{const b=button.querySelector('strong'),r=document.createRange();r.selectNodeContents(b);return {text:b.textContent,lines:r.getClientRects().length,width:b.clientWidth,content:b.scrollWidth};}));
+ assert.equal(names.length,await page.locator('#uniClientsToggle').getAttribute('aria-expanded')==='true'?11:8);
+ assert.deepEqual(names.filter(b=>b.lines!==1||b.content>b.width+1),[],'client names fit on one line');
+}
+async function checkDisclosure(page){
+ const toggle=page.locator('#uniClientsToggle'),clients=page.locator('#uniClients [data-uni-client]:visible');
+ assert.equal(await clients.count(),8,'exactly eight clients show by default');
+ assert.equal(await toggle.getAttribute('aria-expanded'),'false');
+ assert.equal(await toggle.getAttribute('aria-controls'),'uniClientsMore');
+ await checkFit(page);
+ const initial=await lower(page),width=(await page.locator('#side').boundingBox()).width;
+ await toggle.focus();await page.keyboard.press('Enter');
+ assert.equal(await clients.count(),11,'Show more reveals every client');
+ assert.equal(await toggle.getAttribute('aria-expanded'),'true');
+ assert.ok((await page.locator('#side').boundingBox()).width>width,'the sidebar expands to make room');
+ await checkFit(page);
+ assert.deepEqual(await lower(page),initial,'expanding clients leaves lower navigation in place');
  await page.locator('[data-uni-client="qoder-cn"]').focus();
- const at=await list.evaluate(b=>b.scrollTop);
  await page.evaluate(()=>renderAgents());
- assert.equal(await list.evaluate(b=>b.scrollTop),at,'state refresh preserves client scroll');
- assert.equal(await page.evaluate(()=>document.activeElement?.dataset.uniClient),'qoder-cn','state refresh preserves keyboard focus');
- await page.locator('#prefs').hover();await page.mouse.wheel(0,900);
- await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
- assert.equal(await list.evaluate(b=>b.scrollTop),at,'wheel over lower navigation does not scroll clients');
- assert.deepEqual(await lower(),initial,'lower controls keep their positions');
- assert.equal(await page.locator('.side-scroll').evaluate(b=>b.scrollTop),0,'the whole sidebar does not scroll');
+ assert.equal(await page.evaluate(()=>document.activeElement?.dataset.uniClient),'qoder-cn','refresh preserves client focus');
+ assert.equal(await clients.count(),11,'refresh preserves the expansion');
+ await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('[data-uni-client="qoder-cn"]').getAttribute('aria-current')==='page');
+ await toggle.focus();await page.evaluate(()=>renderAgents());
+ assert.equal(await page.evaluate(()=>document.activeElement?.id),'uniClientsToggle','refresh preserves disclosure focus');
+ await page.keyboard.press('Space');
+ assert.equal(await clients.count(),8,'Space collapses to eight clients');
+ assert.equal((await page.locator('#side').boundingBox()).width,width);
+ await checkFit(page);
+ await page.keyboard.press('Tab');
+ assert.equal(await page.evaluate(()=>document.activeElement?.dataset.view),'sessions','collapsed clients are not in the tab order');
+ await toggle.click();await toggle.click();
+ assert.equal(await clients.count(),8,'mouse clicks expand and collapse');
+ await page.locator('[data-uni-client="codex"]').click();
 }
 try{
  await app.wait(()=>!!app.ready());
  for(const [engine,launcher] of [['chromium',chromium],['webkit',webkit]]){
   const browser=await launcher.launch(engine==='chromium'?{channel:'chromium',ignoreDefaultArgs:['--hide-scrollbars']}:{});
   try{for(const language of ['en','zh','zh-TW','ja','de']){
+   console.log(`Sidebar: ${engine}/${language}`);
    const context=await browser.newContext({viewport:{width:1120,height:880},reducedMotion:'reduce'});
    try{
     const page=await context.newPage();page.setDefaultTimeout(10000);
@@ -54,40 +80,26 @@ try{
     const url=new URL(app.ready().url);url.searchParams.set('locale',language);await page.goto(url.href,{waitUntil:'domcontentloaded'});
     await page.locator('#uniClients').waitFor();await page.waitForFunction(()=>!!providers);
     assert.ok(await page.locator('#update').isVisible(),'current version is visible while the update request is pending');
-    assert.ok((await page.locator('#update').innerText()).includes(`v${version}`));
+    assert.ok((await page.locator('#update').innerText()).includes('v'+version));
     releaseUpdate();
     await page.evaluate(()=>renderUpdateBadge());
     assert.equal(await page.locator('#uniVersion,.uni-sidebar-note').count(),0);
     assert.equal(await page.locator('#update').count(),1);
-    assert.ok((await page.locator('#update').innerText()).includes(`v${version}`));
+    assert.ok((await page.locator('#update').innerText()).includes('v'+version));
     assert.equal(await page.locator('#update.uni-update-available').count(),0);
     assert.equal(await page.locator('#updateHide').isVisible(),false);
     await page.evaluate(()=>window.qaUpdateTick());
     assert.ok(await page.locator('#update').isVisible(),'periodic update check keeps the current version visible');
-    await checkClientScroll(page);
-    for(const size of [{width:1018,height:704},{width:760,height:600},{width:1120,height:880}]){
-     await page.setViewportSize(size);
-     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-     await checkClientScroll(page);
-    }
-    await page.locator('#nav button[data-view="library"]').click();
-    await page.locator('#nav-sub-library').waitFor();
-    await page.setViewportSize({width:507,height:400});
-    await checkClientScroll(page);
-    await page.locator('[data-uni-client="codex"]').click();
-    await page.setViewportSize({width:1120,height:880});
+    await checkDisclosure(page);
     await page.locator('#update').focus();await page.keyboard.press('Enter');
     await page.waitForFunction(()=>view==='settings'&&setTab==='about');
-    const prefs=page.locator('#prefs'),sub=page.locator('#nav-sub-settings');
-    await sub.waitFor();assert.equal(await prefs.getAttribute('aria-expanded'),'true');
-    assert.equal(await prefs.getAttribute('aria-controls'),'nav-sub-settings');
-    await prefs.click();assert.equal(await sub.isVisible(),false);assert.equal(await prefs.getAttribute('aria-expanded'),'false');
-    await page.evaluate(()=>{navSubsAt='';navSubs();});assert.equal(await sub.isVisible(),false);
-    await prefs.focus();await page.keyboard.press('Enter');assert.equal(await sub.isVisible(),true);
-    await checkClientScroll(page);
-    await prefs.focus();
-    await page.keyboard.press('Space');assert.equal(await sub.isVisible(),false);
-    await page.keyboard.press('Space');assert.equal(await sub.isVisible(),true);
+    const prefs=page.locator('#prefs');
+    assert.ok(await page.locator('#setTabs').isVisible(),'settings sections are visible in the content pane');
+    assert.equal(await page.locator('#nav-sub-settings').count(),0);
+    await prefs.focus();await page.keyboard.press('Enter');
+    await checkFit(page);
+    await page.locator('#setTabs [data-set="network"]').click();
+    await page.waitForFunction(()=>setTab==='network');
     phase='available';await page.evaluate(()=>renderUpdateBadge());
     assert.equal(await page.locator('#update.uni-update-available').count(),1);
     assert.match(await page.locator('#update').getAttribute('title'),/999\.0\.0/);
@@ -101,33 +113,45 @@ try{
     assert.equal(await page.locator('#nav [data-view="groups"]').count(),0);
     assert.deepEqual(requests,[]);
     await page.locator('[data-uni-client="codex"]').click();
-    await page.setViewportSize({width:760,height:600});
-    await checkClientScroll(page);
-    await prefs.click();await sub.waitFor();
-    await checkClientScroll(page);
-    // Native 150% zoom at the minimum 760 x 600 window exposes ~507 x 400 CSS pixels.
-    await page.setViewportSize({width:507,height:400});
-    await checkClientScroll(page);
-    await sub.locator('[data-of="setTab-general"]').focus();await page.keyboard.press('End');
-    await page.keyboard.press('Enter');await page.waitForFunction(()=>setTab==='about');
-    await checkClientScroll(page);
-    if(engine==='chromium'&&language==='zh')await page.screenshot({path:resolve(root,'.qa/sidebar-large-text-minimum.png')});
-    await page.setViewportSize({width:760,height:600});
-    await page.evaluate(()=>document.documentElement.dataset.theme='dark');
-    await checkClientScroll(page);
-    await page.evaluate(()=>document.documentElement.dataset.theme='light');
-    await prefs.click();
-    if(engine==='chromium'&&language==='zh'){
-     await page.locator('#uniClients').evaluate(b=>b.scrollTop=0);
-     await page.screenshot({path:resolve(root,'.qa/sidebar-compact-minimum.png')});
-     await page.setViewportSize({width:1120,height:880});
-     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-     await page.screenshot({path:resolve(root,'.qa/sidebar-compact-final.png')});
+    for(const viewport of [{width:1018,height:704},{width:1120,height:774},{width:760,height:600}]){
+     await page.setViewportSize(viewport);await checkDisclosure(page);
+     await prefs.click();await page.locator('#setTabs').waitFor();await checkFit(page);
+     await page.locator('#uniClientsToggle').click();await checkFit(page);
+     await page.evaluate(()=>document.documentElement.dataset.theme='dark');await checkFit(page);
+     await page.evaluate(()=>document.documentElement.dataset.theme='light');
+     await page.locator('#uniClientsToggle').click();await checkFit(page);
+     await page.locator('#nav [data-view="library"]').click();
+     await page.locator('#view-library .lib-tabs').waitFor();await checkFit(page);
+     await page.locator('[data-uni-client="codex"]').click();
     }
-    assert.deepEqual(errors,[]);checks.push({engine,language,oneVersionRow:true,versionBeforeUpdateResponse:true,periodicCheckKeepsVersion:true,resizeAcrossSidebarBreakpoint:true,largeTextAtMinimumWindow:true,updateStates:true,disclosureMouseAndKeyboard:true,refreshKeepsCollapsed:true,groupsRemoved:true,independentClientScroll:true,fixedLowerNavigation:true,refreshKeepsClientScroll:true,smallWindowAndDarkTheme:true});
+    const accessibility=await new AxeBuilder({page}).include('#side').withRules(['button-name','aria-allowed-attr','aria-required-attr','color-contrast']).analyze();
+    assert.deepEqual(accessibility.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[]);
+    // At 150% text size the minimum native window has about 507 x 400
+    // CSS pixels. The whole sidebar may scroll, but every lower control
+    // and its content must remain reachable; clients have no own scroller.
+    await page.setViewportSize({width:507,height:400});
+    for(const selector of ['#prefs','#nav [data-view="library"]','#update']){
+     const control=page.locator(selector);
+     await control.scrollIntoViewIfNeeded();await control.click();
+     assert.ok(await control.evaluate(b=>{const r=b.getBoundingClientRect();return r.height>0&&r.top>=0&&r.bottom<=innerHeight&&b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),'large text keeps lower controls reachable');
+    }
+    assert.ok(await page.locator('#setTabs').isVisible());
+    await page.setViewportSize({width:760,height:600});
+    await page.locator('[data-uni-client="codex"]').click();
+    await checkFit(page);
+    if(engine==='chromium'&&language==='zh'){
+     await page.screenshot({path:resolve(root,'.qa/sidebar-clients-minimum.png')});
+     await page.setViewportSize({width:1120,height:774});
+     await page.screenshot({path:resolve(root,'.qa/sidebar-clients-collapsed.png')});
+     await page.locator('#uniClientsToggle').click();
+     await page.screenshot({path:resolve(root,'.qa/sidebar-clients-expanded.png')});
+     await prefs.click();await page.locator('#setTabs').waitFor();
+     await page.screenshot({path:resolve(root,'.qa/sidebar-clients-settings.png')});
+    }
+    assert.deepEqual(errors,[]);checks.push({engine,language,oneVersionRow:true,versionBeforeUpdateResponse:true,periodicCheckKeepsVersion:true,resizeAcrossSidebarBreakpoint:true,largeTextControlsReachable:true,updateStates:true,eightClientsByDefault:true,allElevenExpanded:true,disclosureMouseAndKeyboard:true,refreshKeepsExpansionAndFocus:true,groupsRemoved:true,noClientScroll:true,fixedLowerNavigation:true,settingsAndLibraryTabs:true,smallWindowAndDarkTheme:true,accessibility:true});
    }finally{await context.close();}
   }}finally{await browser.close();}
  }
- writeFileSync(resolve(root,'.qa/sidebar-compact-verification.json'),JSON.stringify(checks,null,2)+'\n');
+ writeFileSync(resolve(root,'.qa/sidebar-clients-verification.json'),JSON.stringify(checks,null,2)+'\n');
  console.log(JSON.stringify({passed:true,checks:checks.length}));
 }finally{await app.stop();}
