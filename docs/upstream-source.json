@@ -52016,8 +52016,8 @@
     },
     {
       "path": "internal/sessions/agents_test.go",
-      "sha256": "93c9e47d178b9665f5257bf3443b7b0655ce991babe71f6ebc052d0426a2466d",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "38112c8d4042002df130b7de4ffd76fe039314aee1d242cc19f2931b18b720c9",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Adapt only provider identity fields in sandbox copies used to exercise the current gateway; preserve original captures and conversation text."
     },
     {
       "path": "internal/sessions/agy_test.go",
@@ -52121,8 +52121,8 @@
     },
     {
       "path": "internal/sessions/calls_minimax_test.go",
-      "sha256": "064820a886916873ba4cd0bbaf3d70d1338bed88afe805123856af5d75c599ab",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "6721c238ac75c52c5418c46ec5994bdf644c77c8f5aa7d8bc1600a29b83e2ee7",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Adapt only provider identity fields in sandbox copies used to exercise the current gateway; preserve original captures and conversation text."
     },
     {
       "path": "internal/sessions/calls_minimax.go",
@@ -52141,8 +52141,8 @@
     },
     {
       "path": "internal/sessions/calls_pi_test.go",
-      "sha256": "d4e89580678f44316f9a399650ff43941d976b23c9b45c77d2435ffeca98a8e0",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "e3f256de5bdabca85a562c6e4f6b7fe456256a12cadadf35a290a3be8a437fed",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Adapt only provider identity fields in sandbox copies used to exercise the current gateway; preserve original captures and conversation text."
     },
     {
       "path": "internal/sessions/calls_pi.go",
@@ -52361,8 +52361,8 @@
     },
     {
       "path": "internal/sessions/dsh_response_id_test.go",
-      "sha256": "58d1273e86eb553a4000e25e8618cb051120134b150dcd9ebd701ad8e6e0dc7a",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "006a6dabe373a7a94118204c5d9e587bfdae4878f22fb4f8b214effd11f7ea7c",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Adapt only provider identity fields in sandbox copies used to exercise the current gateway; preserve original captures and conversation text."
     },
     {
       "path": "internal/sessions/dsh.go",
@@ -52491,8 +52491,8 @@
     },
     {
       "path": "internal/sessions/opencode_pi_test.go",
-      "sha256": "13f51c557da01452cf92c8d516e6954a17810045746efca6ec440167b5eb91b0",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "01ab83090ebb40acd4eb6413cde79c4d8e8346e1c11061f274757bd372872011",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Adapt only provider identity fields in sandbox copies used to exercise the current gateway; preserve original captures and conversation text."
     },
     {
       "path": "internal/sessions/opencode.go",
@@ -52601,8 +52601,8 @@
     },
     {
       "path": "internal/sessions/sessions_test.go",
-      "sha256": "0d0da5b0a38a6c9779b658b9f320b6808dd7ecf6c049bd5478b445c7f9a92656",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "771a23cbf93258b46c334f0c8a36e3957c4cb7e755c94621bb394d82947d646f",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Adapt only provider identity fields in sandbox copies used to exercise the current gateway; preserve original captures and conversation text."
     },
     {
       "path": "internal/sessions/sessions.go",

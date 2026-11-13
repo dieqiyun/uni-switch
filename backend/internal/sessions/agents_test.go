@@ -23,7 +23,7 @@ const (
 func setupAgents(t *testing.T) (home string) {
 	claude, _ := setup(t)
 	home = filepath.Join(filepath.Dir(claude), "home")
-	copyTree(t, "testdata/dsh", filepath.Join(home, ".dsh"))
+	copyTree(t, "testdata/dsh", filepath.Join(home, ".dsh"), currentGatewayFixture)
 	copyTree(t, "testdata/cline", filepath.Join(home, ".cline", "data"))
 	copyTree(t, "testdata/qoder", filepath.Join(home, ".qoder"))
 	copyTree(t, "testdata/qoder-cn", filepath.Join(home, ".qoder-cn"))

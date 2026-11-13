@@ -24,7 +24,7 @@ import (
 func TestPiCalls(t *testing.T) {
 	claude, _ := setup(t)
 	dir := filepath.Dir(claude)
-	copyTree(t, "testdata/pi-calls", filepath.Join(dir, "pi"))
+	copyTree(t, "testdata/pi-calls", filepath.Join(dir, "pi"), currentGatewayFixture)
 	copyTree(t, "testdata/omp-calls/agent", filepath.Join(dir, "home", ".omp", "agent"))
 	const parent, fork = "01a1343b-2288-73d4-b1b4-6fb13abf0069", "01a1343b-9a0f-7603-b371-4124126b8b05"
 	by := map[string][]Call{}

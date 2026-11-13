@@ -138,9 +138,7 @@ func TestDshForkOfARealSessionListsItsOwnReplies(t *testing.T) {
 	const source, fork = "session-508e7b0a-37c0-41f7-ac62-e48ab3146111", "session-5e1c0f3a-8d2b-4c6e-9a71-2f4b6d8e0c13"
 	manageSetup(t)
 	home := filepath.Join(t.TempDir(), "dsh")
-	if err := os.CopyFS(filepath.Join(home, "sessions"), os.DirFS(filepath.Join("testdata", "dsh-gateway", "sessions"))); err != nil {
-		t.Fatal(err)
-	}
+	copyTree(t, filepath.Join("testdata", "dsh-gateway", "sessions"), filepath.Join(home, "sessions"), currentGatewayFixture)
 	src, err := os.ReadFile(filepath.Join(home, "sessions", "--work-proj--", source, "session.v4.jsonl"))
 	if err != nil {
 		t.Fatal(err)

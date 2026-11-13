@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -15,7 +16,7 @@ import (
 )
 
 // copyTree copies the fixtures somewhere the test may change them.
-func copyTree(t *testing.T, from, to string) {
+func copyTree(t *testing.T, from, to string, adapt ...func([]byte) []byte) {
 	t.Helper()
 	err := filepath.WalkDir(from, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -29,11 +30,25 @@ func copyTree(t *testing.T, from, to string) {
 		if err != nil {
 			return err
 		}
+		if ext := filepath.Ext(p); ext == ".json" || ext == ".jsonl" {
+			for _, f := range adapt {
+				b = f(b)
+			}
+		}
 		return os.WriteFile(filepath.Join(to, rel), b, 0o644)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// Real upstream captures stay intact in testdata. Only provider fields in
+// sandbox copies are adapted when a test exercises this product's gateway.
+// Conversation text and providers owned by the user keep their bytes.
+var capturedGatewayProvider = regexp.MustCompile(`("provider"\s*:\s*")(custom_provider:)?magpie(")`)
+
+func currentGatewayFixture(b []byte) []byte {
+	return capturedGatewayProvider.ReplaceAll(b, []byte(`${1}${2}uni-switch${3}`))
 }
 
 func setup(t *testing.T) (claude, codex string) {

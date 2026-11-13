@@ -25,7 +25,7 @@ func TestMiniMaxCodeCalls(t *testing.T) {
 				dir = filepath.Join(filepath.Dir(claude), "elsewhere")
 				t.Setenv("MINIMAX_DATA_DIR", dir)
 			}
-			copyTree(t, "testdata/minimax", dir)
+			copyTree(t, "testdata/minimax", dir, currentGatewayFixture)
 			var got []Call
 			for _, c := range Calls(time.Time{}) {
 				if c.Agent == "minimax-code" {

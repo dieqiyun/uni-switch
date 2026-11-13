@@ -26,7 +26,7 @@ func setupMore(t *testing.T) (data, pi string) {
 	dir := filepath.Dir(claude)
 	data, pi = filepath.Join(dir, "data"), filepath.Join(dir, "pi")
 	copyTree(t, "testdata/opencode", filepath.Join(data, "opencode"))
-	copyTree(t, "testdata/pi", pi)
+	copyTree(t, "testdata/pi", pi, currentGatewayFixture)
 	return
 }
 
