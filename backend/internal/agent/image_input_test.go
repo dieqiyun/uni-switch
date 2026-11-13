@@ -131,7 +131,7 @@ func TestConfiguredModelsAdvertiseImageInput(t *testing.T) {
 
 func imageInputBool(v bool) *bool { return &v }
 
-func TestInferredGroupImagesReachAgentCatalogs(t *testing.T) {
+func TestCatalogImagesReachDirectAgentModels(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -156,24 +156,31 @@ func TestInferredGroupImagesReachAgentCatalogs(t *testing.T) {
 	if err := catalog.SaveLive("unknown", "https://example.test/v1", []catalog.Model{{ID: "claude-sonnet-4-5"}}); err != nil {
 		t.Fatal(err)
 	}
-	id := "auto/claude-sonnet-4-5"
+	id := "confirmed/claude-sonnet-4-5"
 	ms := uniSwitchProviderJSON("opencode").(map[string]any)["models"].(orderedJSON)
-	oc, _ := ms[slices.IndexFunc(ms, func(p jsonPair) bool { return p.k == id })].v.(map[string]any)
+	i := slices.IndexFunc(ms, func(p jsonPair) bool { return p.k == id })
+	if len(ms) != 2 || i < 0 {
+		t.Fatalf("OpenCode must list two direct models without an automatic group: %v", ms)
+	}
+	oc, _ := ms[i].v.(map[string]any)
 	if _, ok := oc["attachment"]; ok || !reflect.DeepEqual(oc["modalities"].(map[string]any)["input"], []string{"text", "image"}) {
-		t.Fatalf("OpenCode group image input: %v", oc)
+		t.Fatalf("OpenCode direct model image input: %v", oc)
 	}
 	pi := uniSwitchProviderJSON("pi").(map[string]any)["models"].([]map[string]any)
+	if len(pi) != 2 {
+		t.Fatalf("Pi must list two direct models without an automatic group: %v", pi)
+	}
 	found := false
 	for _, m := range pi {
 		if m["id"] == id {
 			found = true
 			if !reflect.DeepEqual(m["input"], []string{"text", "image"}) {
-				t.Fatalf("Pi group image input: %v", m)
+				t.Fatalf("Pi direct model image input: %v", m)
 			}
 		}
 	}
 	if !found {
-		t.Fatal("Pi group missing")
+		t.Fatal("Pi direct model missing")
 	}
 	var codex struct {
 		Models []struct {
@@ -184,13 +191,16 @@ func TestInferredGroupImagesReachAgentCatalogs(t *testing.T) {
 	if err := json.Unmarshal(codexcat.Catalog(uniSwitchModels("codex")), &codex); err != nil {
 		t.Fatal(err)
 	}
+	if len(codex.Models) != 2 {
+		t.Fatalf("Codex must list two direct models without an automatic group: %v", codex.Models)
+	}
 	for _, m := range codex.Models {
 		if m.Slug == id {
 			if !reflect.DeepEqual(m.Input, []string{"text", "image"}) {
-				t.Fatalf("Codex group image input: %v", m.Input)
+				t.Fatalf("Codex direct model image input: %v", m.Input)
 			}
 			return
 		}
 	}
-	t.Fatal("Codex group missing")
+	t.Fatal("Codex direct model missing")
 }

@@ -31244,8 +31244,8 @@
     },
     {
       "path": "internal/agent/image_input_test.go",
-      "sha256": "4c137346721e65e52e09cf4135264b91cfabde10f21f60b3db38f29ace8ebee8",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "89d86e1451dd543421c1bd6daced1613636645e82e1d0a92f0686895e9548c75",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Verify catalog image capabilities on direct models while asserting no automatic group is created; report missing model fixtures without indexing an absent group."
     },
     {
       "path": "internal/agent/install_missing_test.go",
