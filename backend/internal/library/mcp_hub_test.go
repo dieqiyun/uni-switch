@@ -255,7 +255,7 @@ func TestHubEntrySwap(t *testing.T) {
 			t.Errorf("problem: %+v", p)
 		}
 	}
-	if got := names("claude"); !slices.Equal(got, []string{"uni-switch", "mine"}) {
+	if got := names("claude"); !slices.Equal(got, []string{"mine", "uni-switch"}) {
 		t.Fatalf("claude with the hub on: %v\n%s", got, read(t, claude))
 	}
 	if u, _ := entries("claude")["uni-switch"]["url"].(string); !strings.HasSuffix(u, gateway.HubMCPPath+"claude") {
@@ -534,7 +534,7 @@ func TestHubDirectServer(t *testing.T) {
 	}
 
 	ok(t)(SetMCPHub(true))
-	for id, want := range map[string][]string{"claude": {"index", "uni-switch", "mine"}, "codex": {"index", "uni-switch"}} {
+	for id, want := range map[string][]string{"claude": {"index", "mine", "uni-switch"}, "codex": {"index", "uni-switch"}} {
 		if got := names(id); !slices.Equal(got, want) {
 			t.Fatalf("%s with the hub on: %v, want %v\n%s\n%s", id, got, want, read(t, claude), read(t, codex))
 		}

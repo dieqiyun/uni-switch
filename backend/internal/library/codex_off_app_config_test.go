@@ -2,8 +2,11 @@ package library
 
 import (
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/pelletier/go-toml/v2"
 
 	"github.com/dieqiyun/uni-switch/backend/internal/agent"
 )
@@ -87,10 +90,25 @@ func TestCodexOffKeepsAppsOwnConfig(t *testing.T) {
 				t.Fatal(err)
 			}
 			off := read(t, path)
-			for _, l := range strings.Split(codexAppOwnConfig, "\n") {
-				if l = strings.TrimSpace(l); l != "" && !strings.Contains(off, l) {
-					t.Errorf("lost %q", l)
-				}
+			// Imported servers can be serialized with inline env tables.
+			// Compare every app-owned value rather than TOML spelling.
+			var want, got map[string]any
+			if err := toml.Unmarshal([]byte(codexAppOwnConfig), &want); err != nil {
+				t.Fatal(err)
+			}
+			if err := toml.Unmarshal([]byte(off), &got); err != nil {
+				t.Fatal(err)
+			}
+			servers, ok := got["mcp_servers"].(map[string]any)
+			if !ok {
+				t.Fatal("the app's MCP servers were lost")
+			}
+			if mem, ok := servers["mem"].(map[string]any); !ok || mem["command"] != "node" || !reflect.DeepEqual(mem["args"], []any{"server.js"}) {
+				t.Errorf("the library server was not restored to stdio: %v", servers["mem"])
+			}
+			delete(servers, "mem")
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("app-owned configuration changed:\ngot: %#v\nwant: %#v", got, want)
 			}
 			if t.Failed() {
 				t.Logf("on uni-switch:\n%s\n\noff:\n%s", on, off)

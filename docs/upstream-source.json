@@ -47799,8 +47799,8 @@
     },
     {
       "path": "internal/library/codex_off_app_config_test.go",
-      "sha256": "69632e3c8fd949622284e62412ed46db3685460cdc36d293d0720551831878cf",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "886fcd579ecea15fb9b3959a3cf374aa97018cb4edbf3fc81c1944f67b8b005c",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Compare complete app-owned TOML values through imported-server rewiring and verify the library server returns to stdio."
     },
     {
       "path": "internal/library/codex_transport_keys_test.go",
@@ -48034,8 +48034,8 @@
     },
     {
       "path": "internal/library/mcp_hub_test.go",
-      "sha256": "9460126e4fa006405e0a29573d9bb18f84be3abae47394c9ab0d2eedde152730",
-      "reason": "Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "eeb1509982e6e3c3bf716a1b15bb8103b4439c695d575a203ff6c2021c123530",
+      "reason": "Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Keep sorted MCP entry expectations in product-name lexical order."
     },
     {
       "path": "internal/library/mcp_hub.go",
