@@ -54218,6 +54218,11 @@
       "path": "docs/subsystems/agent-wiring.md",
       "sha256": "6d84f01f422563fabe7d00518b35f5659532e98c8367d26bfe8598b08ef9b931",
       "reason": "Document external configuration precedence and Desktop profile selection and restart behavior.; enforce maintainer-requested Codex zh-CN UI and requires_openai_auth=true, with atomic TOML migration and regression coverage Document normalized local Codex catalog ownership."
+    },
+    {
+      "path": "internal/sessions/cc_names_test.go",
+      "sha256": "3193782b25563eb2bdc1b5cda6286868222a8ea87365a8da5e8acecdfc71ab55",
+      "reason": "Measure cached Claude session names using settled directory mtimes, excluding intentional recent-directory rereads while retaining membership-change checks."
     }
   ],
   "removedFiles": [

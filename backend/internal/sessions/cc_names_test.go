@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
 // TestCCListingKeepsItsNames: each Sessions poll made every Claude Code
@@ -34,6 +35,21 @@ func TestCCListingKeepsItsNames(t *testing.T) {
 	write("-Users-someone-work-a-project-p1/00000500-aaaa/subagents/agent-1.jsonl")
 	write("-Users-someone-work-a-project-p1/00000500-aaaa/subagents/workflows/run-1/agent-2.jsonl")
 	write("-Users-someone-work-a-project-p1/00000500-aaaa/subagents/workflows/run-1/note.jsonl")
+	// This measures names in an unchanged listing. Recently modified
+	// directories are deliberately read again (racyDirectory), whose
+	// os.ReadDir allocations vary by platform and are not these names.
+	old := time.Now().Add(-time.Minute)
+	if err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return os.Chtimes(path, old, old)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	ccListed.Clear()
 	t.Cleanup(func() { ccListed.Clear() })
 	fresh := func() []file {
