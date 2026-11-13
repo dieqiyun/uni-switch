@@ -38581,8 +38581,8 @@
     },
     {
       "path": "internal/gateway/search_glm_test.go",
-      "sha256": "999affa43072ab9aec5c67d487e8de0d3c33ad2a5c57e1c361b1c9b097ed30c1",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "e8bd2e8c59b8b4894dfb98cd54d3ab981da84d227448b3a53faeb21f6d50e15b",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use explicit saved GLM endpoints for search and keep retired preset plan metadata inert; verify enabled keys without dereferencing deleted presets."
     },
     {
       "path": "internal/gateway/search_glm.go",

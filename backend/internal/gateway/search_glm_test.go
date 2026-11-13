@@ -36,10 +36,16 @@ func TestZhipuCodingSearchAddress(t *testing.T) {
 			t.Errorf("%+v: %q, want %q", c.p, got, c.want)
 		}
 	}
-	// a pay-as-you-go provider with a plan's key beside: that key searches
-	pr := provider.Preset("zhipu")
-	p := provider.Provider{ID: "glm", Preset: "zhipu", Key: "payg", Chat: pr.Chat, Anthropic: pr.Anthropic,
+	// Retired preset/plan metadata cannot invent a Coding Plan endpoint
+	// for an explicitly configured pay-as-you-go provider.
+	p := provider.Provider{ID: "glm", Preset: "zhipu", Key: "payg", Chat: "https://open.bigmodel.cn/api/paas/v4", Anthropic: "https://open.bigmodel.cn/api/anthropic",
 		Keys: []provider.KeyAccount{{Key: "off", Plan: "coding", Off: true}, {Key: "plan", Plan: "coding"}}}
+	if provider.ZhipuSearches(p) || len(provider.ZhipuSearchKeys(p)) != 0 {
+		t.Fatal("retired plan metadata invented a search endpoint")
+	}
+	// Once its Coding Plan endpoint is explicit, only enabled keys search.
+	p.Chat = "https://open.bigmodel.cn/api/coding/paas/v4"
+	p.Key = "plan"
 	if !provider.ZhipuSearches(p) {
 		t.Fatal("the plan's key doesn't search")
 	}
@@ -48,6 +54,7 @@ func TestZhipuCodingSearchAddress(t *testing.T) {
 		t.Fatalf("keys %+v", ks)
 	}
 	p.Keys = p.Keys[:1]
+	p.Key = ""
 	if provider.ZhipuSearches(p) {
 		t.Fatal("a key that's off searches")
 	}
