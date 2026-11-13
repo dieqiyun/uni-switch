@@ -1098,6 +1098,14 @@ in magpie's trash), and it resumes there (mrten_95615 on Discord). A WSL
 distro's Codex session is as listed. `TestCodexResumeOnItsProvider`; both
 cases were resumed by a real Codex 0.166.0 in a sandbox `CODEX_HOME`.
 
+Provider moves replace only the provider token in ordinary rollout metadata,
+including compressed rollouts; moving to a longer id and back restores the
+original bytes. Paginated metadata instead keeps its line length, because
+Codex stores history positions as byte offsets: a shorter id uses trailing
+padding, and a longer id that cannot fit is refused without changing the
+rollout. See `TestMoveCodexProvider`, `TestMoveCodexProviderPacked` and
+`TestMoveCodexProviderKeepsBytePlaces`.
+
 The Sessions page draws only main sessions on top. A session's subagents are
 folded under its row ("2 subagents"); unfolded, each is a row of its task and
 kind, set in under the subagent that started it, and a click shows its

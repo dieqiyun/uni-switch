@@ -894,10 +894,11 @@ func rewriteCodexProvider(path, to string) (bool, error) {
 		line, err := br.ReadBytes('\n')
 		if len(line) > 0 {
 			out, ok := setMetaProvider(line, to)
-			if ok {
-				// a session_meta names its own history_mode: Codex keeps
-				// places in a paginated rollout by byte (fitLine)
-				if out, ok = fitLine(line, out, paginated(line)); !ok {
+			if ok && paginated(line) {
+				// Only paginated history keeps places by byte. Ordinary
+				// history keeps the token replacement without added padding,
+				// so moving back restores its original bytes.
+				if out, ok = fitLine(line, out, true); !ok {
 					return false, fmt.Errorf("%s keeps its history by byte, and %q is longer than the provider it names: Codex couldn't open it moved", filepath.Base(path), to)
 				}
 			}

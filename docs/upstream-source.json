@@ -29727,8 +29727,8 @@
     },
     {
       "path": "docs/subsystems/gateway-sessions.md",
-      "sha256": "b5e5a03b75e61bff3a0a8f797c87bda5f8396e454965cbb219ea5e8cab644de6",
-      "reason": "Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow."
+      "sha256": "27992a43b3fd893c9fbd9b0575b70692508e38e9222dd05726187c5f1491e203",
+      "reason": "Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Document ordinary versus paginated rollout provider-move compatibility."
     },
     {
       "path": "docs/subsystems/gui-shell.md",
@@ -52286,8 +52286,8 @@
     },
     {
       "path": "internal/sessions/codex_provider.go",
-      "sha256": "fe880c33967d5c9203fc6dde378c9676c7e8d1c302e962f0a3d74276ce27034b",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "9763e83a7aa9f8de3b736b5ae7f2cf139c5d147a85d5564ae21b84d4bac0b47b",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Preserve ordinary rollout bytes across provider round trips while retaining paginated byte-offset safeguards."
     },
     {
       "path": "internal/sessions/codex_resume_test.go",
