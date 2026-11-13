@@ -34,12 +34,8 @@ jobs:
           corepack pnpm install --frozen-lockfile
       - name: Audit publishable source
         run: python scripts/audit-source.py
-      - name: Verify shared tutorial
-        run: corepack pnpm docs:check
-      - name: Verify client coverage and generated bindings
-        run: |
-          python scripts/check-client-reference.py
-          python scripts/sync-client-catalog.py --check
+      - name: Verify fixed source and complete Git archive
+        run: node scripts/check-upstream-source.mjs --index
       - name: Frontend tests
         run: corepack pnpm test
       - name: TypeScript and production build
@@ -58,7 +54,7 @@ jobs:
           - platform: macOS
             runner: macos-15-intel
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -75,13 +71,16 @@ jobs:
         with:
           go-version: '1.26.8'
           cache: false
-      - name: Go core tests and vet
-        run: |
-          go -C backend test ./...
-          go -C backend vet ./...
+      - name: Prepare locked dependency source for tray contract tests
+        working-directory: backend
+        run: go mod download github.com/wailsapp/wails/v3
+      - name: Go core tests
+        run: node scripts/test-go.mjs -timeout=20m -p=2
+      - name: Go vet
+        run: node scripts/test-go.mjs vet
       - name: Go race detector
         if: runner.os == 'Linux'
-        run: go -C backend test -race ./...
+        run: node scripts/test-go.mjs -race -timeout=30m -p=2
       - name: Build own Go core
         run: node scripts/build-go.mjs
       - name: Linux desktop dependencies
@@ -91,10 +90,8 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev
       - name: Rust tests with isolated fixtures
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
-      - name: Rust to Go isolated contract
-        run: |
-          cargo build --locked --manifest-path src-tauri/Cargo.toml --no-default-features --example go_core_fixture
-          python scripts/test-go-bridge.py
+      - name: Embedded core management contract
+        run: node scripts/qa-source-core.mjs
       - name: Clippy including desktop targets
         run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 

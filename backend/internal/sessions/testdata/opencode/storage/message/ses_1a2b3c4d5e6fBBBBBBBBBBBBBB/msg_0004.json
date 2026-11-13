@@ -1,0 +1,29 @@
+{
+  "id": "msg_0004",
+  "sessionID": "ses_1a2b3c4d5e6fBBBBBBBBBBBBBB",
+  "role": "assistant",
+  "parentID": "msg_0000",
+  "modelID": "claude-opus-5-5",
+  "providerID": "anthropic",
+  "mode": "general",
+  "agent": "general",
+  "cost": 0,
+  "path": {
+    "cwd": "/work/oc",
+    "root": "/work/oc"
+  },
+  "tokens": {
+    "input": 40,
+    "output": 60,
+    "reasoning": 0,
+    "cache": {
+      "read": 700,
+      "write": 300
+    }
+  },
+  "time": {
+    "created": 1790416860000,
+    "completed": 1790416890000
+  },
+  "finish": "stop"
+}

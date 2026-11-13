@@ -1,0 +1,9 @@
+{
+  "name": "uni-switch-usage-glance",
+  "version": "0.1.0",
+  "description": "An example of a plugin's own page in uni-switch's window: today's usage at a glance",
+  "uni-switch": {
+    "page": { "title": "Usage glance", "file": "page/index.html", "icon": "page/icon.svg" },
+    "permissions": ["usage:summary"]
+  }
+}

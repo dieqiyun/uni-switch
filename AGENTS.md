@@ -28,3 +28,11 @@ Do not change, restart or stop the user's real Codex, Claude or uni-switch
 processes/configurations for testing. Only stop processes created by the current
 QA run. Native UI scripts share CDP port 9223 and must run sequentially; Cargo
 operations share the target directory and must also run sequentially.
+
+## Local-only networking
+
+LAN sharing, IP allow lists and remote management are removed. Do not restore
+wildcard listeners, public-address discovery or the retired remote gateway
+preset, neighbour scanning, model following and MCP bridge. Keep the dedicated local WSL
+adapter/key contract and outbound provider connections. See
+[local-only networking](backend/docs/subsystems/local-only.md).

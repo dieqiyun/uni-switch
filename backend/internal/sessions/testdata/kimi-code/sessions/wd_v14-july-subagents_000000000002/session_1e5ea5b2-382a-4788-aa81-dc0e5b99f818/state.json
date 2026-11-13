@@ -1,0 +1,57 @@
+{
+  "createdAt": "2026-07-22T04:48:58.143Z",
+  "updatedAt": "2026-07-22T05:35:06.502Z",
+  "title": "[redacted]",
+  "isCustomTitle": false,
+  "agents": {
+    "main": {
+      "homedir": "[redacted]",
+      "type": "main",
+      "parentAgentId": null
+    },
+    "agent-0": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]"
+    },
+    "agent-1": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]",
+      "swarmItem": "[redacted]"
+    },
+    "agent-2": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]",
+      "swarmItem": "[redacted]"
+    },
+    "agent-3": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]",
+      "swarmItem": "[redacted]"
+    },
+    "agent-4": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]",
+      "swarmItem": "[redacted]"
+    },
+    "agent-5": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]",
+      "swarmItem": "[redacted]"
+    },
+    "agent-6": {
+      "homedir": "[redacted]",
+      "type": "sub",
+      "parentAgentId": "[redacted]",
+      "swarmItem": "[redacted]"
+    }
+  },
+  "custom": {},
+  "workDir": "[redacted]",
+  "lastPrompt": "[redacted]"
+}

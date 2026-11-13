@@ -1,0 +1,30 @@
+{
+  "id": "msg_0003",
+  "sessionID": "ses_1a2b3c4d5e6fAAAAAAAAAAAAAA",
+  "role": "assistant",
+  "parentID": "msg_0001",
+  "modelID": "codex/gpt-6-luna",
+  "providerID": "uni-switch",
+  "mode": "build",
+  "agent": "build",
+  "cost": 0,
+  "path": {
+    "cwd": "/work/oc",
+    "root": "/work/oc"
+  },
+  "tokens": {
+    "total": 2360,
+    "input": 300,
+    "output": 50,
+    "reasoning": 10,
+    "cache": {
+      "read": 2000,
+      "write": 0
+    }
+  },
+  "time": {
+    "created": 1790416890000,
+    "completed": 1790416980000
+  },
+  "finish": "stop"
+}

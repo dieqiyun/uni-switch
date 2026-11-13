@@ -1,4 +1,4 @@
-// Build our own Go core with locked modules; no Magpie runtime dependency.
+// Build our own Go core with locked modules; no uni-switch runtime dependency.
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
+const qaBuild = args.includes("--qa");
+const buildTags = qaBuild ? "nogui,uniswitchqa" : "nogui";
 function option(name) {
   const i = args.indexOf(name);
   return i < 0 ? undefined : args[i + 1];
@@ -68,9 +70,7 @@ function sources(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory()
       ? sources(join(directory, e.name))
-      : /\.(go|mod|sum|json|md)$/.test(e.name)
-        ? [join(directory, e.name)]
-        : [],
+      : [join(directory, e.name)],
   );
 }
 const sourceHash = createHash("sha256");
@@ -94,21 +94,18 @@ if (!/^go version go1\.(2[6-9]|[3-9]\d)(?:\.|\s)/.test(version)) {
   throw new Error(`Go >= 1.26 required, got ${version}`);
 }
 if (args.includes("--test")) {
-  console.log(
-    run(go, ["test", "./..."], {
-      cwd: join(root, "backend"),
-      env: { ...process.env, GOTOOLCHAIN: "local" },
-    }),
-  );
+  console.log(run(process.execPath, [join(root,"scripts/test-go.mjs"), "-timeout=20m"]));
   process.exit(0);
 }
 function build(triple) {
   const platform = targets[triple];
   if (!platform) throw new Error(`Unsupported Go core target: ${triple}`);
   const destination = binary(triple);
+  const applicationVersion=JSON.parse(readFileSync(join(root,"package.json"),"utf8")).version;
+  if(!/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(applicationVersion))throw new Error("Invalid application version");
   const fingerprint = createHash("sha256")
     .update(
-      `${sourceFingerprint}\0${version}\0${triple}\0cgo=0,trimpath,buildvcs=false,s,w`,
+      `${sourceFingerprint}\0${version}\0${applicationVersion}\0${triple}\0tags=${buildTags},cgo=0,trimpath,buildvcs=false,s,w`,
     )
     .digest("hex");
   let cached = false;
@@ -128,9 +125,10 @@ function build(triple) {
       go,
       [
         "build",
+        `-tags=${buildTags}`,
         "-trimpath",
         "-buildvcs=false",
-        "-ldflags=-s -w",
+        `-ldflags=-s -w -X main.version=${applicationVersion}`,
         "-o",
         destination,
         "./cmd/uni-switch-core",
@@ -150,6 +148,7 @@ function build(triple) {
       `${destination}.build.json`,
       JSON.stringify({
         fingerprint,
+        qa: qaBuild,
         sha256: createHash("sha256")
           .update(readFileSync(destination))
           .digest("hex"),
@@ -171,4 +170,4 @@ if (target === "universal-apple-darwin") {
 } else {
   destination = build(target);
 }
-console.log(`Built Go core: ${target}`);
+console.log(`Built Go core: ${target}${qaBuild ? " (isolated QA)" : ""}`);
