@@ -32511,8 +32511,8 @@
     },
     {
       "path": "internal/autostart/repoint_test.go",
-      "sha256": "a3be715e727b121bb28fa6efca038f8f37b20e1cc738443a93ed737ce599ce7e",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "3d3d5e16633d8be3d2e15536c148411664a0e0fa671d088ea1c70eded79284d6",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Uppercase the actual executable name for the case-insensitivity fixture and reject the distinct underscore spelling."
     },
     {
       "path": "internal/autostart/repoint_windows.go",

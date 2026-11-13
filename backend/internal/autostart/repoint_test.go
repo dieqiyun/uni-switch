@@ -1,6 +1,9 @@
 package autostart
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // The Windows app installed itself from Downloads (update.Settle): the Run
 // value opening the download opens the installed copy, with its arguments;
@@ -14,10 +17,11 @@ func TestRepointed(t *testing.T) {
 		ok      bool
 	}{
 		{`"` + from + `" tray`, `"` + to + `" tray`, true},
-		{`"C:\USERS\U\DOWNLOADS\UNI_SWITCH-WINDOWS-AMD64.EXE" tray`, `"` + to + `" tray`, true},
+		{`"` + strings.ToUpper(from) + `" tray`, `"` + to + `" tray`, true},
 		{`"` + from + `"`, `"` + to + `"`, true},
 		{from + ` tray --x`, `"` + to + `" tray --x`, true},
 		{`"C:\Tools\uni-switch.exe" tray`, "", false},
+		{`"C:\Users\u\Downloads\uni_switch-windows-amd64.exe" tray`, "", false},
 		{`"` + from, "", false},
 		{``, "", false},
 	} {
