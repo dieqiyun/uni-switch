@@ -27,7 +27,7 @@ import (
 
 // LivePath is where the fetched model list of one provider is kept.
 func LivePath(provider string) string {
-	return appdir.JoinFile(appdir.Join(filepath.Dir(CachePath()), "models"), provider, ".json")
+	return appdir.JoinFile(appdir.Join(appdir.Cache(), "models"), provider, ".json")
 }
 
 type liveFile struct {

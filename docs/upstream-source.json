@@ -32396,8 +32396,8 @@
     },
     {
       "path": "internal/appdir/join_test.go",
-      "sha256": "62ed6ff8b7f57c2c2543d84bde38c4eacf085db9ff70d447afdae82692c71329",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "034744971317d9a26d8fe39006b2624cae4d6abad6839b2793eb43deb2b122cc",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Reuse the cache directory directly for provider paths and measure path allocations separately from current Windows environment reads."
     },
     {
       "path": "internal/appdir/join.go",
@@ -32661,8 +32661,8 @@
     },
     {
       "path": "internal/catalog/live.go",
-      "sha256": "bd44e2ee857605ecad0af7312750ecec1d9269637c073a57fb11ee19c5c67ab7",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow."
+      "sha256": "0d2ede6f19e83094110c77fc4e40d5b56786df25bf8746f582604a2e265b04c8",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Reuse the cache directory directly for provider paths and measure path allocations separately from current Windows environment reads."
     },
     {
       "path": "internal/catalog/main_test.go",
@@ -54223,6 +54223,11 @@
       "path": "internal/sessions/cc_names_test.go",
       "sha256": "3193782b25563eb2bdc1b5cda6286868222a8ea87365a8da5e8acecdfc71ab55",
       "reason": "Measure cached Claude session names using settled directory mtimes, excluding intentional recent-directory rereads while retaining membership-change checks."
+    },
+    {
+      "path": "internal/catalog/livepath_once_test.go",
+      "sha256": "31b9044d4a0f67b46b23b5c7a99bab6a216246f496d306c5bbc08801128c6894",
+      "reason": "Reuse the cache directory directly for provider paths and measure path allocations separately from current Windows environment reads."
     }
   ],
   "removedFiles": [

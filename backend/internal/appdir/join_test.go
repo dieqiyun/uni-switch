@@ -1,6 +1,7 @@
 package appdir
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -15,14 +16,20 @@ func TestFoldersJoinedOnce(t *testing.T) {
 	t.Cleanup(func() { UseExecutable("") })
 	UseExecutable("")
 
-	for name, f := range map[string]func(){
-		"Config":   func() { Config() },
-		"Cache":    func() { Cache() },
-		"JoinFile": func() { JoinFile(Cache(), "openai", ".json") },
+	for name, c := range map[string]struct {
+		call func()
+		env  string
+	}{
+		"Config":   {func() { Config() }, "XDG_CONFIG_HOME"},
+		"Cache":    {func() { Cache() }, "XDG_CACHE_HOME"},
+		"JoinFile": {func() { JoinFile(Cache(), "openai", ".json") }, "XDG_CACHE_HOME"},
 	} {
-		f()
-		if n := testing.AllocsPerRun(20, f); n > 0 {
-			t.Errorf("%s with the folders unchanged: %.0f allocations", name, n)
+		c.call()
+		// Windows reads the current UTF-16 environment on every Getenv.
+		// Only path construction must add no allocations beyond that read.
+		reads := testing.AllocsPerRun(20, func() { os.Getenv(c.env) })
+		if n := testing.AllocsPerRun(20, c.call); n > reads {
+			t.Errorf("%s with the folders unchanged: %.0f allocations beyond environment reads", name, n-reads)
 		}
 	}
 	if got, want := JoinFile(Join(Cache(), "models"), "openai", ".json"), filepath.Join(r, "cache", "uni-switch", "models", "openai.json"); got != want {
