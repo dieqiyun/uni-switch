@@ -36,6 +36,7 @@ func agyResume(cwd, run string) string {
 	if cwd == "" {
 		return run
 	}
+	cwd = filepath.FromSlash(cwd)
 	if runtime.GOOS == "windows" {
 		return "Set-Location -LiteralPath '" + cwd + "'; " + run
 	}
@@ -51,7 +52,7 @@ func TestAgySessions(t *testing.T) {
 		t.Fatalf("want 3 agy sessions, got %d", n)
 	}
 	two := find(t, ss, "agy", agyTwoTurns)
-	if two.Title != "Hello from the fake." || two.Cwd != "/work/proj" {
+	if two.Title != "Hello from the fake." || two.Cwd != filepath.FromSlash("/work/proj") {
 		t.Fatalf("two turns: title %q cwd %q", two.Title, two.Cwd)
 	}
 	if !two.Start.Equal(at("2026-10-25T09:46:59Z")) || !two.Last.Equal(at("2026-10-25T09:48:56Z")) {
@@ -233,7 +234,7 @@ func TestAgyRowOnly(t *testing.T) {
 		t.Fatalf("want 4 agy sessions, got %d", n)
 	}
 	s := find(t, ss, "agy", id)
-	if s.Title != "Older talk" || s.Cwd != "/work/old" || !s.Last.Equal(at("2026-10-12T04:41:53.5Z")) || !s.Tokens.zero() {
+	if s.Title != "Older talk" || s.Cwd != filepath.FromSlash("/work/old") || !s.Last.Equal(at("2026-10-12T04:41:53.5Z")) || !s.Tokens.zero() {
 		t.Fatalf("row only: %+v", s)
 	}
 	if want := agyResume("/work/old", "agy --conversation "+id); s.Resume != want {

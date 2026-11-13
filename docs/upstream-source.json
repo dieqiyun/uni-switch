@@ -52021,8 +52021,8 @@
     },
     {
       "path": "internal/sessions/agy_test.go",
-      "sha256": "1051504ec35e9cea6bb510977727d89f9340ce88e025da741b2fcd1ff5691728",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "33f1e3815ecfb4afb3645c0f518a4e5cbf018ada49536503ac5f7d6c890172fc",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Match captured carry-session working directories and platform-native workspace URI paths in cross-platform fixtures."
     },
     {
       "path": "internal/sessions/agy.go",
@@ -52051,8 +52051,8 @@
     },
     {
       "path": "internal/sessions/antigravity_app_test.go",
-      "sha256": "401190d185cae2498b900c98da1278cdad45b7d5b3107529667f1577bb8bfb6a",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "c5770e0372e7dc227d5a24f6f1665a5e469c652e76394a2c307ed95f6c534cd9",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Match captured carry-session working directories and platform-native workspace URI paths in cross-platform fixtures."
     },
     {
       "path": "internal/sessions/antigravity_app.go",
@@ -52181,8 +52181,8 @@
     },
     {
       "path": "internal/sessions/carry_convert_test.go",
-      "sha256": "664834f0d9eb70e336848b020b1e24c076b59df13b1a9efcfc1e65324eb2299f",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "ef35e68be4b496b5476448f1b0a9db64a4add146c65d9dbf4575fcff1ec555b7",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Match captured carry-session working directories and platform-native workspace URI paths in cross-platform fixtures."
     },
     {
       "path": "internal/sessions/carry_convert.go",

@@ -288,6 +288,7 @@ func TestAntigravityAppFolder(t *testing.T) {
 	}
 	ss := List(0)
 	for id, want := range map[string]string{site: "/work/site", api: "/work/api", bare: "", none: ""} {
+		want = filepath.FromSlash(want)
 		if s := find(t, ss, "antigravity", id); s.Cwd != want {
 			t.Errorf("%s: folder %q, want %q", id, s.Cwd, want)
 		}
