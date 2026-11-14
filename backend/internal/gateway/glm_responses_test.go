@@ -56,51 +56,22 @@ func (g *glmPlan) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// The GLM Coding Plan's Responses API (#306): the zhipu and zai presets'
-// Coding Plan regions give it at /api/v1, as the plans' Codex pages set
-// base_url with wire_api = "responses", so Codex's request is relayed there
-// as it came rather than translated to chat; chat clients stay on the plan's
-// chat completions and Claude Code on its messages.
-func TestGLMCodingPlanResponses(t *testing.T) {
-	for _, tc := range []struct{ preset, host string }{
-		{"zhipu", "https://open.bigmodel.cn"},
-		{"zai", "https://api.z.ai"},
-	} {
-		t.Run(tc.preset, func(t *testing.T) {
-			pr := provider.Preset(tc.preset)
-			var coding, payg provider.Region
-			for _, r := range pr.Regions {
-				switch r.ID {
-				case "coding":
-					coding = r
-				case "api":
-					payg = r
-				}
-			}
-			if coding.Responses != tc.host+"/api/v1" || coding.Chat != tc.host+"/api/coding/paas/v4" || coding.Anthropic != tc.host+"/api/anthropic" {
-				t.Fatalf("coding plan: %+v", coding)
-			}
-			// pay as you go is left as it was: the docs give /api/v1 for the plan
-			if payg.Responses != "" || pr.Responses != "" {
-				t.Fatalf("pay as you go: %+v / %q", payg, pr.Responses)
-			}
-
+// Vendor presets are retired. Explicit custom endpoints still preserve the
+// independent Responses, Chat and Messages paths and their native protocols.
+func TestCustomCodingPlanResponses(t *testing.T) {
+	for _, id := range []string{"custom-cn", "custom-global"} {
+		t.Run(id, func(t *testing.T) {
 			fresh(t)
 			up := &glmPlan{}
 			srv := httptest.NewServer(up)
 			t.Cleanup(srv.Close)
-			p, err := provider.FromPreset(tc.preset)
-			if err != nil {
-				t.Fatal(err)
-			}
-			at := func(u string) string { return srv.URL + strings.TrimPrefix(u, tc.host) }
-			p.Key = "glm-k"
-			p.Chat, p.Responses, p.Anthropic = at(coding.Chat), at(coding.Responses), at(coding.Anthropic)
-			p.Models = []string{"glm-5.3"}
+			p := provider.Provider{ID: id, Name: id, Key: "synthetic-glm-key",
+				Chat: srv.URL + "/api/coding/paas/v4", Responses: srv.URL + "/api/v1",
+				Anthropic: srv.URL + "/api/anthropic", Models: []string{"glm-5.3"}}
 			if err := provider.Save(p); err != nil {
 				t.Fatal(err)
 			}
-			m := tc.preset + "/glm-5.3"
+			m := id + "/glm-5.3"
 			for _, c := range []struct{ path, body, upstream, reply string }{
 				{"/v1/responses", `{"model":"` + m + `","input":"hi","stream":true}`, "/api/v1/responses", "from responses"},
 				{"/v1/chat/completions", `{"model":"` + m + `","messages":[{"role":"user","content":"hi"}],"stream":true}`, "/api/coding/paas/v4/chat/completions", "from chat"},

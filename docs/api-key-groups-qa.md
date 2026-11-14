@@ -15,6 +15,8 @@
 - 四协议解析器与实际 HTTP 路由统一检查空请求、截断 JSON、尾随数据和类型错误。
   Gemini 保留数字错误码和状态，Anthropic 保留外层错误类型；流式入口在开始流之前
   返回 JSON 400。Gemini 下划线字段转换不再掩盖无效尾随数据。
+- Chat 工具格式转换也增加同样的完整 JSON 检查：新增用例在修复前实际以
+  `invalid envelope accepted: <nil>` 失败，修复后通过，正常工具格式转换继续通过。
 - `scripts/qa-source-key-groups.mjs` 增加编译后核心的未登录配置检查，以及各协议的
   空请求错误和不发送上游请求检查，继续使用隔离目录和合成凭据。
 - Windows 工作流原来的多命令步骤可能由最后一个成功命令掩盖前一个失败退出码，
@@ -70,7 +72,30 @@
 
 ## 发布阻塞
 
-包含本次修复后，重新执行完整命令 `node scripts/test-go.mjs -timeout=20m -p=2` 退出码仍为 1，
+未解决的完整回归与发布条件跟踪于
+[GitHub #13](https://github.com/dieqiyun/uni-switch/issues/13)。
+
+继续检查回归后修复了以下测试整合问题：
+
+- `internal/gateway` 的隔离初始化函数已存在但没有 `TestMain` 调用。
+  补回入口并注册保留的轮换、搜索、限额服务；没有恢复已移除的扩展运行时。
+  `TestRunsAsAnIsolatedTestBinary` 原先报告 `UNI_SWITCH_TEST_SANDBOX unset`，
+  Codex HTTP 桩收到压缩数据，轮换和限额回归失败；修复后五项代表性测试通过。
+- 旧图像目录测试还引用已移除的 `auto/` 路由分组并发生越界崩溃。
+  改为验证保留的 API Key 分组图像能力在 OpenCode、Pi、Codex 目录中的传递，
+  并在缺少条目时给出明确断言；分组专项测试通过。
+- GLM 协议测试对已移除预设的空指针崩溃，改为显式自定义端点，保留 Responses、
+  Chat、Messages 各走原生协议、对应路径和上游模型 ID 的断言；测试通过。
+- 模块导入边界接受真正的核心程序入口，并只要求运行时源码模块注册，
+  不再要求历史测试资料目录作为模块导入；`internal/pluginrt` 全包通过。
+- 修复旧图像测试崩溃后，`internal/agent` 全包能够执行完成，仍有 84 项顶层失败，
+  大多涉及已调整的上下文默认值和已移除路由分组等旧预期，尚未完成契约对齐。
+- 恢复隔离入口并修复 GLM 协议测试后，`internal/gateway` 再次全包执行，在
+  `TestZhipuCodingSearchAddress` 对已移除预设解引用时停止，之前记录到 108 项顶层失败。
+  该包仍未通过；不能把修复前后不同停止位置的失败数量当作通过率。
+
+在认证与请求错误修复提交 `764d7fc` 上重新执行完整命令
+`node scripts/test-go.mjs -timeout=20m -p=2`，退出码仍为 1，
 18 个包失败，输出 350 个顶层失败测试记录。
 历史导入的完整浏览器测试套件尚未通过验收；当前浏览器通过范围仅为上面列出的专项检查。
 已确认的例子包括：

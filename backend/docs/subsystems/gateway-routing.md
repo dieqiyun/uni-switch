@@ -13,7 +13,8 @@ generate/stream/count endpoints require one complete JSON object. Shared
 messages for malformed/truncated JSON or wrong field types, without exposing
 request values or Go decoding details. The four protocol parsers use the same
 validator, including their view-based readers. Gemini's snake-case conversion
-does not rewrite invalid JSON and therefore cannot hide trailing data.
+and Chat's tool-shape conversion do not rewrite invalid JSON and therefore
+cannot hide trailing data.
 
 Validation errors return HTTP 400 and JSON before a stream starts. OpenAI and
 Anthropic error objects carry `code: "invalid_request"`,

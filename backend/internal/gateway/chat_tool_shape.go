@@ -35,7 +35,9 @@ func shapeChatTools(body []byte) []byte {
 			break
 		}
 	}
-	if !need {
+	// withFields decodes a value before rewriting it. A malformed envelope
+	// must stay intact so the shared request validator can reject it.
+	if !need || !jsonValid(body) {
 		return body
 	}
 	var raw []json.RawMessage

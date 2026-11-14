@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"context"
-
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,6 +20,14 @@ import (
 // test binary it starts again.
 const standInsEnv = "UNI_SWITCH_GATEWAY_TEST_STAND_INS"
 
+func TestMain(m *testing.M) {
+	code, err := isolatedTests(m)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	os.Exit(code)
+}
+
 // Isolate every process, including child test binaries. HOME
 // alone does not isolate the macOS Keychain, and account caches eventually
 // expire: discovery must keep finding only the test's sign-ins and CLIs.
@@ -34,6 +42,7 @@ func isolatedTests(m *testing.M) (int, error) {
 		"XDG_CONFIG_HOME": filepath.Join(home, ".config"),
 		"XDG_CACHE_HOME":  filepath.Join(home, ".cache"),
 		"XDG_DATA_HOME":   filepath.Join(home, ".local", "share"),
+		"XDG_STATE_HOME":  filepath.Join(home, ".local", "state"),
 		"APPDATA":         filepath.Join(home, "AppData", "Roaming"),
 		"LOCALAPPDATA":    filepath.Join(home, "AppData", "Local"),
 	} {
@@ -103,6 +112,13 @@ func isolatedTests(m *testing.M) (int, error) {
 	awaitAllowance = func(context.Context, string, string) bool { return false }
 	// no route writes a request body in place while it is held
 	guardHeldBodies()
+	// Mirror the retained core modules' registrations in the executable.
+	// The removed extension bootstrap used to call this isolated runner and
+	// register these services; losing its TestMain left both inert.
+	serveMiddleware()
+	serveRotation()
+	searchOn = gwtool.Serve(gwtool.WebSearch)
+	limitsOn = gwbudget.Limit(budget.Limiter{})
 	return heldWrittenAfter(m.Run()), nil
 }
 

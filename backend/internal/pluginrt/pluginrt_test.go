@@ -89,8 +89,8 @@ func TestCompatible(t *testing.T) {
 }
 
 // Core never imports a plugin, and a plugin never imports another: they
-// reach each other through services. main.go and plugins/all alone gather
-// them; a test may too.
+// reach each other through services. The executable entry points and
+// plugins/all alone gather them; a test may too.
 func TestPluginsImportOnlyCore(t *testing.T) {
 	root := filepath.Join("..", "..")
 	const mod = "github.com/dieqiyun/uni-switch/backend/plugins/"
@@ -119,7 +119,7 @@ func TestPluginsImportOnlyCore(t *testing.T) {
 				continue
 			}
 			switch {
-			case rel == "main.go" && p == mod+"all":
+			case (rel == "main.go" || rel == "cmd/uni-switch-core/main.go") && p == mod+"all":
 			case strings.HasPrefix(rel, "plugins/all/"):
 			case strings.HasPrefix(rel, "plugins/"):
 				t.Errorf("%s imports %s: a plugin never imports another", rel, p)
@@ -142,7 +142,22 @@ func TestPluginsImportOnlyCore(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, d := range dirs {
-		if d.IsDir() && d.Name() != "all" && !strings.Contains(string(all), `"`+mod+d.Name()+`"`) {
+		if !d.IsDir() || d.Name() == "all" {
+			continue
+		}
+		// Test-only directories may retain historical fixtures for removed
+		// modules. Only compiled runtime modules need registration.
+		files, err := os.ReadDir(filepath.Join(root, "plugins", d.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtimeSource := false
+		for _, f := range files {
+			if !f.IsDir() && strings.HasSuffix(f.Name(), ".go") && !strings.HasSuffix(f.Name(), "_test.go") {
+				runtimeSource = true
+			}
+		}
+		if runtimeSource && !strings.Contains(string(all), `"`+mod+d.Name()+`"`) {
 			t.Errorf("plugins/all doesn't import plugins/%s", d.Name())
 		}
 	}

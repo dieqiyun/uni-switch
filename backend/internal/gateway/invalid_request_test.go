@@ -16,7 +16,7 @@ func TestInvalidRequestParsers(t *testing.T) {
 		{"chat", parseChat}, {"responses", parseResponses},
 		{"anthropic", parseAnthropic}, {"gemini", parseGemini},
 	} {
-		for _, body := range []string{"", " \r\n\t", "null", "[]", `{"model":`, `{"stream":true,"model":`, `{"model":"secret-value"} trailing`, `{"generation_config":{}} trailing`, `{"model":42}`} {
+		for _, body := range []string{"", " \r\n\t", "null", "[]", `{"model":`, `{"stream":true,"model":`, `{"model":"secret-value"} trailing`, `{"tools":[{"name":"echo"}]} trailing`, `{"generation_config":{}} trailing`, `{"model":42}`} {
 			t.Run(parse.name+"/"+body, func(t *testing.T) {
 				_, err := parse.read([]byte(body))
 				if err == nil || !strings.HasPrefix(err.Error(), "invalid request: ") {

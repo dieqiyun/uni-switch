@@ -131,7 +131,7 @@ func TestConfiguredModelsAdvertiseImageInput(t *testing.T) {
 
 func imageInputBool(v bool) *bool { return &v }
 
-func TestInferredGroupImagesReachAgentCatalogs(t *testing.T) {
+func TestAPIKeyGroupImagesReachAgentCatalogs(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -146,7 +146,7 @@ func TestInferredGroupImagesReachAgentCatalogs(t *testing.T) {
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
 	for _, p := range []provider.Provider{
-		{ID: "confirmed", Catalog: "anthropic", Chat: "https://example.test/v1", Key: "key", Models: []string{"claude-sonnet-4-5"}},
+		{ID: "confirmed", Catalog: "anthropic", Chat: "https://example.test/v1", Key: "key", KeyName: "Vision", KeyGroups: true, Models: []string{"claude-sonnet-4-5"}},
 		{ID: "unknown", Chat: "https://example.test/v1", Key: "key", Models: []string{"claude-sonnet-4-5"}},
 	} {
 		if err := provider.Save(p); err != nil {
@@ -156,9 +156,13 @@ func TestInferredGroupImagesReachAgentCatalogs(t *testing.T) {
 	if err := catalog.SaveLive("unknown", "https://example.test/v1", []catalog.Model{{ID: "claude-sonnet-4-5"}}); err != nil {
 		t.Fatal(err)
 	}
-	id := "auto/claude-sonnet-4-5"
+	id := "confirmed/~key/" + provider.KeyID("key") + "/claude-sonnet-4-5"
 	ms := uniSwitchProviderJSON("opencode").(map[string]any)["models"].(orderedJSON)
-	oc, _ := ms[slices.IndexFunc(ms, func(p jsonPair) bool { return p.k == id })].v.(map[string]any)
+	idx := slices.IndexFunc(ms, func(p jsonPair) bool { return p.k == id })
+	if idx < 0 {
+		t.Fatalf("OpenCode key group missing: %s", id)
+	}
+	oc, _ := ms[idx].v.(map[string]any)
 	if _, ok := oc["attachment"]; ok || !reflect.DeepEqual(oc["modalities"].(map[string]any)["input"], []string{"text", "image"}) {
 		t.Fatalf("OpenCode group image input: %v", oc)
 	}

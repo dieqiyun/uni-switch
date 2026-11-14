@@ -29722,7 +29722,7 @@
     },
     {
       "path": "docs/subsystems/gateway-routing.md",
-      "sha256": "b319b875ee76daa5a618285b252f09270636eb3d8975538790959af9ef2d4b65",
+      "sha256": "38f6d165fac9a04448c23865228ff5c41b34373b1caf3edae180888dcbb06306",
       "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls. Document adaptive Codex auth and structured request-validation failures in the integrated local core."
     },
     {
@@ -29747,8 +29747,8 @@
     },
     {
       "path": "docs/subsystems/plugin-runtime.md",
-      "sha256": "ba3d112eb7ecdfcfaca9bba448c496cea9184213b88af9e6a603ecebe09ea20a",
-      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway."
+      "sha256": "874c1591983a4760cc10a881bf4d928d6b2d31cb34fb6a09d6555c0273971c2b",
+      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Document executable module aggregation and isolated gateway test bootstrap after third-party extension removal."
     },
     {
       "path": "docs/subsystems/plugin-tools.md",
@@ -31244,8 +31244,8 @@
     },
     {
       "path": "internal/agent/image_input_test.go",
-      "sha256": "4c137346721e65e52e09cf4135264b91cfabde10f21f60b3db38f29ace8ebee8",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "3ae12ab55040cf1974a2467bdb4aee501ad8eac1b8cb15b5dfbd9ffe76aef7cf",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Verify image capabilities on retained named API key groups across client catalogs, replacing removed auto-group assumptions and reporting missing entries instead of panicking."
     },
     {
       "path": "internal/agent/install_missing_test.go",
@@ -36501,8 +36501,8 @@
     },
     {
       "path": "internal/gateway/glm_responses_test.go",
-      "sha256": "ef947408b97524c14932749c1817221175f76e05214d9e83544cba8580e81b55",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "d35126a3e64cd2651e49cc54ede4cba3389b14e0d9195133fc4ed2eb4f88b6f0",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Replace retired vendor-preset assumptions with explicit custom endpoints while preserving native protocol, endpoint path and upstream model assertions."
     },
     {
       "path": "internal/gateway/goroutines_test.go",
@@ -37121,8 +37121,8 @@
     },
     {
       "path": "internal/gateway/main_test.go",
-      "sha256": "86c219f8b7d88af06ad0a2cccd9c7b7e93e882a285e28bae6aebc86d3f22d479",
-      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure."
+      "sha256": "d8b9d7b3419ebe44ca20244bf77afa98fa0a9bc4a8962400bda0326e055ef625",
+      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Restore the retained isolated gateway TestMain and register core rotation/search/budget test services after removal of the extension bootstrap; keep synthetic HTTP backends plain unless a test explicitly opts into compression/socket behavior."
     },
     {
       "path": "internal/gateway/mantle_test.go",
@@ -48744,8 +48744,8 @@
     },
     {
       "path": "internal/pluginrt/pluginrt_test.go",
-      "sha256": "fed1e0cd12a2d48b30b9e38c9a8f1f2cad014cbd1744108eac0086f40f70b4db",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "4b88b613eeca927df5ebe64e835620c10529524ddd15247e4f31a8a250236f9c",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Recognize the actual core executable entry point as a module aggregator and require registration only for directories with runtime Go source, preserving core/module import boundaries."
     },
     {
       "path": "internal/pluginrt/pluginrt.go",
@@ -54223,6 +54223,11 @@
       "path": "cmd/uni-switch-core/main.go",
       "reason": "Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls.",
       "sha256": "50a7250dc135319267b302cfba01a4331d818b8aac3f1223d45178ac1fc85112"
+    },
+    {
+      "path": "internal/gateway/chat_tool_shape.go",
+      "reason": "Keep malformed JSON intact during Chat tool-shape conversion so shared request validation rejects trailing invalid data instead of accepting a rewritten prefix.",
+      "sha256": "442fafaa957c6d7de1e583630d3fe5db82871432b552bc3ba858f383ef2de9bd"
     }
   ],
   "removedFiles": [
