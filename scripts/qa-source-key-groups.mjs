@@ -8,14 +8,33 @@ import AxeBuilder from '@axe-core/playwright';
 import {startIsolated} from './qa-source-core.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const upstream = createServer((req, res) => {
+const requests = [];
+const upstream = createServer(async (req, res) => {
   const key = (req.headers.authorization || '').replace(/^Bearer /, '');
   res.setHeader('content-type', 'application/json');
   if (!/^qa-(basic|premium)-[a-z-]+$/.test(key)) {
     res.writeHead(401); res.end('{"error":{"message":"invalid key"}}'); return;
   }
-  const models = key.startsWith('qa-basic-') ? ['qa-shared', 'qa-basic-only'] : ['qa-shared', 'qa-premium-only'];
-  res.end(JSON.stringify({data: models.map(id => ({id, name: id}))}));
+  if (req.url.endsWith('/models')) {
+    const models = key.startsWith('qa-basic-') ? ['qa-shared', 'qa-basic-only'] : ['qa-shared', 'qa-premium-only'];
+    res.end(JSON.stringify({data: models.map(id => ({id, name: id}))}));
+    return;
+  }
+  if (!req.url.endsWith('/chat/completions')) { res.writeHead(404); res.end('{}'); return; }
+  let raw = '';
+  for await (const chunk of req) raw += chunk;
+  const body = JSON.parse(raw);
+  requests.push({key, body});
+  const content = key.startsWith('qa-basic-') ? 'from basic group' : 'from premium group';
+  if (body.stream) {
+    res.setHeader('content-type', 'text/event-stream');
+    const chunk = {id: 'qa-group-response', object: 'chat.completion.chunk', model: body.model, choices: [{index: 0, delta: {role: 'assistant', content}, finish_reason: null}]};
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    chunk.choices = [{index: 0, delta: {}, finish_reason: 'stop'}];
+    res.end(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`);
+  } else {
+    res.end(JSON.stringify({id: 'qa-group-response', object: 'chat.completion', model: body.model, choices: [{index: 0, message: {role: 'assistant', content}, finish_reason: 'stop'}], usage: {prompt_tokens: 3, completion_tokens: 4, total_tokens: 7}}));
+  }
 });
 await new Promise(r => upstream.listen(0, '127.0.0.1', r));
 const platform = {win32: 'pc-windows-msvc', linux: 'unknown-linux-gnu', darwin: 'apple-darwin'}[process.platform];
@@ -70,9 +89,19 @@ try {
           const catalog = JSON.parse(readFileSync(resolve(app.home, '.codex/uni-switch-models.json'), 'utf8'));
           assert.ok(catalog.models.some(m => m.slug === target.value && m.display_name === target.label), 'Codex receives the same display name and route');
           assert.ok(!JSON.stringify(catalog).includes(premiumKey) && !JSON.stringify(catalog).includes(basicKey), 'client catalog contains no API key');
+          const gateway = config.match(/^base_url\s*=\s*"([^"]+)"/m)?.[1];
+          assert.ok(gateway, 'isolated Codex config includes the real gateway endpoint');
+          const marker = `qa-group-inference-${id}`;
+          const reply = await context.request.post(gateway.replace(/\/$/, '') + '/chat/completions', {headers: {Authorization: 'Bearer uni-switch-codex'}, data: {model: target.value, messages: [{role: 'user', content: marker}], stream: false}});
+          assert.equal(reply.status(), 200, await reply.text());
+          assert.equal((await reply.json()).choices[0].message.content, 'from premium group');
+          const routed = requests.filter(r => JSON.stringify(r.body.messages).includes(marker));
+          assert.equal(routed.length, 1, 'real compiled gateway makes exactly one upstream request');
+          assert.equal(routed[0].key, premiumKey, 'real compiled gateway uses the selected group credential');
+          assert.equal(routed[0].body.model, 'qa-shared', 'only the upstream model ID is sent to the provider');
           if (engine === 'chromium' && language === 'zh') await page.screenshot({path: resolve(root, '.qa/key-groups-zh.png')});
           assert.deepEqual(errors, []);
-          checks.push({engine, language, independentModels: true, namedGroups: true, accessible: true, codexConfig: true});
+          checks.push({engine, language, independentModels: true, namedGroups: true, accessible: true, codexConfig: true, compiledGatewayInference: true});
         } finally { await context.close(); }
       }
     } finally { await browser.close(); }
