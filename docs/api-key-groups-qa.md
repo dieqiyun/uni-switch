@@ -6,6 +6,27 @@
 分组专项检查通过，但完整回归有失败，尚不符合正式发布条件。
 不应把本记录解读为三平台 Release 已通过验收。
 
+## Codex 登录与请求错误修复
+
+- 新增回归先在旧代码上实际失败：无登录、API Key 登录和强制 API 登录仍写入
+  `requires_openai_auth = true`；四协议解析器接受部分非对象输入或透出 Go 解析错误。
+- 认证开关改为读取实际 Codex 配置目录中的已知登录态，覆盖自定义 CODEX_HOME、
+  登录、登出、失效和无法读取的状态；自动修复采用同一个预期值。
+- 四协议解析器与实际 HTTP 路由统一检查空请求、截断 JSON、尾随数据和类型错误。
+  Gemini 保留数字错误码和状态，Anthropic 保留外层错误类型；流式入口在开始流之前
+  返回 JSON 400。Gemini 下划线字段转换不再掩盖无效尾随数据。
+- `scripts/qa-source-key-groups.mjs` 增加编译后核心的未登录配置检查，以及各协议的
+  空请求错误和不发送上游请求检查，继续使用隔离目录和合成凭据。
+- Windows 工作流原来的多命令步骤可能由最后一个成功命令掩盖前一个失败退出码，
+  已把 Go 测试、vet、源码审计、文档检查和类型检查拆开。此前 Windows 的绿色结果
+  不能视为全量 Go 测试已通过；Linux 和 macOS 原生构建均因回归失败而停止。
+- 认证、桌面配置保留、失效登录、请求解析/HTTP 错误和 Key 分组的组合回归在
+  `internal/agent`、`internal/gateway`、`internal/provider`、`internal/gui` 四个包通过。
+- 更新后的编译核心浏览器验证全部通过：Chromium/WebKit × 五种语言，共 10 组。
+  实际生成的未登录 Codex 配置写入 `requires_openai_auth = false`，实际推理仅使用
+  选中分组 Key；Chat、Responses、Messages、count_tokens 与 Gemini 流式入口的
+  空请求均返回结构化 JSON 400，且未发送上游请求。未启动真实用户客户端进行验证。
+
 ## 分组功能
 
 - `node scripts/test-go.mjs -run TestAPIKeyGroup -count=1 -timeout=5m -p=2` 通过。

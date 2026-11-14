@@ -5,6 +5,27 @@ provider fallbacks. Invalid or stale qualified aliases fail before forwarding.
 Ordinary provider/model and bare model IDs retain key rotation and fallback.
 See [named key groups](providers-accounts.md#named-api-key-groups).
 
+## Invalid request bodies
+
+Chat Completions, Responses, Anthropic Messages/count_tokens and Gemini
+generate/stream/count endpoints require one complete JSON object. Shared
+`decodeRequestWith` validation gives an explicit empty-body message and safe
+messages for malformed/truncated JSON or wrong field types, without exposing
+request values or Go decoding details. The four protocol parsers use the same
+validator, including their view-based readers. Gemini's snake-case conversion
+does not rewrite invalid JSON and therefore cannot hide trailing data.
+
+Validation errors return HTTP 400 and JSON before a stream starts. OpenAI and
+Anthropic error objects carry `code: "invalid_request"`,
+`type: "invalid_request_error"` and `message`; Anthropic retains its outer
+`type: "error"`. Gemini retains its numeric `code: 400` and
+`status: "INVALID_ARGUMENT"`, with the same `type` and message. Upstream error
+bodies and non-validation errors keep their existing dialects. No provider
+request is made for invalid envelopes. Sources: `decodeRequestWith`,
+`writeErrorSaid`, `writeErrorAs` in [`gateway.go`](../../internal/gateway/gateway.go).
+Verification: `TestInvalidRequestParsers`, `TestInvalidRequestHTTPShapes` and
+the compiled-core checks in `scripts/qa-source-key-groups.mjs`.
+
 > Routing groups, automatic groups, templates and group classifier rules are
 > removed from this distribution. Ordinary provider routing, fallback and
 > key/account rotation remain. Group-related examples below are historical.

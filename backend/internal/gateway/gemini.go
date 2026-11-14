@@ -184,6 +184,11 @@ func geminiCamel(body []byte) []byte {
 	if !bytes.Contains(body, []byte("_")) {
 		return body
 	}
+	// Decoder.Decode alone accepts trailing data. Rewriting such a body
+	// would hide the malformed request from the shared envelope validator.
+	if !jsonCheck(body) {
+		return body
+	}
 	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.UseNumber()
 	var v any
@@ -261,8 +266,8 @@ var genReadOrBuilt = map[string]bool{
 func parseGemini(body []byte) (*Request, error) {
 	body = geminiCamel(body)
 	var g gRequest
-	if err := json.Unmarshal(body, &g); err != nil {
-		return nil, fmt.Errorf("invalid request: %v", err)
+	if err := decodeRequestWith(body, &g, json.Unmarshal); err != nil {
+		return nil, err
 	}
 	r := &Request{Model: g.Model, Stream: g.Stream}
 	r.System = geminiText(g.SystemInstruction)

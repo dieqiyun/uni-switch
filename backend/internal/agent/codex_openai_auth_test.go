@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// The maintainer requires OpenAI auth on every uni-switch provider table,
-// regardless of the sign-in or allowance, including older false values.
+// A usable ChatGPT sign-in keeps account-backed tools. A known signed-out
+// client uses the gateway bearer without being stopped at Codex login.
 func TestCodexUniSwitchProviderKeepsChatGPTAccount(t *testing.T) {
 	// the table as an older uni-switch wrote it, bytes from a live config.toml
 	const older = "model = \"fake/m1\"\nmodel_provider = \"uni-switch\"\nmodel_catalog_json = \"uni-switch-models.json\"\n\n" +
@@ -148,8 +148,8 @@ func TestCodexUniSwitchProviderKeepsChatGPTAccount(t *testing.T) {
 			if err := cx.Fields[0].Set("fake/m1"); err != nil {
 				t.Fatal(err)
 			}
-			if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) || flag(t, cfg) != "true" {
-				t.Fatalf("no ChatGPT account: requires_openai_auth still required:\n%s", cfg)
+			if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) || flag(t, cfg) != "false" {
+				t.Fatalf("no ChatGPT account: gateway bearer must work without login:\n%s", cfg)
 			}
 		})
 		// one written while signed in, the sign-in gone since
@@ -160,8 +160,8 @@ func TestCodexUniSwitchProviderKeepsChatGPTAccount(t *testing.T) {
 			if err := cx.Sync(); err != nil {
 				t.Fatal(err)
 			}
-			if cfg := read(); flag(t, cfg) != "true" {
-				t.Fatalf("signed out: requires_openai_auth must stay:\n%s", cfg)
+			if cfg := read(); flag(t, cfg) != "false" {
+				t.Fatalf("signed out: requires_openai_auth must be disabled:\n%s", cfg)
 			}
 		})
 	}

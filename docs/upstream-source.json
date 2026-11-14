@@ -29722,8 +29722,8 @@
     },
     {
       "path": "docs/subsystems/gateway-routing.md",
-      "sha256": "489e710379ecca6011637f824e571ebdfcc1c2fd4152cc3561f8c4cf1eba7c87",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls."
+      "sha256": "b319b875ee76daa5a618285b252f09270636eb3d8975538790959af9ef2d4b65",
+      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls. Document adaptive Codex auth and structured request-validation failures in the integrated local core."
     },
     {
       "path": "docs/subsystems/gateway-sessions.md",
@@ -30538,8 +30538,8 @@
     },
     {
       "path": "internal/agent/codex_desktop_efforts_test.go",
-      "sha256": "5e7496da9838a7cc397d931c1c4b9501ee3c5c6bb1c56ec0e9c7191f2cae2950",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure."
+      "sha256": "999708da1e565ff673f8dfd3d9c80c2960df361b027fab0c5a75086a7371ce57",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/codex_desktop_test.go",
@@ -30568,8 +30568,8 @@
     },
     {
       "path": "internal/agent/codex_forced_login_test.go",
-      "sha256": "eae2fef97b2f84202a3936fc40969380e5d9f6535c71c6e65feb65753741535c",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "a49d57ba4d1cc1cf26de21acab9779d7db5214c2f737bbd6739c5ea019c40fdd",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/codex_group_alias_test.go",
@@ -30608,8 +30608,8 @@
     },
     {
       "path": "internal/agent/codex_image_tool_test.go",
-      "sha256": "3dfa1d8b5b00b1fc9d64fcd36f9900599e823580b238c04be25552b484fecdca",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "64252081898a83d9fe182c67647987c3b39fcf5e23699d37f7f44f23f230ed85",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/codex_keychain_test.go",
@@ -30648,8 +30648,8 @@
     },
     {
       "path": "internal/agent/codex_noaccount_test.go",
-      "sha256": "92e036f57c453eb1b0d14cf14c9a3602e1ce8bb62d1cec182ce2938ad6bf2037",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "8113f126a9401e06b2d84ad934d623ba9692095076034dbee6741ce2a98d96a0",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/codex_off_keeps_test.go",
@@ -30658,8 +30658,8 @@
     },
     {
       "path": "internal/agent/codex_openai_auth_test.go",
-      "sha256": "3ab400ea67eb5979967bc994b5e20e0218b02f16f774ebc4f956fa2896a72720",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "1a69b16626934d60582580075ed19c036d8b5f59d60c933d1369011008466cf1",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/codex_own_named_test.go",
@@ -30733,8 +30733,8 @@
     },
     {
       "path": "internal/agent/codex_signin_gone_test.go",
-      "sha256": "d9c7f8e092d42ed41e2885117cbaef3081a4902f0ebe8cadc8f1596ed49de3cc",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "24f505b8d912c220065bba13bc8c49c1c87828abe4fe8d791c305539ebad18e7",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/codex_signin_unknown_test.go",
@@ -30808,8 +30808,8 @@
     },
     {
       "path": "internal/agent/codex.go",
-      "sha256": "c5e98bd5ebe32153f33e117c2308b52f84b1c575a045b8564ff10fc46a88c285",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Preserve externally applied provider URLs and do not reconnect from stale API preferences during background sync. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls."
+      "sha256": "ff313bcb972a6991aaec27ea0448a3c6ec0e9f1b097adca0a129caa94ccba290",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Preserve externally applied provider URLs and do not reconnect from stale API preferences during background sync. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls. Codex provider auth follows known login state in the resolved client home, keeps unknown reads conservative, and repairs against the same expected flag; regression coverage includes signed-out bearer access."
     },
     {
       "path": "internal/agent/commandcode_test.go",
@@ -34116,8 +34116,8 @@
     },
     {
       "path": "internal/gateway/anthropic.go",
-      "sha256": "0cdf392cb1e2264b4474cdd1d8cf5792f830bb2ce873b049537fbc7fdf1ad97e",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "1e0122deb57faac832b466ac12d6001ad7787e70b2da37b1ff34401f43561157",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Normalize invalid request envelopes across protocol parsers into safe JSON 400 diagnostics, preserve protocol error shapes, and prevent Gemini conversion from hiding trailing data."
     },
     {
       "path": "internal/gateway/antigravity_agent_effort_test.go",
@@ -34541,8 +34541,8 @@
     },
     {
       "path": "internal/gateway/chat.go",
-      "sha256": "9e99825b7eb38242bfc5fe3314adf45c2c56e6692b6a9bc2c43c14e1ce131c11",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "4fd3c5f17bc05c42519d9d443ce60128deccf48bfd5b9192482b3d08e8d3f911",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Normalize invalid request envelopes across protocol parsers into safe JSON 400 diagnostics, preserve protocol error shapes, and prevent Gemini conversion from hiding trailing data."
     },
     {
       "path": "internal/gateway/chatgpt_api_test.go",
@@ -36386,8 +36386,8 @@
     },
     {
       "path": "internal/gateway/gateway.go",
-      "sha256": "317478c509029afe8bdf711736819139015129f70a3138776cd632fc01dccba3",
-      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure."
+      "sha256": "1657a3257747f007bfd9d6e4fe3301671aca78aac930e87f8e57b5b2229967bb",
+      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Normalize invalid request envelopes across protocol parsers into safe JSON 400 diagnostics, preserve protocol error shapes, and prevent Gemini conversion from hiding trailing data."
     },
     {
       "path": "internal/gateway/gathered.go",
@@ -36491,8 +36491,8 @@
     },
     {
       "path": "internal/gateway/gemini.go",
-      "sha256": "276a9cdcc2066e71eb66db903bcd4e0651f0b211c8eb8781dc9252e77d445843",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "451c58830fd60d1959b989927bfd3e223bd07a9216bf8b898570cc921a5354a1",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Normalize invalid request envelopes across protocol parsers into safe JSON 400 diagnostics, preserve protocol error shapes, and prevent Gemini conversion from hiding trailing data."
     },
     {
       "path": "internal/gateway/glm_coding_key_test.go",
@@ -38251,8 +38251,8 @@
     },
     {
       "path": "internal/gateway/responses.go",
-      "sha256": "8ecbfb78cdf06c05a735c0dcc06ffb7a656729cd7e7b5d08acb3b9a0424572c3",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "a7292c8a47ba4339def397e0aa54e637e111be5a8b4ac166ca37569d1d9eb95e",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Normalize invalid request envelopes across protocol parsers into safe JSON 400 diagnostics, preserve protocol error shapes, and prevent Gemini conversion from hiding trailing data."
     },
     {
       "path": "internal/gateway/rest_all_test.go",
@@ -54216,8 +54216,8 @@
     },
     {
       "path": "docs/subsystems/agent-wiring.md",
-      "sha256": "536b9b292db3ecbfc31584e20d1bcb7ed4b7fe769f56c71926f68c52c27e7ef7",
-      "reason": "Document external configuration precedence and Desktop profile selection and restart behavior. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls."
+      "sha256": "7562240704a6ab5c08399c2a8107cd7a0f5b9062879c0000e5bcb344aeb4d569",
+      "reason": "Document external configuration precedence and Desktop profile selection and restart behavior. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls. Document adaptive Codex auth and structured request-validation failures in the integrated local core."
     },
     {
       "path": "cmd/uni-switch-core/main.go",

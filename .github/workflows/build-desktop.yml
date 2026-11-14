@@ -52,10 +52,10 @@ jobs:
         with:
           go-version: '1.26.8'
           cache: false
-      - name: Go core tests and vet
-        run: |
-          node scripts/test-go.mjs -timeout=20m -p=2
-          node scripts/test-go.mjs vet
+      - name: Go core tests
+        run: node scripts/test-go.mjs -timeout=20m -p=2
+      - name: Go core vet
+        run: node scripts/test-go.mjs vet
       - name: Go race detector
         if: runner.os == 'Linux'
         run: node scripts/test-go.mjs -race -timeout=30m -p=2
@@ -70,11 +70,12 @@ jobs:
         run: |
           corepack enable
           corepack pnpm install --frozen-lockfile
-      - name: Verify source and documentation
-        run: |
-          python scripts/audit-source.py
-          corepack pnpm docs:check
-          corepack pnpm typecheck
+      - name: Audit release source
+        run: python scripts/audit-source.py
+      - name: Verify documentation
+        run: corepack pnpm docs:check
+      - name: Frontend typecheck
+        run: corepack pnpm typecheck
       - name: Frontend tests
         if: runner.os == 'Linux'
         run: corepack pnpm test

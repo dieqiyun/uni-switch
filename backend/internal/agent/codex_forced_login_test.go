@@ -8,7 +8,7 @@ import (
 )
 
 // Forced API login still determines routing and is left intact. It no
-// longer disables the maintainer's required OpenAI auth provider flag.
+// longer requires a ChatGPT login that the client cannot use.
 func TestCodexForcedAPILoginIsNoChatGPT(t *testing.T) {
 	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "forced_login_method = \"api\"\n")
 	cx := codex(home)
@@ -19,8 +19,8 @@ func TestCodexForcedAPILoginIsNoChatGPT(t *testing.T) {
 	if !strings.Contains(cfg, `model_provider = "uni-switch"`) {
 		t.Fatalf("forced API login: uni-switch its provider, not beside a sign-in Codex won't use:\n%s", cfg)
 	}
-	if !strings.Contains(cfg, "requires_openai_auth = true") {
-		t.Fatalf("forced API login must not disable OpenAI auth:\n%s", cfg)
+	if !strings.Contains(cfg, "requires_openai_auth = false") {
+		t.Fatalf("forced API login must allow the gateway bearer:\n%s", cfg)
 	}
 	if !strings.Contains(cfg, `forced_login_method = "api"`) {
 		t.Fatalf("the user's forced_login_method kept:\n%s", cfg)

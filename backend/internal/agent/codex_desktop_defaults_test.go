@@ -11,7 +11,7 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/edit"
 )
 
-func assertCodexDesktopDefaults(t *testing.T, path string) {
+func assertCodexDesktopDefaults(t *testing.T, path, auth string) {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -22,8 +22,8 @@ func assertCodexDesktopDefaults(t *testing.T, path string) {
 		t.Fatalf("Codex UI language: %v, %v", doc.Desktop, err)
 	}
 	provider, err := edit.GetTOMLTable(path, "model_providers."+uniSwitchID)
-	if err != nil || provider["requires_openai_auth"] != "true" {
-		t.Fatalf("uni-switch must require OpenAI auth: %v, %v", provider, err)
+	if err != nil || provider["requires_openai_auth"] != auth {
+		t.Fatalf("uni-switch OpenAI auth must be %s: %v, %v", auth, provider, err)
 	}
 }
 
@@ -39,7 +39,7 @@ func TestCodexDesktopLocaleSpellings(t *testing.T) {
 			if err := cx.Fields[0].Set("fake/m1"); err != nil {
 				t.Fatal(err)
 			}
-			assertCodexDesktopDefaults(t, cx.Path)
+			assertCodexDesktopDefaults(t, cx.Path, "false")
 			var doc struct{ Desktop map[string]any }
 			if err := toml.Unmarshal([]byte(read()), &doc); err != nil || doc.Desktop["theme"] != "dark" || !strings.Contains(read(), "# 用户设置") {
 				t.Fatalf("desktop settings lost: %v\n%s", err, read())
@@ -53,11 +53,11 @@ func TestCodexDesktopLocaleSpellings(t *testing.T) {
 }
 
 func TestCodexManagedDesktopDefaults(t *testing.T) {
-	for _, c := range []struct{ name, auth string }{
-		{"ChatGPT", `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`},
-		{"API key", `{"OPENAI_API_KEY":"sk-synthetic"}`},
-		{"no sign-in", ""},
-		{"unknown sign-in", "{cut off"},
+	for _, c := range []struct{ name, auth, want string }{
+		{"ChatGPT", `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "true"},
+		{"API key", `{"OPENAI_API_KEY":"sk-synthetic"}`, "false"},
+		{"no sign-in", "", "false"},
+		{"unknown sign-in", "{cut off", "true"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			home, read := codexHome(t, c.auth, "# 用户配置\n[desktop]\nlocaleOverride = \"en-US\" # 界面语言\ntheme = \"dark\"\n\n[model_providers.relay]\nrequires_openai_auth = false\n")
@@ -66,7 +66,7 @@ func TestCodexManagedDesktopDefaults(t *testing.T) {
 			if err := cx.Fields[0].Set("fake/m1"); err != nil {
 				t.Fatal(err)
 			}
-			assertCodexDesktopDefaults(t, path)
+			assertCodexDesktopDefaults(t, path, c.want)
 			for _, want := range []string{"# 用户配置", "# 界面语言", `theme = "dark"`, "[model_providers.relay]\nrequires_openai_auth = false"} {
 				if !strings.Contains(read(), want) {
 					t.Fatalf("unrelated configuration lost: %s\n%s", want, read())
@@ -82,7 +82,7 @@ func TestCodexManagedDesktopDefaults(t *testing.T) {
 			if err := cx.Sync(); err != nil {
 				t.Fatal(err)
 			}
-			assertCodexDesktopDefaults(t, path)
+			assertCodexDesktopDefaults(t, path, c.want)
 			before := read()
 			if err := cx.Sync(); err != nil || read() != before {
 				t.Fatalf("stable defaults rewritten: %v\n%s", err, read())
@@ -98,14 +98,14 @@ func TestCodexJoinedDesktopLanguageFollowsSync(t *testing.T) {
 	if ok, err := cx.Join(); err != nil || !ok {
 		t.Fatalf("join: %v, %v", ok, err)
 	}
-	assertCodexDesktopDefaults(t, path)
+	assertCodexDesktopDefaults(t, path, "true")
 	if err := edit.DelTOMLKey(path, "desktop", "localeOverride"); err != nil {
 		t.Fatal(err)
 	}
 	if err := cx.Sync(); err != nil {
 		t.Fatal(err)
 	}
-	assertCodexDesktopDefaults(t, path)
+	assertCodexDesktopDefaults(t, path, "true")
 }
 
 func TestCodexDesktopDefaultsRollback(t *testing.T) {

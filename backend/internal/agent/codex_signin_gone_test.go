@@ -10,7 +10,7 @@ import (
 )
 
 // A revoked sign-in is unavailable for routing, while its auth.json stays.
-// OpenAI auth remains required even then; a new sign-in restores the account.
+// The gateway bearer remains usable; a new sign-in restores account auth.
 // An unreadable revocation record still means unknown.
 func TestCodexGoneSignInIsNoChatGPT(t *testing.T) {
 	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x","refresh_token":"rt-dead"}}`, "")
@@ -27,8 +27,8 @@ func TestCodexGoneSignInIsNoChatGPT(t *testing.T) {
 	if !strings.Contains(cfg, `model_provider = "uni-switch"`) {
 		t.Fatalf("revoked sign-in: uni-switch its provider, not beside it:\n%s", cfg)
 	}
-	if !strings.Contains(cfg, "requires_openai_auth = true") {
-		t.Fatalf("revoked sign-in must not disable OpenAI auth:\n%s", cfg)
+	if !strings.Contains(cfg, "requires_openai_auth = false") {
+		t.Fatalf("revoked sign-in must allow the gateway bearer:\n%s", cfg)
 	}
 	if c := cx.Check(); c != "" {
 		t.Fatal(c)

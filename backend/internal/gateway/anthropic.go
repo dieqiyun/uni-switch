@@ -151,8 +151,8 @@ func readAnthropic(body []byte, clientMarks, facts bool) (*Request, error) {
 		decode = decodeJSONView
 	}
 	var a aRequest
-	if err := decode(body, &a); err != nil {
-		return nil, fmt.Errorf("invalid request: %v", err)
+	if err := decodeRequestWith(body, &a, decode); err != nil {
+		return nil, err
 	}
 	r := &Request{Model: a.Model, System: stringOrText(a.System), MaxTokens: a.MaxTokens,
 		Temp: a.Temperature, TopP: a.TopP, Stop: a.StopSequences, Stream: a.Stream, Fast: a.Speed == "fast"}

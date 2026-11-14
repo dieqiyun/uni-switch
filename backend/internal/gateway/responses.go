@@ -339,8 +339,8 @@ func readResponsesFor(body []byte, facts, keepInstructions bool) (*Request, erro
 	// Responses Lite's tools, sent as the first input item (#350)
 	body = liftAdditionalTools(body)
 	var q rRequest
-	if err := decode(body, &q); err != nil {
-		return nil, fmt.Errorf("invalid request: %v", err)
+	if err := decodeRequestWith(body, &q, decode); err != nil {
+		return nil, err
 	}
 	r := &Request{Model: q.Model, System: q.Instructions, MaxTokens: q.MaxOutputTokens, Temp: q.Temperature,
 		TopP: q.TopP, Stream: q.Stream, Parallel: q.ParallelToolCalls, Fast: q.ServiceTier == "priority" || q.ServiceTier == "ultrafast", Ultrafast: q.ServiceTier == "ultrafast", Tier: q.ServiceTier, CacheKey: q.PromptCacheKey, Include: q.Include,

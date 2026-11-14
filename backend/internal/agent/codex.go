@@ -642,15 +642,21 @@ func codexIn(at place) *Agent {
 		}
 		return edit.SetTOMLKey(path, "desktop", "localeOverride", "zh-CN")
 	}
-	// Always keep OpenAI auth enabled, including older explicit false values
-	// and missing, unknown or spent sign-ins, as requested by the maintainer.
+	// Codex checks this before contacting the gateway. A known missing or
+	// unusable sign-in must allow the gateway bearer to work without login.
+	// An unreadable/partly rewritten auth file is unknown, so keep requiring
+	// auth until it can be read. dir is the resolved CODEX_HOME/WSL location.
+	openAIAuth := func() bool {
+		signedIn, known := codexChatGPTKnown(dir)
+		return !known || signedIn
+	}
 	putProvider := func() error {
 		kvs := []edit.KV{
 			{Path: "name", Value: "uni-switch"},
 			{Path: "base_url", Value: at.v1()},
 			{Path: "wire_api", Value: "responses"},
 			{Path: "experimental_bearer_token", Value: keptBearerToken("model_providers." + uniSwitchID)},
-			{Path: "requires_openai_auth", Value: true},
+			{Path: "requires_openai_auth", Value: openAIAuth()},
 			// Keep the actor header for gateway compatibility. Requiring
 			// OpenAI auth means the header alone cannot grant official tools.
 			// An Inline table: a config that holds the headers as their own
@@ -673,13 +679,13 @@ func codexIn(at place) *Agent {
 		}
 		return asyncCompaction(true)
 	}
-	// Repair an older table even without a usable ChatGPT sign-in.
+	// Apply the same expectation on repair, including after sign-in/out.
 	authStale := func() bool {
 		t, err := edit.GetTOMLTable(path, "model_providers."+uniSwitchID)
 		if err != nil || t == nil {
 			return false
 		}
-		return t["requires_openai_auth"] != "true"
+		return t["requires_openai_auth"] != strconv.FormatBool(openAIAuth())
 	}
 	hasProvider := func() bool {
 		t, err := edit.GetTOMLTable(path, "model_providers."+uniSwitchID)
@@ -2029,7 +2035,7 @@ func codexIn(at place) *Agent {
 					return err
 				}
 			}
-			// Upgrade missing or false auth flags on older provider tables.
+			// Repair older auth flags and follow known sign-in changes.
 			if authStale() {
 				if err := putProvider(); err != nil {
 					return err
@@ -3105,7 +3111,7 @@ func codexChatGPTKnown(dir string) (signedIn, known bool) {
 	// enforce_login_restrictions, load_auth), so wired beside it the
 	// Codex app asked for a sign-in and offered an API key alone (Tiger on
 	// Discord: "重启 codex 之后登不回去了"). Counted as no sign-in for routing,
-	// but uni-switch's provider still requires OpenAI auth. The line stays:
+	// and uni-switch's provider allows its gateway bearer. The line stays:
 	// taking it out is how they sign in to ChatGPT again.
 	if v, ok := edit.GetTOMLTop(filepath.Join(dir, "config.toml"), "forced_login_method"); ok && strings.EqualFold(strings.TrimSpace(v), "api") {
 		return false, true

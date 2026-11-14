@@ -10,8 +10,8 @@ import (
 
 // codexNoAccount says Codex's provider takes no ChatGPT account, so an
 // account switch restarts nothing (danzi002 on Discord), only for a
-// provider table without requires_openai_auth = true. An older false value
-// counts until Sync upgrades it to the required true value.
+// provider table without requires_openai_auth = true. Sync updates that flag
+// as the client signs in or out.
 func TestCodexNoAccountFollowsRequiresOpenAIAuth(t *testing.T) {
 	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "")
 	path := filepath.Join(home, ".codex", "config.toml")
@@ -39,6 +39,15 @@ func TestCodexNoAccountFollowsRequiresOpenAIAuth(t *testing.T) {
 	}
 	if codexNoAccount() {
 		t.Fatalf("Sync must restore the authenticated provider:\n%s", read())
+	}
+	if err := os.Remove(filepath.Join(home, ".codex", "auth.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if !codexNoAccount() {
+		t.Fatalf("signed out: Sync must permit bearer-only access:\n%s", read())
 	}
 	// a profile may name another provider: not known, so not none
 	if err := edit.SetTOMLTop(path, edit.KV{Path: "profile", Value: "work"}); err != nil {

@@ -26,20 +26,24 @@ comments remain intact. Codex 26.1029.61003's settings store reads this key from
 `config.toml`; its bundled `zh-CN` translations cover the webview and native
 menus. Translation loading can still depend on the client's `enable_i18n` rollout.
 
-Every `[model_providers.uni-switch]` table now has
-`requires_openai_auth = true`. Apply and Sync replace missing or explicit false
-values, including tables from older versions, regardless of the current login,
-revocation or allowance. Other providers' auth flags are not changed. This
-maintainer-requested policy supersedes the historical conditional auth behavior
-described below: Sync no longer removes the flag for a missing or spent account.
-A missing or revoked ChatGPT login may require signing in, and a spent account
-may still block sending. Keeping the flag does not grant subscription features,
-workspace permissions, or tool compatibility with an arbitrary provider.
+`[model_providers.uni-switch] requires_openai_auth` follows the client's known
+ChatGPT login. A usable sign-in keeps `true`; a missing login, API-key-only
+login, forced API login or revoked sign-in writes `false`, allowing Codex to
+reach the local gateway with its configured bearer without stopping at login.
+An unknown read (a partial auth.json or failed credential-store read) retains
+the conservative `true` behavior. A spent allowance alone does not sign the
+client out. This replaces the earlier unconditional-true policy.
+
+Apply and Sync use `codexChatGPTKnown` with the adapter's resolved `codexHome`,
+including CODEX_HOME and WSL path mapping. Repair compares against the same
+expected value, so a valid false flag does not trigger repeated repair. The
+gateway bearer and actor header stay configured; they do not grant upstream
+subscription features or workspace permissions. Other providers' flags stay
+under their owners' control.
 
 The legacy `codex.out` mark still tracks routing transitions at allowance changes,
-but `AppOut` reports the ChatGPT side as disabled only while an older active table
-actually has auth disabled. With the required true value, it does not show that
-notice. Auth flag migration changes the app-server route; stable Sync calls do
+but `AppOut` reports the ChatGPT side as disabled only while an active table
+actually has auth disabled. Auth flag migration changes the app-server route; stable Sync calls do
 not rewrite either default or change that route. Both defaults use the existing
 atomic TOML edit path, with rollback if a later write fails.
 
@@ -48,7 +52,8 @@ Source: [`codex.go`](../../internal/agent/codex.go), `desktopLocale`,
 Verification: `TestCodexManagedDesktopDefaults`,
 `TestCodexJoinedDesktopLanguageFollowsSync`, `TestCodexDesktopDefaultsRollback`,
 `TestCodexUniSwitchProviderKeepsChatGPTAccount`, and
-`TestCodexAppRouteFollowsOpenAIAuth`, run through `scripts/test-go.mjs` in an
+`TestCodexAppRouteFollowsOpenAIAuth`, `TestCodexProviderAuthFollowsLogin`,
+`TestCodexProviderAuthUsesCustomHome` and `TestCodexGoneSignInIsNoChatGPT`, run through `scripts/test-go.mjs` in an
 isolated HOME. Real authenticated cloud features have not been verified.
 
 uni-switch respects a configuration applied by another tool. Codex's explicit

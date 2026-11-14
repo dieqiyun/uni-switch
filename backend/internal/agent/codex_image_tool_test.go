@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// Keep the actor header alongside the required OpenAI auth flag. The header
-// alone no longer grants the image tool to an API-key-only setup.
+// Keep the gateway's actor header while allowing API-key-only clients to
+// reach it. Upstream tool access still depends on the selected provider.
 func TestCodexUniSwitchProviderCarriesActorAuthorization(t *testing.T) {
 	home, read := codexHome(t, `{"OPENAI_API_KEY":"sk-relay"}`,
 		"model = \"gpt-5.5\"\nmodel_provider = \"relay\"\n\n[model_providers.relay]\nname = \"relay\"\nbase_url = \"https://relay.example/v1\"\nwire_api = \"responses\"\n")
@@ -21,8 +21,8 @@ func TestCodexUniSwitchProviderCarriesActorAuthorization(t *testing.T) {
 	if !strings.Contains(cfg, `"x-openai-actor-authorization" = "uni-switch"`) {
 		t.Fatalf("uni-switch provider table carries no actor-authorization header:\n%s", cfg)
 	}
-	if !strings.Contains(cfg, "requires_openai_auth = true") {
-		t.Fatalf("uni-switch provider table must require OpenAI auth:\n%s", cfg)
+	if !strings.Contains(cfg, "requires_openai_auth = false") {
+		t.Fatalf("API-key-only client must reach the gateway without ChatGPT login:\n%s", cfg)
 	}
 	if c := cx.Check(); c != "" {
 		t.Fatal(c)

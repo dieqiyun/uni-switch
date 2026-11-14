@@ -82,6 +82,6 @@ func TestCodexDesktopEfforts(t *testing.T) {
 		if cfg := read(); strings.Contains(cfg, "[desktop]") || !strings.Contains(cfg, `theme = 'dark'`) && !strings.Contains(cfg, `theme = "dark"`) {
 			t.Fatalf("config:\n%s", cfg)
 		}
-		assertCodexDesktopDefaults(t, filepath.Join(home, ".codex", "config.toml"))
+		assertCodexDesktopDefaults(t, filepath.Join(home, ".codex", "config.toml"), "false")
 	})
 }

@@ -8488,12 +8488,28 @@ func streamOf(body []byte) bool {
 // decodeRequest requires one complete JSON object before fields are rewritten
 // or a request is routed. In particular, null is not an empty object.
 func decodeRequest(body []byte, dst any) error {
+	return decodeRequestWith(body, dst, decodeJSON)
+}
+
+// decodeRequestWith retains the parser's copying/view semantics while giving
+// every client the same safe diagnostics. No request values or Go types escape.
+func decodeRequestWith(body []byte, dst any, decode func([]byte, any) error) error {
 	body = bytes.TrimSpace(body)
-	if len(body) == 0 || body[0] != '{' {
+	if len(body) == 0 {
+		return errors.New("invalid request: request body is empty; send a JSON object")
+	}
+	if body[0] != '{' {
 		return errors.New("invalid request: expected a JSON object")
 	}
-	if err := decodeJSON(body, dst); err != nil {
-		return fmt.Errorf("invalid request: %w", err)
+	if err := decode(body, dst); err != nil {
+		var field *json.UnmarshalTypeError
+		if errors.As(err, &field) {
+			if field.Field != "" {
+				return fmt.Errorf("invalid request: field %q has an invalid type", field.Field)
+			}
+			return errors.New("invalid request: a field has an invalid type")
+		}
+		return errors.New("invalid request: request body must contain one complete, valid JSON object")
 	}
 	return nil
 }
@@ -9509,6 +9525,9 @@ const requestBytesHint = "This is a request-body byte limit, not the model's con
 // answer names, nil for none.
 func writeErrorSaid(w http.ResponseWriter, proto provider.Protocol, status int, msg string, code, param any) int {
 	typ := errorTypeFor(status)
+	if status == http.StatusBadRequest && code == nil && strings.HasPrefix(msg, "invalid request: ") {
+		code = "invalid_request"
+	}
 	// a relay busy for a moment, said so Pi asks again (#2372)
 	msg = saysBusy(status, msg)
 	if tooLong(status, msg) {
@@ -9559,14 +9578,22 @@ func writeErrorAs(w http.ResponseWriter, proto provider.Protocol, status int, ty
 	var v any
 	switch proto {
 	case provider.Anthropic:
-		v = map[string]any{"type": "error", "error": map[string]any{"type": typ, "message": msg}}
+		e := map[string]any{"type": typ, "message": msg}
+		if code == "invalid_request" {
+			e["code"] = code
+		}
+		v = map[string]any{"type": "error", "error": e}
 	case provider.Gemini:
 		st := map[int]string{400: "INVALID_ARGUMENT", 408: "DEADLINE_EXCEEDED", 413: "INVALID_ARGUMENT", 401: "UNAUTHENTICATED", 403: "PERMISSION_DENIED", 404: "NOT_FOUND",
 			429: "RESOURCE_EXHAUSTED", 500: "INTERNAL", 502: "UNAVAILABLE", 503: "UNAVAILABLE", 529: "UNAVAILABLE"}[status]
 		if st == "" {
 			st = "UNKNOWN"
 		}
-		v = map[string]any{"error": map[string]any{"code": status, "message": msg, "status": st}}
+		e := map[string]any{"code": status, "message": msg, "status": st}
+		if code == "invalid_request" {
+			e["type"] = typ
+		}
+		v = map[string]any{"error": e}
 	default:
 		v = map[string]any{"error": map[string]any{"message": msg, "type": typ, "code": code, "param": param}}
 	}

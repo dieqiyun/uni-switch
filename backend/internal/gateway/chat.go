@@ -88,8 +88,8 @@ func readChat(body []byte, facts bool) (*Request, error) {
 	body = liftMessageTools(body) // a request handle didn't see (#2322)
 	body = shapeChatTools(body)   // and its tools in another API's shape (#2622)
 	var c cRequest
-	if err := decode(body, &c); err != nil {
-		return nil, fmt.Errorf("invalid request: %v", err)
+	if err := decodeRequestWith(body, &c, decode); err != nil {
+		return nil, err
 	}
 	r := &Request{Model: c.Model, MaxTokens: c.MaxCompletionTokens, Temp: c.Temperature, TopP: c.TopP,
 		Stream: c.Stream, Effort: effortOf(c.ReasoningEffort), Parallel: c.ParallelToolCalls, Fast: c.ServiceTier == "priority" || c.ServiceTier == "ultrafast", Ultrafast: c.ServiceTier == "ultrafast", Tier: c.ServiceTier,

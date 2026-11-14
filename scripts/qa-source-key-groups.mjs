@@ -86,6 +86,7 @@ try {
           await post('set', {agent: 'codex', field: 'model', value: target.value});
           const config = readFileSync(resolve(app.home, '.codex/config.toml'), 'utf8');
           assert.ok(config.includes(target.value), 'actual isolated Codex configuration selects the qualified model');
+          assert.match(config, /^requires_openai_auth\s*=\s*false$/m, 'signed-out Codex reaches the gateway without a ChatGPT login');
           const catalog = JSON.parse(readFileSync(resolve(app.home, '.codex/uni-switch-models.json'), 'utf8'));
           assert.ok(catalog.models.some(m => m.slug === target.value && m.display_name === target.label), 'Codex receives the same display name and route');
           assert.ok(!JSON.stringify(catalog).includes(premiumKey) && !JSON.stringify(catalog).includes(basicKey), 'client catalog contains no API key');
@@ -99,9 +100,21 @@ try {
           assert.equal(routed.length, 1, 'real compiled gateway makes exactly one upstream request');
           assert.equal(routed[0].key, premiumKey, 'real compiled gateway uses the selected group credential');
           assert.equal(routed[0].body.model, 'qa-shared', 'only the upstream model ID is sent to the provider');
+          const beforeInvalid = requests.length;
+          for (const path of ['/chat/completions', '/responses', '/messages', '/messages/count_tokens', 'gemini']) {
+            const endpoint = path === 'gemini' ? new URL('/v1beta/models/qa:streamGenerateContent?alt=sse', gateway).href : gateway.replace(/\/$/, '') + path;
+            const invalid = await context.request.post(endpoint, {headers: {Authorization: 'Bearer uni-switch-codex', 'Content-Type': 'application/json'}, data: Buffer.from('  \n')});
+            assert.equal(invalid.status(), 400, await invalid.text());
+            assert.match(invalid.headers()['content-type'], /application\/json/);
+            const error = (await invalid.json()).error;
+            assert.equal(error.type, 'invalid_request_error');
+            assert.match(error.message, /body is empty/);
+            assert.equal(error.code, path === 'gemini' ? 400 : 'invalid_request');
+          }
+          assert.equal(requests.length, beforeInvalid, 'invalid requests never reach the provider');
           if (engine === 'chromium' && language === 'zh') await page.screenshot({path: resolve(root, '.qa/key-groups-zh.png')});
           assert.deepEqual(errors, []);
-          checks.push({engine, language, independentModels: true, namedGroups: true, accessible: true, codexConfig: true, compiledGatewayInference: true});
+          checks.push({engine, language, independentModels: true, namedGroups: true, accessible: true, codexConfig: true, signedOutBearer: true, compiledGatewayInference: true, structuredInvalidRequests: true});
         } finally { await context.close(); }
       }
     } finally { await browser.close(); }
