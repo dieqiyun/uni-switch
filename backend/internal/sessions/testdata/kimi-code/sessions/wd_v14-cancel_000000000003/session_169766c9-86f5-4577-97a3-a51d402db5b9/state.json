@@ -1,0 +1,16 @@
+{
+  "createdAt": "2026-07-22T02:24:36.705Z",
+  "updatedAt": "2026-07-22T02:27:00.637Z",
+  "title": "[redacted]",
+  "isCustomTitle": false,
+  "agents": {
+    "main": {
+      "homedir": "[redacted]",
+      "type": "main",
+      "parentAgentId": null
+    }
+  },
+  "custom": {},
+  "workDir": "[redacted]",
+  "lastPrompt": "[redacted]"
+}

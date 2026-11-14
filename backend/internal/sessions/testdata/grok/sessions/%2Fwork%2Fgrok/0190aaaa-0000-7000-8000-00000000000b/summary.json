@@ -1,0 +1,13 @@
+{
+  "info": {
+    "id": "0190aaaa-0000-7000-8000-00000000000b",
+    "cwd": "/work/grok"
+  },
+  "session_summary": "Explore the parser",
+  "created_at": "2026-09-27T08:00:30Z",
+  "updated_at": "2026-09-27T08:00:30Z",
+  "current_model_id": "grok-4.7",
+  "generated_title": "Explore the parser",
+  "session_kind": "subagent:explore",
+  "parent_session_id": "0190aaaa-0000-7000-8000-00000000000a"
+}

@@ -1,0 +1,263 @@
+{
+ "captured": "OpenCode 2.2.5 release binary (@opencode/cli), sandbox HOME on mote, at a recording proxy, 2026-11-01T05:33Z: its primary chat request for deepseek-v4.1-flash-free",
+ "method": "POST",
+ "url": "/inference/v1/chat/completions",
+ "status": 429,
+ "headers": [
+  [
+   "Authorization",
+   "Bearer public"
+  ],
+  [
+   "Content-Type",
+   "application/json"
+  ],
+  [
+   "User-Agent",
+   "opencode/latest/2.2.5/cli"
+  ],
+  [
+   "b3",
+   "6a693d4fc42bc0b0c04fd83712a03bae-f076ef33aef71e8e-1-4727dea9e05b5761"
+  ],
+  [
+   "traceparent",
+   "00-6a693d4fc42bc0b0c04fd83712a03bae-f076ef33aef71e8e-01"
+  ],
+  [
+   "x-opencode-client",
+   "cli"
+  ],
+  [
+   "x-opencode-project",
+   "1132ded9876e9dc00df57eea7de251c155550345"
+  ],
+  [
+   "x-opencode-session",
+   "ses_e6a66888dffe4VGjh70Dg9k6f3"
+  ],
+  [
+   "x-opencode-session-id",
+   "ses_e6a66888dffe4VGjh70Dg9k6f3"
+  ],
+  [
+   "x-session-affinity",
+   "ses_e6a66888dffe4VGjh70Dg9k6f3"
+  ],
+  [
+   "x-session-id",
+   "ses_e6a66888dffe4VGjh70Dg9k6f3"
+  ],
+  [
+   "Connection",
+   "keep-alive"
+  ],
+  [
+   "Accept",
+   "*/*"
+  ],
+  [
+   "Host",
+   "127.0.0.1:47811"
+  ],
+  [
+   "Accept-Encoding",
+   "gzip, deflate, br, zstd"
+  ],
+  [
+   "Content-Length",
+   "22720"
+  ]
+ ],
+ "bodyKeys": [
+  "model",
+  "messages",
+  "tools",
+  "stream",
+  "stream_options",
+  "max_completion_tokens"
+ ],
+ "stream_options": {
+  "include_usage": true
+ },
+ "environment": "Here is some useful information about the environment you are running in:\n<env>\n  Working directory: /Users/yetone/runs/zencap/home/work\n  Workspace root folder: /Users/yetone/runs/zencap/home/work\n  Is directory a git repo: no\n  Platform: darwin\n  Prefer /private/tmp/opencode over generic system temporary directories such as /tmp; it is pre-created and approved for external access.\n</env>",
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "edit",
+    "description": "(OpenCode description left out)",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string",
+       "description": "File to edit"
+      },
+      "oldString": {
+       "type": "string",
+       "description": "Exact text to find and replace"
+      },
+      "newString": {
+       "type": "string",
+       "description": "Text to replace oldString with (must differ from oldString)"
+      },
+      "replaceAll": {
+       "type": "boolean",
+       "description": "Whether to replace every occurrence of oldString. When false, oldString must match exactly once. Defaults to false."
+      }
+     },
+     "required": [
+      "path",
+      "oldString",
+      "newString"
+     ],
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "glob",
+    "description": "(OpenCode description left out)",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "pattern": {
+       "type": "string",
+       "description": "Glob pattern to match files against"
+      },
+      "path": {
+       "type": "string",
+       "description": "Directory to search. Defaults to the current working directory."
+      },
+      "hidden": {
+       "type": "boolean",
+       "description": "Include hidden files and directories (default: false)."
+      },
+      "limit": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "description": "Maximum number of matching files to return (default: 100)"
+      }
+     },
+     "required": [
+      "pattern"
+     ],
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "grep",
+    "description": "(OpenCode description left out)",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "pattern": {
+       "type": "string",
+       "minLength": 1,
+       "description": "Regular expression or literal text to match in file contents."
+      },
+      "path": {
+       "type": "string",
+       "description": "File or directory to search. Defaults to the current working directory."
+      },
+      "include": {
+       "type": "string",
+       "description": "Glob pattern to filter files (for example, \"*.js\" or \"*.{ts,tsx}\")"
+      },
+      "literal": {
+       "type": "boolean",
+       "description": "Treat `pattern` as exact text instead of a regular expression (default: false)."
+      },
+      "caseSensitive": {
+       "type": "boolean",
+       "description": "Use case-sensitive matching (default: true)."
+      },
+      "limit": {
+       "type": "integer",
+       "exclusiveMinimum": 0,
+       "description": "Maximum number of matching lines to return (default: 100)"
+      }
+     },
+     "required": [
+      "pattern"
+     ],
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "read",
+    "description": "(OpenCode description left out)",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string",
+       "description": "File or directory to read"
+      },
+      "offset": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "The line or directory entry to start reading from (1-based)"
+      },
+      "limit": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "The maximum number of lines or directory entries to read (defaults to and capped at 2000)"
+      }
+     },
+     "required": [
+      "path"
+     ],
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "shell",
+    "description": "(OpenCode description left out)",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string",
+       "description": "Shell command string to execute"
+      },
+      "workdir": {
+       "type": "string",
+       "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+      },
+      "timeout": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+      },
+      "background": {
+       "type": "boolean",
+       "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+      }
+     },
+     "required": [
+      "command"
+     ],
+     "additionalProperties": false
+    },
+    "strict": false
+   }
+  }
+ ]
+}

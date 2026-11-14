@@ -1,0 +1,4 @@
+{"timestamp":"2026-09-23T00:27:05.000Z","type":"session_meta","payload":{"id":"01a0bdc9-b5fd-7e63-9658-68bc8dce5ecd","cwd":"/work/it's","originator":"codex_cli_rs","source":{"subagent":"review"}}}
+{"timestamp":"2026-09-23T00:27:06.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"and a LICENSE"}]}}
+{"timestamp":"2026-09-23T00:27:07.000Z","type":"turn_context","payload":{"cwd":"/work/it's","model":"gpt-6-astra"}}
+{"timestamp":"2026-09-23T00:27:20.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":30000,"cached_input_tokens":20000,"output_tokens":600,"total_tokens":30600},"last_token_usage":{"input_tokens":8000,"cached_input_tokens":6000,"output_tokens":100,"total_tokens":8100},"model_context_window":258400}}}

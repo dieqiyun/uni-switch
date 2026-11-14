@@ -1,0 +1,479 @@
+package agent
+
+// MiniMax Code — MiniMax's mcode CLI and the desktop app, which run the same
+// runtime (#362) — keeps its settings in config.yaml in its data folder,
+// $MINIMAX_DATA_DIR or ~/.minimax. The model sessions start on is
+// defaultModel, "<provider>/<model>" split at the first slash, where a
+// provider the user added (Add 3rd-party provider…, mcode provider add) is
+// "custom_provider:<key>", an entry of custom_provider. uni-switch adds itself
+// there as custom_provider.uni-switch — the gateway, spoken to as Anthropic
+// messages, with the catalog as its models — so the catalog joins MiniMax
+// Code's /model. A model there is keyed by its id's flat spelling,
+// "bb-codex~gpt-6.1-sol" (provider.FlatID), which the gateway takes back to
+// "bb-codex/gpt-6.1-sol": a SubAgent's model must be "<provider>/<model>"
+// with one slash in the whole (#1387), so a model through uni-switch is
+// "custom_provider:uni-switch/bb-codex~gpt-6.1-sol". A key written before
+// that, with the slashes, has its keys moved to the flat one and stays
+// beside it switched off, for the sessions that started on it, and the
+// settings that named it name the flat one (mcodeRefs). The default the
+// user had is stashed and put back when uni-switch steps out. MiniMax Code
+// rewrites the file itself (its /model, its provider commands), so uni-switch's
+// entry is edited in place: a key the user or MiniMax Code put on it, or on
+// one of its models, stays.
+
+import (
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/appdir"
+	"github.com/dieqiyun/uni-switch/backend/internal/edit"
+	"github.com/dieqiyun/uni-switch/backend/internal/provider"
+	"gopkg.in/yaml.v3"
+)
+
+// mcodeProvider is uni-switch's provider id in MiniMax Code, and mcodeEntry its
+// entry in config.yaml.
+const (
+	mcodeProvider = "custom_provider:" + uniSwitchID
+	mcodeEntry    = "custom_provider." + uniSwitchID
+)
+
+// mcodeRefs are the settings in config.yaml that name a model as
+// "<provider>/<model>": the default, the light one and memory's two.
+var mcodeRefs = []string{"defaultModel", "defaultLightModel", "memory.captureModel", "memory.consolidationModel"}
+
+// mcodeKey is the key uni-switch's model id is written under in its entry: its
+// flat spelling where the gateway takes that back to it (flat, from
+// provider.Flattened), else the id.
+func mcodeKey(flat map[string]string, id string) string {
+	if k, ok := flat[id]; ok {
+		return k
+	}
+	return id
+}
+
+// mcodeID is the catalog id of a key in uni-switch's entry: one with a slash
+// was written so before #1387; a flat one no model has now is read with
+// its first tilde as the slash after the provider's id, which has none.
+func mcodeID(key string) string {
+	if strings.Contains(key, "/") {
+		return key
+	}
+	if id, ok := provider.Unflat(key); ok {
+		return id
+	}
+	return strings.Replace(key, provider.FlatSep, "/", 1)
+}
+
+// mcodeUA is the User-Agent uni-switch's entry sends: MiniMax Code 0.5's own was
+// the Anthropic SDK's ("L/JS 0.91.1"), or node's for its token counts.
+// 0.6.8 sends "MiniMaxCode" on a custom provider that sets none, which names
+// it too (#1605: a provider pointed at uni-switch by hand).
+const mcodeUA = "minimax-code"
+
+// MiniMaxDir is the folder MiniMax Code keeps its config.yaml in.
+func MiniMaxDir(home string) string {
+	if d := strings.TrimSpace(appdir.Getenv("MINIMAX_DATA_DIR")); d != "" {
+		return d
+	}
+	return filepath.Join(home, ".minimax")
+}
+
+func miniMax(home string) *Agent { return miniMaxAt(here(home), MiniMaxDir(home)) }
+
+// miniMaxIn is MiniMax Code's mcode in a WSL distro (see wsl.go): ~/.minimax,
+// as MINIMAX_DATA_DIR there isn't read.
+func miniMaxIn(at place) *Agent { return miniMaxAt(at, at.join(".minimax")) }
+
+// miniMaxAt is MiniMax Code with its data folder at dir, reaching the
+// gateway as at does.
+func miniMaxAt(at place, dir string) *Agent {
+	writeMiniMaxEntry := func(path string) error { return writeMiniMaxEntryAt(path, at.gw()) }
+	path := filepath.Join(dir, "config.yaml")
+	key := "minimax-code:" + path + ":"
+	get := func(k string) string { v, _ := edit.GetYAML(path, k); return v }
+	onUniSwitch := func() bool { return strings.HasPrefix(get("defaultModel"), mcodeProvider+"/") }
+	// setDefault sets defaultModel and its variant, taking out each that is ""
+	setDefault := func(model, variant string) error {
+		var del []string
+		var kvs []edit.KV
+		for _, kv := range []edit.KV{{Path: "defaultModel", Value: model}, {Path: "defaultModelVariant", Value: variant}} {
+			if kv.Value == "" {
+				del = append(del, kv.Path)
+			} else {
+				kvs = append(kvs, kv)
+			}
+		}
+		if err := edit.DelYAML(path, del...); err != nil || len(kvs) == 0 {
+			return err
+		}
+		return edit.SetYAML(path, kvs...)
+	}
+	return atomic(&Agent{
+		ID: "minimax-code", Name: "MiniMax Code", Icon: "minimax-color", Aliases: []string{"mcode"}, Spelled: prefixed,
+		UA:  []string{mcodeUA, "minimaxcode"},
+		Bin: "mcode", Dir: dir, Path: path,
+		ListOnly: true,
+		Sync: func() error {
+			if _, ok := edit.GetYAMLText(path, mcodeEntry); !ok {
+				return nil
+			}
+			return writeMiniMaxEntry(path)
+		},
+		Notice: func() string {
+			// MiniMax Code Desktop (on this machine; a distro has none)
+			// runs the same runtime on the same config.yaml, but its window
+			// keeps the model last picked in it and shows that, not
+			// defaultModel, while that model is still listed (3.1.10's
+			// renderer, localStorage "mavis:model-selection"). Its runtime
+			// reads config.yaml at start-up and doesn't watch it, so after a
+			// restart uni-switch's models are in its menu, and one picked there
+			// once is what it runs (教父 on Discord: Desktop went on with
+			// MiniMax-M3.1-Flash, and Sessions showed nothing).
+			if at.spell == nil && (&Agent{ID: "minimax-code"}).HasApp() {
+				return noticeMinimaxDesktop.String()
+			}
+			if Running(`(^|/)mcode( |$)`) {
+				return noticeMinimax.String()
+			}
+			return ""
+		},
+		Check: func() string {
+			if !onUniSwitch() {
+				return ""
+			}
+			if _, ok := edit.GetYAMLText(path, mcodeEntry); !ok {
+				return "MiniMax Code's " + mcodeEntry + " (config.yaml) is gone, so it no longer reaches uni-switch"
+			}
+			if get(mcodeEntry+".enabled") == "false" {
+				return "MiniMax Code's " + mcodeEntry + " (config.yaml) is turned off, so it no longer reaches uni-switch"
+			}
+			return wiringOff("MiniMax Code", path, func(k string) (string, bool) { return edit.GetYAML(path, mcodeEntry+".options."+k) },
+				"baseURL", at.gw(), "apiKey", at.gwKey())
+		},
+		Fields: []Field{{
+			Key: "model", Label: "model",
+			Get: func() string {
+				v := get("defaultModel")
+				if ref, ok := strings.CutPrefix(v, mcodeProvider+"/"); ok {
+					return uniSwitchID + "/" + mcodeID(ref)
+				}
+				return v
+			},
+			Set: func(v string) error {
+				if ref, ok := strings.CutPrefix(v, uniSwitchID+"/"); ok && isUniSwitch(ref) {
+					if !onUniSwitch() {
+						stash(map[string]string{
+							key + "defaultModel":        get("defaultModel"),
+							key + "defaultModelVariant": get("defaultModelVariant"),
+						})
+					}
+					if err := writeMiniMaxEntry(path); err != nil {
+						return err
+					}
+					// a variant is the last model's ("thinking"), none of uni-switch's
+					return setDefault(mcodeProvider+"/"+mcodeKey(provider.Flattened(), ref), "")
+				}
+				// the variant goes with the model it was picked for
+				variant := ""
+				if onUniSwitch() {
+					was, wasVariant := unstash(key+"defaultModel"), unstash(key+"defaultModelVariant")
+					if v == "" {
+						v = was // back to the default the user had
+					}
+					if v == was {
+						variant = wasVariant
+					}
+				} else if v == get("defaultModel") {
+					variant = get("defaultModelVariant")
+				}
+				if err := setDefault(v, variant); err != nil {
+					return err
+				}
+				if err := edit.DelYAML(path, mcodeEntry); err != nil {
+					return err
+				}
+				// nor an empty custom_provider left where uni-switch's was the one
+				if t, ok := edit.GetYAMLText(path, "custom_provider"); ok && strings.TrimSpace(t) == "{}" {
+					return edit.DelYAML(path, "custom_provider")
+				}
+				return nil
+			},
+			Options: func(cur map[string]string) []Option {
+				return withVia(miniMaxOwnOptions(path, cur["model"]), "minimax-code", uniSwitchID+"/")
+			},
+		}},
+	}, path)
+}
+
+// writeMiniMaxEntryAt puts uni-switch's entry in MiniMax Code's config.yaml,
+// for a MiniMax Code reaching the gateway at gw, as the catalog is now, over
+// the one there: what uni-switch sets is set, a model gone from the catalog
+// goes, and every other key — the user's, MiniMax Code's — stays with its
+// comments. The file is written only when this changes it.
+func writeMiniMaxEntryAt(path, gw string) error {
+	cur, _ := edit.GetYAMLText(path, mcodeEntry)
+	entry := &yaml.Node{Kind: yaml.MappingNode}
+	if cur != "" {
+		var doc yaml.Node
+		if yaml.Unmarshal([]byte(cur), &doc) == nil && len(doc.Content) > 0 && doc.Content[0].Kind == yaml.MappingNode {
+			entry = doc.Content[0]
+		}
+	}
+	yamlSet(entry, "name", uniSwitchID)
+	yamlSet(entry, "kind", "custom")
+	yamlSet(entry, "enabled", true)
+	// the gateway takes every model as Anthropic messages, as Claude Code
+	// sends them; MiniMax Code's own API is that too
+	yamlSet(entry, "api", "anthropic-messages")
+	opts := yamlMap(entry, "options")
+	yamlSet(opts, "apiKey", keyAt(gw))
+	yamlSet(opts, "baseURL", gw)
+	yamlSet(opts, "authMode", "api-key")
+	yamlSet(yamlMap(opts, "headers"), "User-Agent", mcodeUA)
+
+	defer provider.Hold()()
+	flat := provider.Flattened()
+	old := yamlGet(entry, "models")
+	models := &yaml.Node{Kind: yaml.MappingNode}
+	// keys is each model's key, its flat one where it has one
+	keys := map[string]string{}
+	for _, m := range sharedModels("minimax-code") {
+		key := mcodeKey(flat, m.ID)
+		keys[m.ID] = key
+		mn := yamlGet(old, key)
+		// a key written with slashes before #1387
+		slashed := yamlGet(old, m.ID)
+		if key == m.ID {
+			slashed = nil
+		} else if mn == nil {
+			mn = slashed // what the user and MiniMax Code set on it, moved
+		}
+		if mn == nil || mn.Kind != yaml.MappingNode {
+			mn = &yaml.Node{Kind: yaml.MappingNode}
+		}
+		yamlSet(mn, "name", m.Name)
+		yamlDel(mn, "limit")
+		if m.Context > 0 || m.Output > 0 {
+			limit := yamlMap(mn, "limit")
+			if m.Context > 0 {
+				yamlSet(limit, "context", m.Context)
+			}
+			if out := maxTokens(m); out > 0 {
+				yamlSet(limit, "output", out)
+			}
+		}
+		// a thinking model's levels, for its effort picker: none is left
+		// out, MiniMax Code would ask for it as a level; high where the
+		// model has it, as MiniMax Code starts its own models on
+		var levels []string
+		for _, e := range m.Efforts {
+			if e != "none" {
+				levels = append(levels, e)
+			}
+		}
+		yamlSet(mn, "reasoning", len(levels) > 0)
+		// a default effort set by hand stays while the model has it
+		var was string
+		if d := yamlGet(yamlGet(mn, "thinking"), "defaultEffort"); d != nil && d.Kind == yaml.ScalarNode {
+			was = d.Value
+		}
+		yamlDel(mn, "thinking")
+		if len(levels) > 0 {
+			th := yamlMap(mn, "thinking")
+			yamlSet(th, "effortOptions", levels)
+			def := ""
+			if slices.Contains(levels, "high") {
+				def = "high"
+			}
+			if def = keptEffort(was, levels, def); def != "" {
+				yamlSet(th, "defaultEffort", def)
+			}
+		}
+		if caps := yamlGet(mn, "capabilities"); m.Images {
+			yamlSet(yamlMap(mn, "capabilities"), "support_image", true)
+		} else if caps != nil {
+			yamlDel(caps, "support_image")
+			if len(caps.Content) == 0 {
+				yamlDel(mn, "capabilities")
+			}
+		}
+		models.Content = append(models.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, mn)
+		// the key with slashes stays, as the model now is, for a session
+		// that started on it — MiniMax Code finds a model it names whether
+		// on or off — and off, out of /model
+		if slashed != nil {
+			legacy := yamlCopy(mn)
+			yamlSet(legacy, "enabled", false)
+			models.Content = append(models.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: m.ID}, legacy)
+		}
+	}
+	if old != nil {
+		models.HeadComment, models.LineComment, models.FootComment = old.HeadComment, old.LineComment, old.FootComment
+	}
+	yamlSet(entry, "models", models)
+
+	b, err := yaml.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	if text := strings.TrimSuffix(string(b), "\n"); text != cur {
+		if err := edit.SetYAML(path, edit.KV{Path: mcodeEntry, Value: edit.YAMLText(text)}); err != nil {
+			return err
+		}
+	}
+	// the settings that named a model by its key with slashes name the
+	// flat one, a SubAgent's model can be
+	var refs []edit.KV
+	for _, k := range mcodeRefs {
+		v, _ := edit.GetYAML(path, k)
+		if ref, ok := strings.CutPrefix(v, mcodeProvider+"/"); ok && keys[ref] != "" && keys[ref] != ref {
+			refs = append(refs, edit.KV{Path: k, Value: mcodeProvider + "/" + keys[ref]})
+		}
+	}
+	if len(refs) == 0 {
+		return nil
+	}
+	return edit.SetYAML(path, refs...)
+}
+
+// yamlCopy is a deep copy of n.
+func yamlCopy(n *yaml.Node) *yaml.Node {
+	c := *n
+	c.Content = make([]*yaml.Node, len(n.Content))
+	for i, k := range n.Content {
+		c.Content[i] = yamlCopy(k)
+	}
+	return &c
+}
+
+// yamlGet is the value of k in the mapping n, nil if there is none.
+func yamlGet(n *yaml.Node, k string) *yaml.Node {
+	if n == nil || n.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == k {
+			return n.Content[i+1]
+		}
+	}
+	return nil
+}
+
+// yamlSet sets k in the mapping n to v (a *yaml.Node, or a value to encode),
+// in place where k is there, its comments kept.
+func yamlSet(n *yaml.Node, k string, v any) {
+	vn, ok := v.(*yaml.Node)
+	if !ok {
+		vn = &yaml.Node{}
+		vn.Encode(v)
+		if vn.Kind == yaml.SequenceNode {
+			vn.Style = yaml.FlowStyle
+		}
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == k {
+			cur := n.Content[i+1]
+			vn.HeadComment, vn.LineComment, vn.FootComment = cur.HeadComment, cur.LineComment, cur.FootComment
+			n.Content[i+1] = vn
+			return
+		}
+	}
+	n.Content = append(n.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: k}, vn)
+}
+
+// yamlMap is the mapping at k in n, made where k is missing or not one.
+func yamlMap(n *yaml.Node, k string) *yaml.Node {
+	if m := yamlGet(n, k); m != nil && m.Kind == yaml.MappingNode {
+		return m
+	}
+	m := &yaml.Node{Kind: yaml.MappingNode}
+	yamlSet(n, k, m)
+	return m
+}
+
+// yamlDel takes k out of the mapping n.
+func yamlDel(n *yaml.Node, k string) {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == k {
+			n.Content = append(n.Content[:i], n.Content[i+2:]...)
+			return
+		}
+	}
+}
+
+// miniMaxOwnOptions are the models of the user's own in MiniMax Code's
+// config: those under provider (its MiniMax sign-in's, a models.dev
+// provider's) and custom_provider (one added by hand), and the current one.
+// Model ids hold dots ("MiniMax-M2.7"), so the file is read whole.
+func miniMaxOwnOptions(path, cur string) []Option {
+	var c struct {
+		Provider       map[string]mcodeProviderModels `yaml:"provider"`
+		CustomProvider map[string]mcodeProviderModels `yaml:"custom_provider"`
+	}
+	if raw, err := edit.Read(path); err == nil && raw != nil {
+		yaml.Unmarshal(raw, &c)
+	}
+	seen := map[string]bool{}
+	var out []Option
+	add := func(prefix string, ps map[string]mcodeProviderModels) {
+		ids := make([]string, 0, len(ps))
+		for id := range ps {
+			ids = append(ids, id)
+		}
+		slices.Sort(ids)
+		for _, id := range ids {
+			p := ps[id]
+			if p.Enabled != nil && !*p.Enabled || prefix+id == mcodeProvider {
+				continue
+			}
+			ms := make([]string, 0, len(p.Models))
+			for m, e := range p.Models {
+				if e.Enabled == nil || *e.Enabled {
+					ms = append(ms, m)
+				}
+			}
+			slices.Sort(ms)
+			for _, m := range ms {
+				v := prefix + id + "/" + m
+				if !seen[v] {
+					seen[v] = true
+					out = append(out, Option{Value: v, Icon: miniMaxIcon(id, m)})
+				}
+			}
+		}
+	}
+	add("", c.Provider)
+	add("custom_provider:", c.CustomProvider)
+	if cur != "" && !seen[cur] && !strings.HasPrefix(cur, uniSwitchID+"/") {
+		p, m, _ := strings.Cut(cur, "/")
+		out = append([]Option{{Value: cur, Icon: miniMaxIcon(p, m)}}, out...)
+	}
+	return group("MiniMax Code", out)
+}
+
+type mcodeProviderModels struct {
+	Enabled *bool `yaml:"enabled"`
+	Models  map[string]struct {
+		Enabled *bool `yaml:"enabled"`
+	} `yaml:"models"`
+}
+
+// miniMaxIcon is a model's logo: its vendor's by its name, else MiniMax's
+// for one of MiniMax Code's own providers.
+func miniMaxIcon(provider, model string) string {
+	if ic := modelIcon("", model); ic != "" {
+		return ic
+	}
+	if strings.HasPrefix(provider, "minimax") {
+		return "minimax-color"
+	}
+	return ""
+}
+
+// what minimax says after a change (notice.go)
+var (
+	noticeMinimax        = newNotice("MiniMax Code reads its settings at start-up — restart open mcode sessions to use this.")
+	noticeMinimaxDesktop = newNotice("MiniMax Code's desktop app keeps the model last picked in it: restart the app, then pick a uni-switch model once in its model menu (under uni-switch). Open mcode sessions need a restart too.")
+)

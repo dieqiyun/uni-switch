@@ -1,0 +1,349 @@
+{
+ "xiaomi": {
+  "id": "xiaomi",
+  "models": {
+   "mimo-v2.6-pro": {
+    "id": "mimo-v2.6-pro",
+    "name": "MiMo-V2.6-Pro",
+    "cost": {
+     "input": 0.435,
+     "output": 0.87,
+     "cache_read": 0.0036
+    }
+   },
+   "mimo-v2-flash": {
+    "id": "mimo-v2-flash",
+    "name": "MiMo-V2-Flash",
+    "cost": {
+     "input": 0.14,
+     "output": 0.28,
+     "cache_read": 0.0028
+    }
+   },
+   "mimo-v2.5": {
+    "id": "mimo-v2.5",
+    "name": "MiMo-V2.5",
+    "cost": {
+     "input": 0.14,
+     "output": 0.28,
+     "cache_read": 0.0028
+    }
+   },
+   "mimo-v2-omni": {
+    "id": "mimo-v2-omni",
+    "name": "MiMo-V2-Omni",
+    "cost": {
+     "input": 0.14,
+     "output": 0.28,
+     "cache_read": 0.0028
+    }
+   },
+   "mimo-v2.6-pro-ultraspeed": {
+    "id": "mimo-v2.6-pro-ultraspeed",
+    "name": "MiMo-V2.6-Pro-UltraSpeed",
+    "cost": {
+     "input": 4.35,
+     "output": 8.7,
+     "cache_read": 0.036
+    }
+   },
+   "mimo-v2-pro": {
+    "id": "mimo-v2-pro",
+    "name": "MiMo-V2-Pro",
+    "cost": {
+     "input": 0.435,
+     "output": 0.87,
+     "cache_read": 0.0036
+    }
+   },
+   "mimo-v2.5-pro": {
+    "id": "mimo-v2.5-pro",
+    "name": "MiMo-V2.5-Pro",
+    "cost": {
+     "input": 0.435,
+     "output": 0.87,
+     "cache_read": 0.0036
+    }
+   },
+   "mimo-v2.6-flash": {
+    "id": "mimo-v2.6-flash",
+    "name": "MiMo-V2.6-Flash",
+    "cost": {
+     "input": 0.14,
+     "output": 0.28,
+     "cache_read": 0.0028
+    }
+   },
+   "mimo-v2.5-pro-ultraspeed": {
+    "id": "mimo-v2.5-pro-ultraspeed",
+    "name": "MiMo-V2.5-Pro-UltraSpeed",
+    "cost": {
+     "input": 1.305,
+     "output": 2.61,
+     "cache_read": 0.0108
+    }
+   }
+  }
+ },
+ "xiaomi-token-plan-cn": {
+  "id": "xiaomi-token-plan-cn",
+  "models": {
+   "mimo-v2.6-pro": {
+    "id": "mimo-v2.6-pro",
+    "name": "MiMo-V2.6-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.6-pro"
+   },
+   "mimo-v2.5": {
+    "id": "mimo-v2.5",
+    "name": "MiMo-V2.5",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.5"
+   },
+   "mimo-v2.5-tts-voicedesign": {
+    "id": "mimo-v2.5-tts-voicedesign",
+    "name": "MiMo-V2.5-TTS-VoiceDesign",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5-tts": {
+    "id": "mimo-v2.5-tts",
+    "name": "MiMo-V2.5-TTS",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2-pro": {
+    "id": "mimo-v2-pro",
+    "name": "MiMo-V2-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2-pro"
+   },
+   "mimo-v2-tts": {
+    "id": "mimo-v2-tts",
+    "name": "MiMo-V2-TTS",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5-pro": {
+    "id": "mimo-v2.5-pro",
+    "name": "MiMo-V2.5-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.5-pro"
+   },
+   "mimo-v2.6-flash": {
+    "id": "mimo-v2.6-flash",
+    "name": "MiMo-V2.6-Flash",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.6-flash"
+   },
+   "mimo-v2.5-tts-voiceclone": {
+    "id": "mimo-v2.5-tts-voiceclone",
+    "name": "MiMo-V2.5-TTS-VoiceClone",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   }
+  }
+ },
+ "xiaomi-token-plan-sgp": {
+  "id": "xiaomi-token-plan-sgp",
+  "models": {
+   "mimo-v2.6-pro": {
+    "id": "mimo-v2.6-pro",
+    "name": "MiMo-V2.6-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.6-pro"
+   },
+   "mimo-v2.6-flash": {
+    "id": "mimo-v2.6-flash",
+    "name": "MiMo-V2.6-Flash",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.6-flash"
+   },
+   "mimo-v2.5-tts-voiceclone": {
+    "id": "mimo-v2.5-tts-voiceclone",
+    "name": "MiMo-V2.5-TTS-VoiceClone",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5-pro": {
+    "id": "mimo-v2.5-pro",
+    "name": "MiMo-V2.5-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.5-pro"
+   },
+   "mimo-v2-tts": {
+    "id": "mimo-v2-tts",
+    "name": "MiMo-V2-TTS",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2-pro": {
+    "id": "mimo-v2-pro",
+    "name": "MiMo-V2-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2-pro"
+   },
+   "mimo-v2.5-tts": {
+    "id": "mimo-v2.5-tts",
+    "name": "MiMo-V2.5-TTS",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5-tts-voicedesign": {
+    "id": "mimo-v2.5-tts-voicedesign",
+    "name": "MiMo-V2.5-TTS-VoiceDesign",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5": {
+    "id": "mimo-v2.5",
+    "name": "MiMo-V2.5",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.5"
+   }
+  }
+ },
+ "xiaomi-token-plan-ams": {
+  "id": "xiaomi-token-plan-ams",
+  "models": {
+   "mimo-v2.6-pro": {
+    "id": "mimo-v2.6-pro",
+    "name": "MiMo-V2.6-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.6-pro"
+   },
+   "mimo-v2.6-flash": {
+    "id": "mimo-v2.6-flash",
+    "name": "MiMo-V2.6-Flash",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.6-flash"
+   },
+   "mimo-v2.5-tts-voiceclone": {
+    "id": "mimo-v2.5-tts-voiceclone",
+    "name": "MiMo-V2.5-TTS-VoiceClone",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5-pro": {
+    "id": "mimo-v2.5-pro",
+    "name": "MiMo-V2.5-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.5-pro"
+   },
+   "mimo-v2-tts": {
+    "id": "mimo-v2-tts",
+    "name": "MiMo-V2-TTS",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2-pro": {
+    "id": "mimo-v2-pro",
+    "name": "MiMo-V2-Pro",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2-pro"
+   },
+   "mimo-v2.5-tts": {
+    "id": "mimo-v2.5-tts",
+    "name": "MiMo-V2.5-TTS",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5-tts-voicedesign": {
+    "id": "mimo-v2.5-tts-voicedesign",
+    "name": "MiMo-V2.5-TTS-VoiceDesign",
+    "cost": {
+     "input": 0,
+     "output": 0
+    }
+   },
+   "mimo-v2.5": {
+    "id": "mimo-v2.5",
+    "name": "MiMo-V2.5",
+    "cost": {
+     "input": 0,
+     "output": 0,
+     "cache_read": 0
+    },
+    "canonical_model_id": "xiaomi/mimo-v2.5"
+   }
+  }
+ }
+}

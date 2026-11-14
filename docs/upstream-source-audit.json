@@ -1,0 +1,266 @@
+[
+  {
+    "file": "backend/internal/access/limit_test.go",
+    "sha256": "e4ee84cd9062473ac12d3e0104282664a4a3f252c800268a9bd314ac899fb101",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/agent/codex_proxy_test.go",
+    "sha256": "2bd46da003d12bcb6e405fd1ea33f867a8ff31fcb7ae60c808adb7e9dd306738",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/agent/lody_test.go",
+    "sha256": "ff11c2132eb19b7f33325bf5bc8a849f41b4190fa2a71426b81507f72a973244",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/applog/applog_test.go",
+    "sha256": "09356c84807a2568c67be84553c2784c08b6dc285982939056c97315676455ac",
+    "types": [
+      "github_token"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/daemon/daemon_test.go",
+    "sha256": "5bcb47781cf641d61c996a564d3ad4cb28a6e8f0c4dfdfda7be5a035124b9c04",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gateway/account_proxy_test.go",
+    "sha256": "8e9c42f982d26d4fc6b2c3599b0421777ad54c2590a30dafe5a5be467a58915d",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gateway/archive_test.go",
+    "sha256": "1a9d5584117fa250289b8ec5935b0e1257bc80a9c34b68228512c8dde61783de",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gateway/claude_setup_token_test.go",
+    "sha256": "56f6fe0e4e4519c2a3e2ce8d87f84f1755d54f5070bd7cc8048fb8d25eb1eddf",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gateway/masking_removed_test.go",
+    "sha256": "afe8ac0a206e399b10457c57beefa67ee7a5184c504d4c40f2b1987f6738227c",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic credential fixtures for removed masking and diagnostic credential safety; not user credentials."
+  },
+  {
+    "file": "backend/internal/gateway/wire_headers_test.go",
+    "sha256": "35431916a6d9f0a7f0c56d1884df141f3ea821b15f8652e3a6aefd2d410a7277",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/browser_test.go",
+    "sha256": "eb7b0cf6eb4ce8017fc6ff3fc2f3767fa36c7746915559336a278c9e534b9a2f",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/github_token_test.go",
+    "sha256": "12ce399cba66bb853ea09d39af5540410a570b6023213668c136f635081ae037",
+    "types": [
+      "github_token"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/lan_keys_test.go",
+    "sha256": "75f5806a2f1116a645e575fb0c4c815a48e068a653b3575281da6ae7456f4ea5",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/lastproviders_test.go",
+    "sha256": "4a97c6d31b122275277997ca2b5fb12923ffdf3f5bc8801b981e59dacd35b269",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/settings_keep_test.go",
+    "sha256": "c1278bd90bee85acf2dd548ce62904aca3014e07010d16004df462879c8a81f8",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file. Updated synthetic fixture after removing configurable masking; no private client data."
+  },
+  {
+    "file": "backend/internal/gui/tests/github-token.test.cjs",
+    "sha256": "9304b3a6989627dd53daa77fdba62676d4a010f527938f52fe4e320a9ca9839d",
+    "types": [
+      "github_token"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/tests/mcp-editor-cancel.test.cjs",
+    "sha256": "9dda66c7368f861202549840a4fba4847704e05c972a77fa7e54586fb591a6cd",
+    "types": [
+      "github_token"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/tests/proxy-login-fields.test.cjs",
+    "sha256": "b894a9b2402d1c196fa4413e972567620d195656e95781c0f705cfce29d53eca",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/tests/proxy-test.test.cjs",
+    "sha256": "5d9824e796809ef1720d85cb633ac0fc4e6bb7c1e0d1cebdea3394652c6b4f2d",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/tests/settings-proxy-auth.test.cjs",
+    "sha256": "9003f345815fd18d90c56f841306bd045cd384fe5f45b0c3724e8d1a0af1e156",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/gui/tests/signin-proxy.test.cjs",
+    "sha256": "d0896ea2e45a595a1502e98df87d5bc4253082d324a053661595c9205e3cf99c",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/library/market_servers.json",
+    "sha256": "61c168ecf30fde27bdb85c1f197b9e1592fb543443f265b51a4ca4f06642bec7",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Registry documentation contains the placeholder proxy URL user:pass@host:port; no connection credential."
+  },
+  {
+    "file": "backend/internal/library/skill_from_test.go",
+    "sha256": "7fbad637ae5889105e571a08ea5c51da7b0cfd4a5cb4680d62dd0fd832300bd6",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/library/skillgit_test.go",
+    "sha256": "b2910b07e8b66de9f69ace541b1ab3fc8bcf82d33c87edff174bacff3684d6fb",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/logsafe/scrub_test.go",
+    "sha256": "3522adc0b3deb1e89df4393b55bc7f2a8958d64218f84af10606e1ae83219bc5",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic credential fixtures for removed masking and diagnostic credential safety; not user credentials."
+  },
+  {
+    "file": "backend/internal/netproxy/describe_test.go",
+    "sha256": "637fbbda9334f262cb637ef6079a882fd95e56babbe302dca423ad6b35b9e704",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/probelog/probelog_test.go",
+    "sha256": "9e11f69496137577fbcf0f77aa0a691dd3c6aaea03a61fd517ff3b56b85ca745",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/provider/claude_proxy_env_test.go",
+    "sha256": "bdc8c2538e731f8eb75c46aca510177b320260ab0d4ceaead814e7ee928df3a6",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/provider/claude_setup_token_test.go",
+    "sha256": "4cd74fe92398c060aeb86d233ff0096f11f6be42e752c0c4ef541bace83cd586",
+    "types": [
+      "api_key"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/provider/importurl_test.go",
+    "sha256": "56939c0a7c7e384706bc05031f413ec449733f2c3edf5f5228bf5250753e58b6",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/provider/vertex_test.go",
+    "sha256": "51e88829fa851b869ca3aabebd137964f28bb7467c2720b21cdee724e144f2de",
+    "types": [
+      "private_key"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/sessions/testdata/agy-sessions/conversation_summaries.db",
+    "sha256": "42450123f06781e8cf5a7ede37a2aec07f295d2e3a489054abee9062c79a1f37",
+    "types": [
+      "private_or_generated_path"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  },
+  {
+    "file": "backend/internal/settings/origins_test.go",
+    "sha256": "b6f544a9811e5e9d1e1e8f215166989b5350881aa42f9e8afcea2ef45fa53bf5",
+    "types": [
+      "credential_url"
+    ],
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+  }
+]

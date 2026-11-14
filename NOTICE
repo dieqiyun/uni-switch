@@ -23,3 +23,7 @@ The release tag identifies the source used for all platform builds.
 The historical v0.5.19 binary-only release is preserved as originally published.
 Third-party software and third-party brand marks retain their respective
 licenses and rights; see THIRD_PARTY_NOTICES.md.
+
+Direct source incorporation: Magpie, Copyright (c) 2026 yetone, MIT.
+Fixed commit: 30b7a17326ac1cad40ca349059c3348a2580938b.
+See backend/LICENSE, backend/THIRD_PARTY_NOTICES and docs/upstream-source.json.

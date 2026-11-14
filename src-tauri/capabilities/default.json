@@ -1,13 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main-window",
-  "description": "主窗口的基础能力；配置文件仅由 Rust 适配器访问",
+  "description": "桌面窗口操作；业务配置由内置 Go 源码实现",
+  "remote": { "urls": ["http://127.0.0.1:*"] },
   "windows": ["main"],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",
+    "core:window:allow-hide",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
-    "core:window:allow-start-dragging"
+    "core:window:allow-start-dragging",
+    "core:webview:allow-set-webview-zoom",
+    "autostart:default"
   ]
 }
