@@ -47339,8 +47339,8 @@
     },
     {
       "path": "internal/gui/traywindows_darwin_test.go",
-      "sha256": "5953cab4fec0fedd5779e0bdb8bf07bf10355b852ec247f9ed2309a8536f6df3",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "235606042f01d68240047b018befa3046eaaa93168883c8f62c7048eb6938fd9",
+      "reason": "Match the AppKit-dependent tray test to darwin && cgo, the renderer build constraint; native CGO tests retain their coverage and headless macOS vet no longer references unavailable symbols."
     },
     {
       "path": "internal/gui/tune.go",

@@ -25,7 +25,12 @@
 - 更新后的编译核心浏览器验证全部通过：Chromium/WebKit × 五种语言，共 10 组。
   实际生成的未登录 Codex 配置写入 `requires_openai_auth = false`，实际推理仅使用
   选中分组 Key；Chat、Responses、Messages、count_tokens 与 Gemini 流式入口的
-  空请求均返回结构化 JSON 400，且未发送上游请求。未启动真实用户客户端进行验证。
+  空请求均返回结构化 JSON 400，且未发送上游请求。该轮检查配置与网关，CLI 检查见下。
+- 另外通过 `scripts/qa-codex-key-groups.mjs --codex <CLI 程序路径>` 启动实际安装的
+  Codex CLI，新进程使用全新的 HOME/CODEX_HOME、文件型凭据存储和本地拒绝外连代理。
+  没有 `auth.json`，也不继承真实 API Key。实际 `codex exec` 成功结束并收到预期回复，
+  本地模拟上游恰好收到一次请求，Key 为选中分组的合成凭据，模型为原始上游 ID。
+  测试前后均未生成登录态；现有 Codex 桌面进程和配置不参与该检查。
 
 ## 分组功能
 
@@ -56,13 +61,16 @@
 - `python scripts/audit-source.py` 未发现未豁免凭据或私有路径。
   上游合成测试资料按固定内容哈希审查；测试目录、缓存、生成的程序和用户客户端配置不进入源码。
 - Windows `go vet` 和 `GOOS=linux CGO_ENABLED=0` 的交叉 `go vet -tags=nogui` 通过。
+- `GOOS=darwin GOARCH=arm64 CGO_ENABLED=0` 的交叉 `go vet -tags=nogui` 通过。
+  检查先发现一个旧 AppKit 托盘测试缺少与渲染器一致的 `darwin && cgo` 编译条件，
+  导致禁用 CGO 时引用不存在的 `trayImagePNG`；补齐条件后通过，原生 CGO 测试保留。
 - Windows Rust 无桌面特性的测试命令编译成功；该目标当前没有运行时测试，不能代替桌面检查。
 - Windows Tauri 生产安装包构建成功，Go 核心构建记录为 `qa:false`。
 - Windows 桌面 Clippy `--all-targets -- -D warnings` 通过。
 
 ## 发布阻塞
 
-完整命令 `node scripts/test-go.mjs -timeout=20m -p=2` 退出码为 1，
+包含本次修复后，重新执行完整命令 `node scripts/test-go.mjs -timeout=20m -p=2` 退出码仍为 1，
 18 个包失败，输出 350 个顶层失败测试记录。
 历史导入的完整浏览器测试套件尚未通过验收；当前浏览器通过范围仅为上面列出的专项检查。
 已确认的例子包括：
