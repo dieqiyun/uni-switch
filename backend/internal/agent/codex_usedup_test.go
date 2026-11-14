@@ -1,0 +1,376 @@
+package agent
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/provider"
+)
+
+// A ChatGPT account that runs out of its allowance after a uni-switch model was
+// picked beside its sign-in leaves the Codex app sending nothing, a uni-switch
+// model's turn included (#540): Sync makes uni-switch Codex's provider then, as
+// a pick does for an account already out, and puts uni-switch back beside the
+// sign-in once the allowance is back. A provider the user asked for (api)
+// or one for a Codex not signed in to ChatGPT stays.
+func TestCodexRunsOutAfterPick(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "")
+	cx := codex(home)
+	if err := cx.Fields[0].Set("fake/m1"); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); strings.Contains(cfg, "model_provider =") || !strings.Contains(cfg, "openai_base_url") {
+		t.Fatalf("beside the sign-in:\n%s", cfg)
+	}
+	codexUsedUp = func() bool { return true }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) || !strings.Contains(cfg, "model_catalog_json") ||
+		!strings.Contains(cfg, "openai_base_url") || !strings.Contains(cfg, `model = "fake/m1"`) {
+		t.Fatalf("used up:\n%s", cfg)
+	}
+	if err := cx.Sync(); err != nil { // still out: stays
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) {
+		t.Fatalf("used up, synced again:\n%s", cfg)
+	}
+	codexUsedUp = func() bool { return false }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); strings.Contains(cfg, "model_provider =") || strings.Contains(cfg, "model_catalog_json") ||
+		!strings.Contains(cfg, "openai_base_url") || !strings.Contains(cfg, `model = "fake/m1"`) {
+		t.Fatalf("allowance back:\n%s", cfg)
+	}
+
+	// uni-switch as the provider because the user asked for it stays so
+	if err := cx.Field("login").Set("api"); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) {
+		t.Fatalf("api:\n%s", cfg)
+	}
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) {
+		t.Fatalf("api, allowance there, synced:\n%s", cfg)
+	}
+}
+
+// Kept on ChatGPT (Always ChatGPT), a ChatGPT account that runs out leaves
+// uni-switch beside the sign-in: Codex isn't moved to uni-switch as its provider,
+// by a pick or by Sync, and one moved before the user chose it is put back
+// beside it at once.
+func TestCodexKeptOnChatGPT(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "")
+	cx := codex(home)
+	if err := cx.Fields[0].Set("fake/m1"); err != nil {
+		t.Fatal(err)
+	}
+	codexUsedUp = func() bool { return true }
+	t.Cleanup(func() { codexUsedUp = func() bool { return false } })
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) {
+		t.Fatalf("ChatGPT, used up: uni-switch its provider:\n%s", cfg)
+	}
+
+	beside := func(when string) {
+		t.Helper()
+		if cfg := read(); strings.Contains(cfg, "model_provider =") || strings.Contains(cfg, "model_catalog_json") ||
+			!strings.Contains(cfg, "openai_base_url") || !strings.Contains(cfg, `model = "fake/m1"`) {
+			t.Fatalf("%s:\n%s", when, cfg)
+		}
+	}
+	if err := cx.Field("login").Set("chatgpt"); err != nil {
+		t.Fatal(err)
+	}
+	beside("kept on ChatGPT, used up")
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	beside("kept on ChatGPT, used up, synced")
+	if err := cx.Fields[0].Set("fake/m1"); err != nil {
+		t.Fatal(err)
+	}
+	beside("kept on ChatGPT, used up, picked")
+	if got := cx.Field("login").Get(); got != "chatgpt" {
+		t.Fatalf("login %q", got)
+	}
+
+	// back to ChatGPT, it is moved again while the account is out
+	if err := cx.Field("login").Set(""); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) {
+		t.Fatalf("ChatGPT again, used up:\n%s", cfg)
+	}
+}
+
+// The same on one of Codex's own models picked beside the sign-in
+// (MasterYi on Discord: the Codex app greyed Send on a used-up account,
+// and the third-party models it was joined with couldn't be used either).
+// Sync makes uni-switch Codex's provider on that model as uni-switch serves it,
+// and once the account has room puts Codex back on the one picked, beside
+// its sign-in.
+func TestCodexOwnModelGoesThroughUniSwitchWhileUsedUp(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "model = \"gpt-a\"\n")
+	// the Codex subscription falls back to another provider while the
+	// account is out: uni-switch has something to serve the turn on
+	if err := provider.Save(provider.Provider{ID: "codex", Fallback: []string{"fake/m1"}}); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(home, ".codex", "models_cache.json"),
+		[]byte(`{"models":[{"slug":"gpt-a","display_name":"A","priority":1}]}`), 0o644)
+	cx := codex(home)
+	if ok, err := cx.Join(); err != nil || !ok {
+		t.Fatalf("join: %v %v", ok, err)
+	}
+	if cfg := read(); strings.Contains(cfg, "model_provider =") || !strings.Contains(cfg, `model = "gpt-a"`) {
+		t.Fatalf("joined:\n%s", cfg)
+	}
+	if cx.AppOut() {
+		t.Fatal("joined with room: AppOut")
+	}
+	codexUsedUp = func() bool { return true }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model_provider = "uni-switch"`) || !strings.Contains(cfg, `model = "codex/gpt-a"`) {
+		t.Fatalf("used up:\n%s", cfg)
+	}
+	if cx.AppOut() {
+		t.Fatal("used up, OpenAI auth kept: ChatGPT side must not be reported off")
+	}
+	if err := cx.Sync(); err != nil { // still out: stays
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model = "codex/gpt-a"`) {
+		t.Fatalf("used up, synced again:\n%s", cfg)
+	}
+	codexUsedUp = func() bool { return false }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); strings.Contains(cfg, "model_provider =") || strings.Contains(cfg, "model_catalog_json") ||
+		!strings.Contains(cfg, "openai_base_url") || !strings.Contains(cfg, `model = "gpt-a"`) {
+		t.Fatalf("allowance back:\n%s", cfg)
+	}
+	if cx.AppOut() || !cx.Joined() {
+		t.Fatalf("allowance back: AppOut %v, Joined %v", cx.AppOut(), cx.Joined())
+	}
+
+	// a model the user picked while out stays theirs when room comes back
+	codexUsedUp = func() bool { return true }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if err := cx.Fields[0].Set("fake/m1"); err != nil {
+		t.Fatal(err)
+	}
+	codexUsedUp = func() bool { return false }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); !strings.Contains(cfg, `model = "fake/m1"`) {
+		t.Fatalf("picked while out, allowance back:\n%s", cfg)
+	}
+}
+
+// One ChatGPT account, out, on one of Codex's own models joined beside the
+// sign-in, and nothing else in uni-switch to offer: no fallback on the Codex
+// subscription, no other account and no model of another provider
+// (xiaoq6285 on Discord: a Plus account in the Windows Codex app, the menu
+// down to "uni-switch" with no quota after the five-hour limit, the app
+// erroring and restarting at the limit and again at the reset). uni-switch
+// leaves Codex on its sign-in: no turn it took over could be sent, so the
+// app keeps the account, its usage and its reset, and nothing restarts.
+func TestCodexOwnModelOneSpentAccountStaysOnItsSignIn(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "model = \"gpt-a\"\n")
+	// codexHome's other provider is the one thing uni-switch could offer
+	if err := provider.Delete("fake"); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(home, ".codex", "models_cache.json"),
+		[]byte(`{"models":[{"slug":"gpt-a","display_name":"A","priority":1}]}`), 0o644)
+	cx := codex(home)
+	if ok, err := cx.Join(); err != nil || !ok {
+		t.Fatalf("join: %v %v", ok, err)
+	}
+	if codexOwnViaUniSwitch("gpt-a") == "" {
+		t.Fatal("uni-switch lists no codex/gpt-a: the test proves nothing")
+	}
+	if codexOtherModel() != "" {
+		t.Fatalf("uni-switch has another model %q: the test proves nothing", codexOtherModel())
+	}
+	route, _, known := codexAppRoute()
+	if !known {
+		t.Fatal("route not known")
+	}
+	// the route is what the app's app-server is ended over
+	// (KeepCodexAppOnItsProvider): unchanged, the app keeps running
+	same := func(when string) {
+		t.Helper()
+		cfg := read()
+		if !strings.Contains(cfg, `model = "gpt-a"`) || strings.Contains(cfg, "model_provider =") || !strings.Contains(cfg, "openai_base_url") {
+			t.Fatalf("%s: Codex moved off its sign-in:\n%s", when, cfg)
+		}
+		if r, out, _ := codexAppRoute(); r != route || out || cx.AppOut() {
+			t.Fatalf("%s: the app's app-server would be ended (out %v):\n%s\nwas:\n%s", when, out, r, route)
+		}
+	}
+	codexUsedUp = func() bool { return true }
+	for _, when := range []string{"used up", "used up, synced again"} {
+		if err := cx.Sync(); err != nil {
+			t.Fatal(err)
+		}
+		same(when)
+	}
+	codexUsedUp = func() bool { return false }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	same("reset")
+	if !cx.Joined() {
+		t.Fatal("reset: not joined")
+	}
+}
+
+// The same account, with a model of another provider in uni-switch (fake/m1)
+// but nothing to serve Codex's own model on (CodexServesWhileOut false):
+// the Codex app greys Send for every model while the account is out, so
+// uni-switch takes Codex over on that model (shamen, chenhan on Discord),
+// once, and puts Codex back on its own model at the reset, once. A steady
+// held state writes nothing and ends no app-server. This reverses
+// f37742e14, which stayed on the sign-in.
+func TestCodexOwnModelOneSpentAccountTakenOverForOtherModels(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "model = \"gpt-a\"\n")
+	os.WriteFile(filepath.Join(home, ".codex", "models_cache.json"),
+		[]byte(`{"models":[{"slug":"gpt-a","display_name":"A","priority":1}]}`), 0o644)
+	cx := codex(home)
+	if ok, err := cx.Join(); err != nil || !ok {
+		t.Fatalf("join: %v %v", ok, err)
+	}
+	if provider.CodexServesWhileOut("gpt-a") {
+		t.Fatal("uni-switch serves gpt-a while out: the test proves nothing")
+	}
+	if codexOtherModel() != "fake/m1" {
+		t.Fatalf("other model %q", codexOtherModel())
+	}
+	codexUsedUp = func() bool { return true }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	cfg := read()
+	if !strings.Contains(cfg, `model_provider = "uni-switch"`) || !strings.Contains(cfg, `model = "fake/m1"`) || cx.AppOut() {
+		t.Fatalf("used up:\n%s", cfg)
+	}
+	route, _, _ := codexAppRoute()
+	// steady: no write, no route change (an app-server end), however often
+	for i := 0; i < 3; i++ {
+		if err := cx.Sync(); err != nil {
+			t.Fatal(err)
+		}
+		if got := read(); got != cfg {
+			t.Fatalf("held, synced again (%d): config written:\n%s\nwas:\n%s", i, got, cfg)
+		}
+		if r, _, _ := codexAppRoute(); r != route {
+			t.Fatalf("held, synced again (%d): route changed:\n%s\nwas:\n%s", i, r, route)
+		}
+	}
+	codexUsedUp = func() bool { return false }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(); strings.Contains(got, "model_provider =") || strings.Contains(got, "model_catalog_json") ||
+		!strings.Contains(got, `model = "gpt-a"`) || !strings.Contains(got, "openai_base_url") {
+		t.Fatalf("reset:\n%s", got)
+	}
+	if cx.AppOut() || !cx.Joined() {
+		t.Fatalf("reset: AppOut %v, Joined %v", cx.AppOut(), cx.Joined())
+	}
+	back := read()
+	if err := cx.Sync(); err != nil || read() != back {
+		t.Fatalf("reset, synced again: %v\n%s", err, read())
+	}
+}
+
+// Kept on ChatGPT, a used-up account on one of Codex's own models leaves
+// Codex as it is: the user chose the sign-in.
+func TestCodexOwnModelKeptOnChatGPT(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "model = \"gpt-a\"\n")
+	os.WriteFile(filepath.Join(home, ".codex", "models_cache.json"),
+		[]byte(`{"models":[{"slug":"gpt-a","display_name":"A","priority":1}]}`), 0o644)
+	cx := codex(home)
+	if ok, err := cx.Join(); err != nil || !ok {
+		t.Fatalf("join: %v %v", ok, err)
+	}
+	if err := cx.Field("login").Set("chatgpt"); err != nil {
+		t.Fatal(err)
+	}
+	codexUsedUp = func() bool { return true }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg := read(); strings.Contains(cfg, "model_provider =") || !strings.Contains(cfg, `model = "gpt-a"`) {
+		t.Fatalf("kept on ChatGPT, used up:\n%s", cfg)
+	}
+	if cx.AppOut() {
+		t.Fatal("kept on ChatGPT: AppOut")
+	}
+}
+
+// Moved onto uni-switch on one of Codex's own models while the account is
+// used up, then kept on ChatGPT from the Agents row's takeover line
+// (eddie.zhan on Discord: the Codex app's browser use said it had no
+// permission): Codex goes back on its sign-in at once, on the model it
+// picked, beside it as joined, and no later Sync moves it again.
+func TestCodexOwnModelOutThenKeptOnChatGPT(t *testing.T) {
+	home, read := codexHome(t, `{"tokens":{"access_token":"x","id_token":"x.e30.x"}}`, "model = \"gpt-a\"\n")
+	os.WriteFile(filepath.Join(home, ".codex", "models_cache.json"),
+		[]byte(`{"models":[{"slug":"gpt-a","display_name":"A","priority":1}]}`), 0o644)
+	cx := codex(home)
+	if ok, err := cx.Join(); err != nil || !ok {
+		t.Fatalf("join: %v %v", ok, err)
+	}
+	// a fallback for uni-switch to serve the turn on (TestCodexOwnModelOneSpentAccountStaysOnItsSignIn)
+	if err := provider.Save(provider.Provider{ID: "codex", Fallback: []string{"fake/m1"}}); err != nil {
+		t.Fatal(err)
+	}
+	codexUsedUp = func() bool { return true }
+	t.Cleanup(func() { codexUsedUp = func() bool { return false } })
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if cx.AppOut() {
+		t.Fatalf("used up: OpenAI auth must keep the ChatGPT side enabled:\n%s", read())
+	}
+	if err := cx.Field("login").Set("chatgpt"); err != nil {
+		t.Fatal(err)
+	}
+	onSignIn := func(when string) {
+		t.Helper()
+		if cfg := read(); strings.Contains(cfg, "model_provider =") || strings.Contains(cfg, "model_catalog_json") || !strings.Contains(cfg, `model = "gpt-a"`) {
+			t.Fatalf("%s:\n%s", when, cfg)
+		}
+		if cx.AppOut() {
+			t.Fatalf("%s: AppOut", when)
+		}
+	}
+	onSignIn("kept on ChatGPT while used up")
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	onSignIn("kept on ChatGPT, synced")
+	codexUsedUp = func() bool { return false }
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	onSignIn("kept on ChatGPT, allowance back")
+}

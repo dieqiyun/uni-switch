@@ -1,0 +1,173 @@
+/* Sessions: every session of an agent, by folder, to resume or delete (sessions.js) */
+.sm-head { gap: 8px; height: auto; min-height: 34px; }
+.sm-switch { min-width: 0; flex: 1; display: flex; align-items: center; }
+.sm-agents { min-width: 0; max-width: 100%; }
+.segs.sm-agents { background: var(--seg-track); }
+.sm-agents .opt:not(.on, :hover) { color: var(--ctl-fg); }
+.sm-agents .opt { display: inline-flex; align-items: center; gap: 5px; }
+.sm-agents .opt.on { background: var(--seg-thumb); box-shadow: var(--seg-edge); }
+.sm-agents .opt.on em { color: var(--muted); }
+.sm-agents .opt .ic { width: 13px; height: 13px; }
+.sm-agent-pick { min-width: 0; max-width: 220px; gap: 6px; color: var(--fg); }
+.sm-agent-pick .ic { width: 13px; height: 13px; flex: none; }
+.sm-agent-pick em, .sm-agents em, .sm-trash-btn em { font-style: normal; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.pop.proto-menu.sm-agent-menu { width: min(280px, calc(100vw - 16px)); max-height: min(360px, 70vh); overflow-y: auto; background: var(--card); }
+.sm-agent-menu .pm-item { align-items: center; }
+.sm-agent-menu .pm-words { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: 1; }
+.sm-agent-menu .pm-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-agent-menu .pm-note { flex: none; font-variant-numeric: tabular-nums; }
+.sm-filter { width: 200px; flex: 0 1 200px; min-width: 110px; }
+.sm-trash-btn { display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.sm-trash-btn.on { background: var(--pill); color: var(--fg); }
+.sm-body { display: flex; flex-direction: column; gap: 8px; flex: none; }
+.sm-note { margin: 0 2px; }
+/* where a session said what was searched for, the words themselves marked */
+.row .sub.sm-hit { color: var(--fg-2); }
+.sm-hit mark { background: var(--accent-soft); color: var(--fg); border-radius: 3px; padding: 0 1px; font-weight: 500; }
+.sm-bar { gap: 8px; padding: 0 11px; }
+.sm-bar .grow { flex: 1; }
+.sm-bar .sm-delete, .sm-bar .sm-empty { display: inline-flex; align-items: center; gap: 5px; }
+.sm-bar .sm-delete:disabled { opacity: .45; }
+.sm-count { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sm-check { flex: none; margin: 0; width: 14px; height: 14px; accent-color: var(--accent); }
+.sm-tree { display: flex; flex-direction: column; gap: 8px; container: sm-tree / inline-size; }
+.sm-group .skeleton.sk-line { width: 60%; height: 12px; }
+.sm-select.on { background: var(--pill); color: var(--fg); }
+/* the folders are one list, parted by hairlines, never a card each; the
+   sessions of an open one go on in it, set in under its name */
+.sm-folders > .sm-group + .sm-group, .sm-folders > .sm-group + .sm-more-folders,
+.sm-others > .sm-group, .sm-others > .sm-more-folders { border-top: 1px solid var(--line-2); }
+.sm-group > .row.sm-folder + .sm-item { border-top: 1px solid var(--line-2); }
+.sm-tree .sm-more-folders { margin: 6px 11px; }
+.row.sm-folder, .row.sm-others-row { min-height: 44px; gap: 8px; }
+.row.sm-folder .fold, .row.sm-others-row .fold { flex: 1; min-width: 0; margin: 0 0 0 -4px; padding: 4px 6px 4px 4px; gap: 8px; text-align: left; color: var(--faint); }
+.row.sm-folder .fold:hover, .row.sm-others-row .fold:hover { background: none; }
+.row.sm-folder:hover, .row.sm-others-row:hover { background: color-mix(in srgb, var(--pill) 40%, transparent); }
+.sm-fwords { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.sm-fline { min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.sm-fline .name, .sm-others-row .name { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; color: var(--fg); }
+.row.sm-folder .sm-path { flex: 0 1 auto; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--faint); }
+.sm-latest { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
+.sm-when { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.sm-when .sm-ago { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.row.sm-folder .note, .row.sm-others-row .note { flex: none; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* what can be done to a whole folder waits under ⋯ until the row is pointed at */
+.sm-folder-more { flex: none; opacity: 0; transition: opacity .12s; }
+.row.sm-folder:hover .sm-folder-more, .row.sm-folder:focus-within .sm-folder-more, .sm-folder-more.open { opacity: 1; }
+@media (hover: none) { .sm-folder-more { opacity: 1; } }
+.sm-group .row.sm-sess { padding-left: 29px; }
+body.window .sm-group .row.sm-sess { padding-left: 32px; }
+.sm-others { margin-top: 4px; }
+.row.sm-sess { min-height: 44px; }
+.sm-item .sess-detail { padding-left: 34px; }
+.row.sess .sm-del:hover { color: var(--red); background: var(--red-soft); }
+/* carrying a session on in another agent, and its conversation (#845) */
+.row.sm-sess .sess-carry { height: 24px; color: var(--fg); }
+/* a control's room on a row without it (the icons' are .copy, as wide), so every row's columns line up
+   (ysm119 on Discord); and Resume is as wide when it says Copied */
+.sm-slot { visibility: hidden; pointer-events: none; }
+.sm-slot-resume { flex: none; height: 24px; padding: 0 10px; border: 0; border-radius: 7px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.row.sm-sess .sm-slot-carry { height: 24px; }
+.row.sm-sess [data-wide]::before, .row.sm-sess [data-wide]::after { content: attr(data-wide); display: block; height: 0; overflow: hidden; visibility: hidden; }
+.row.sm-sess [data-wide]::after { content: attr(data-wide2); }
+.row.sess .sm-del.off { opacity: .4; cursor: default; }
+.row.sess .sm-del.off:hover { color: var(--muted); background: none; }
+.pop.proto-menu.sess-carry-menu { width: min(300px, calc(100vw - 16px)); background: var(--card); }
+.sess-talk-btn, .sess-export { height: 22px; padding: 0 8px; font-size: 11.5px; }
+.sess-talk { max-height: min(560px, 70vh); overflow-y: auto; margin-top: 4px; padding: 8px 10px 4px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--bg); }
+.sm-restore { display: inline-flex; align-items: center; gap: 5px; }
+.sm-ask-list { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--fg); line-height: 1.6; }
+.sm-ask-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-ask-list li.more { color: var(--muted); }
+/* a field in a session dialog (#1991): its label above it, both across the
+   dialog, never squeezed into the form's 72px label column */
+.editor label.sm-ask-field { grid-column: 1 / -1; min-width: 0; display: flex; flex-direction: column; gap: 6px; text-align: left; padding-top: 0; }
+.editor label.sm-ask-field input { width: 100%; min-width: 0; }
+.sm-ask-path { grid-column: 1 / -1; min-width: 0; margin: 0; font-family: var(--code-font, var(--code)); font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+:where(html[data-fonts]) .sm-ask-path { font-style: var(--code-style, inherit); font-weight: var(--code-weight, inherit); font-stretch: var(--code-stretch, 100%); }
+@media (max-width: 560px) {
+  .sm-filter { width: 130px; flex-basis: 130px; }
+  .row.sm-folder .sm-path { display: none; }
+  /* five gaps of 12px left a 420px window's title 90px once the list
+     scrolled and its scrollbar took 10px */
+  .row.sess.sm-sess { gap: 8px; }
+}
+/* the list's own width, not the window's: beside the sidebar a 780px
+   window left a row's title "7" of its name, its tokens, cost, Resume and
+   Continue in taking the rest (cybercaius on Discord) */
+@container sm-tree (max-width: 700px) {
+  .row.sess.sm-sess { gap: 8px; }
+}
+/* narrower still, the title has the first line to itself and what is done
+   with the session goes under it, on the right */
+@container sm-tree (max-width: 600px) {
+  .row.sess.sm-sess { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; padding-top: 7px; padding-bottom: 7px; }
+  .row.sm-sess > .who { flex-basis: 100%; }
+  .row.sm-sess:has(> .sm-check) > .who { flex-basis: calc(100% - 22px); }
+}
+@media (max-width: 420px) {
+  .sm-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 6px; }
+  .sm-switch { grid-column: 1 / -1; }
+  .sm-agent-pick { max-width: 100%; }
+  .sm-filter { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; }
+  .sm-select { grid-column: 2; grid-row: 2; }
+  .sm-trash-btn { grid-column: 3; grid-row: 2; justify-self: end; }
+}
+/* Codex sessions made with another provider, hidden from Codex's history (#887) */
+.row.sm-provider { gap: 10px; min-height: 40px; padding: 8px 11px; height: auto; }
+.sm-provider-text { min-width: 0; font-size: 12px; color: var(--fg-2); line-height: 1.45; }
+.sm-provider .grow { flex: 1; }
+.sm-provider .text { flex: none; display: inline-flex; align-items: center; gap: 5px; }
+.sm-prov { display: inline-block; padding: 0 5px; border-radius: 4px; background: var(--pill); color: var(--muted); font-family: var(--code-font, var(--code)); font-size: 10.5px; line-height: 16px; }
+:where(html[data-fonts]) .sm-prov { font-style: var(--code-style, inherit); font-weight: var(--code-weight, inherit); font-stretch: var(--code-stretch, 100%); }
+.sm-provider-list li label { display: flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
+.sm-provider-list li .name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-provider-list li .note { flex: none; font-size: 11px; color: var(--faint); }
+.sm-provider-list { max-height: min(300px, 45vh); overflow-y: auto; }
+.sm-provider-pick { grid-column: 1 / -1; min-width: 0; display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
+.sm-provider-pick .grow { flex: 1; }
+.sm-provider-pick .text { flex: none; font-size: 12px; }
+/* Recording gateway conversations (#1355): a setting card above the list,
+   its switch, what it keeps and where, and a labelled delete */
+.list.row.sm-record { gap: 6px 12px; min-height: 48px; padding: 9px 11px 9px 13px; height: auto; flex-wrap: wrap; }
+.sm-record .lib-switch { cursor: pointer; padding: 0; border: 0; }
+.sm-record .lib-switch:disabled { opacity: .5; cursor: default; }
+.sm-record-words { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sm-record-name { font-size: 12.5px; font-weight: 500; color: var(--fg); }
+.sm-record-sub { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.sm-record-clear { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.sm-record-clear:hover:not(:disabled) { color: var(--red); background: var(--red-soft); }
+/* a folder's next page of sessions, under the ones drawn */
+.sm-group .sm-more { margin: 4px 8px 6px; }
+/* a session's subagents, folded under it (#2261): set in by how deep they
+   are, never marked off by a stripe */
+.sm-subs { --sub-step: 16px; padding: 0 12px 6px calc(30px + var(--sub-depth, 0) * var(--sub-step)); }
+.sm-subs-fold { font-size: 11.5px; }
+.sm-subs-fold span { font-variant-numeric: tabular-nums; }
+.sm-subs-list { display: flex; flex-direction: column; margin-top: 2px; border: 1px solid var(--line-2); border-radius: 9px; overflow: hidden; background: var(--card); }
+.sm-subs-list > .sess-item .sess-detail { padding-left: 12px; }
+/* set in, a thread's details have less room: a line's buttons go under it */
+.sm-subs-list .sess-line { flex-wrap: wrap; }
+.sm-subs-list > .sm-sub + .sm-sub, .sm-subs-list > .sess-item + .sm-sub, .sm-subs-list > .sm-sub + .sess-item { border-top: 1px solid var(--line-2); }
+.sm-subs-list > .sess-item > .sm-subs { padding-left: calc(8px + var(--sub-step)); }
+.sm-sub.open { background: color-mix(in srgb, var(--pill) 45%, transparent); }
+.row.sm-sub-row { width: 100%; min-height: 38px; text-align: left; padding-left: calc(11px + var(--sub-in, 0) * var(--sub-step)); }
+body.window .row.sm-sub-row { min-height: 42px; padding-left: calc(14px + var(--sub-in, 0) * var(--sub-step)); }
+.row.sm-sub-row .who { display: flex; flex-direction: column; }
+.sm-sub .sess-talk { margin: 0 10px 8px; }
+@media (max-width: 560px) {
+  .sm-subs { --sub-step: 10px; padding-left: calc(12px + var(--sub-depth, 0) * var(--sub-step)); padding-right: 8px; }
+}
+
+/* the consent (RustCats on X): which agents' sessions may be read, asked
+   before any is; a plain grouped list of switches, as System Settings */
+.sm-consent { display: flex; flex-direction: column; gap: 10px; max-width: 560px; margin: 8px auto 16px; padding: 18px 18px 16px; border-radius: 12px; background: var(--card, var(--bg)); box-shadow: 0 0 0 0.5px var(--line); }
+.sm-consent-title { font-size: 14px; font-weight: 600; color: var(--fg); }
+.sm-consent-sub, .sm-consent-none { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.sm-consent-list { margin: 2px 0 0; }
+.sm-consent-row { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 12px; cursor: pointer; }
+.sm-consent-row > svg, .sm-consent-row > img { flex: none; width: 16px; height: 16px; }
+.sm-consent-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--fg); }
+.sm-consent-row .lib-switch { flex: none; cursor: pointer; padding: 0; border: 0; }
+.sm-consent-row .lib-switch:disabled { opacity: .5; cursor: default; }
+.sm-consent-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 4px; }

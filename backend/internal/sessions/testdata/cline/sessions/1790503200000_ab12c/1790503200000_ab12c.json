@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "session_id": "1790503200000_ab12c",
+  "source": "cli",
+  "pid": 1,
+  "started_at": "2026-09-27T10:00:00.000Z",
+  "status": "completed",
+  "interactive": true,
+  "provider": "anthropic",
+  "model": "claude-opus-5-5",
+  "cwd": "/work/cline",
+  "workspace_root": "/work/cline",
+  "prompt": "<user_input mode=\"act\">Speed up   the\nimporter</user_input>",
+  "metadata": {
+    "title": "Importer speed-up"
+  }
+}

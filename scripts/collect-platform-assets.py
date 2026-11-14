@@ -32,6 +32,15 @@ def only(directory, pattern):
 
 def collect(platform):
     names = PLATFORMS[platform]
+    triples = {
+        "windows-x64": ["x86_64-pc-windows-msvc.exe"],
+        "linux-x64": ["x86_64-unknown-linux-gnu"],
+        "macos-universal": ["x86_64-apple-darwin", "aarch64-apple-darwin"],
+    }[platform]
+    for target in triples:
+        record = json.loads((ROOT / f"src-tauri/binaries/uni-switch-core-{target}.build.json").read_text(encoding="utf-8"))
+        if record.get("qa") is not False:
+            raise RuntimeError("Release collection requires a production Go core; QA builds are not distributable")
     output = ROOT / "release/ci" / platform
     output.mkdir(parents=True, exist_ok=True)
     base = ROOT / "src-tauri/target"
@@ -42,6 +51,7 @@ def collect(platform):
         shutil.copy2(build / "uni-switch.exe", output / names[1])
         notices = {name: ROOT / name for name in ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]}
         notices.update({"licenses/codex-LICENSE": ROOT / "third-party/codex/LICENSE", "licenses/dependency-licenses.txt": ROOT / "third-party/dependency-licenses.txt"})
+        notices.update({"licenses/backend-LICENSE": ROOT / "backend/LICENSE", "licenses/backend-THIRD_PARTY_NOTICES": ROOT / "backend/THIRD_PARTY_NOTICES"})
         with zipfile.ZipFile(output / names[2], "w", zipfile.ZIP_DEFLATED) as archive:
             archive.write(build / "uni-switch.exe", "uni-switch.exe")
             archive.writestr("使用说明.md", tutorial())

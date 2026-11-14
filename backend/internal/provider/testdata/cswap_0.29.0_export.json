@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-31T09:41:44Z",
+  "exportedFrom": "wsl",
+  "swapVersion": "0.29.0",
+  "encrypted": false,
+  "activeAccountNumber": 2,
+  "accounts": [
+    {
+      "number": 1,
+      "email": "max@x.com",
+      "uuid": "acct-max",
+      "organizationUuid": "org-max",
+      "organizationName": "max@x.com's Organization",
+      "added": "2026-10-31T09:41:39Z",
+      "credentials": {
+        "claudeAiOauth": {
+          "accessToken": "sk-ant-oat01-acc-max",
+          "refreshToken": "sk-ant-ort01-ref-max",
+          "expiresAt": 1893456000000,
+          "scopes": [
+            "user:inference",
+            "user:profile",
+            "user:sessions:claude_code"
+          ],
+          "subscriptionType": "max",
+          "rateLimitTier": "default_claude_max_20x"
+        }
+      },
+      "config": {
+        "oauthAccount": {
+          "accountUuid": "acct-max",
+          "emailAddress": "max@x.com",
+          "organizationUuid": "org-max",
+          "organizationName": "max@x.com's Organization",
+          "organizationRole": "admin"
+        }
+      }
+    },
+    {
+      "number": 2,
+      "email": "team@x.com",
+      "uuid": "acct-team",
+      "organizationUuid": "org-acme",
+      "organizationName": "Acme",
+      "added": "2026-10-31T09:41:42Z",
+      "credentials": {
+        "claudeAiOauth": {
+          "accessToken": "sk-ant-oat01-acc-team",
+          "refreshToken": "sk-ant-ort01-ref-team",
+          "expiresAt": 1893456000000,
+          "scopes": [
+            "user:inference",
+            "user:profile",
+            "user:sessions:claude_code"
+          ],
+          "subscriptionType": "team",
+          "rateLimitTier": "default_claude_max_20x"
+        }
+      },
+      "config": {
+        "oauthAccount": {
+          "accountUuid": "acct-team",
+          "emailAddress": "team@x.com",
+          "organizationUuid": "org-acme",
+          "organizationName": "Acme",
+          "organizationRole": "admin"
+        }
+      },
+      "alias": "work"
+    }
+  ]
+}

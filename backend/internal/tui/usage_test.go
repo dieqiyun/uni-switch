@@ -1,0 +1,270 @@
+package tui
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/fx"
+	"github.com/dieqiyun/uni-switch/backend/internal/provider"
+	"github.com/dieqiyun/uni-switch/backend/internal/sessions"
+	"github.com/dieqiyun/uni-switch/backend/internal/settings"
+	"github.com/dieqiyun/uni-switch/backend/internal/usage"
+)
+
+// The Usage page lists the accounts' windows and balances as the app's
+// cards do, a window reading as used or left, and the vendor's own count
+// beside the percentage, and when each window starts again.
+func TestQuotaLines(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	reset, soon := now.Add(3*time.Hour), now.Add(40*time.Minute)
+	qs := []provider.SubscriptionQuota{
+		{Name: "Codex", Plan: "Plus", User: "me@example.com", Windows: []provider.QuotaWindow{
+			{Name: "5 hours", Used: 64, ResetsAt: &soon},
+			{Name: "7 days", Used: 99, ResetsAt: &reset},
+		}},
+		{Name: "ZCode", Windows: []provider.QuotaWindow{{Name: "Month", Used: 1.2, Display: "345 / 28000"}}},
+		{Name: "DeepSeek", Balance: "¥12.30"},
+		{Name: "Gemini", Error: "sign-in has expired"},
+	}
+	plain := func(ls []string) string { return strings.Join(ls, "\n") } // no terminal here, so no colour
+
+	used := plain(quotaLines(qs, true, false, 200, now))
+	for _, want := range []string{"Codex · Plus · me@example.com", "64% used ↻ " + provider.ResetClock(soon, now) + " (40m)", "99% used ↻ " + provider.ResetClock(reset, now) + " (3h)", "345 / 28000 · 1% used", "¥12.30 left", "sign-in has expired"} {
+		if !strings.Contains(used, want) {
+			t.Errorf("used: missing %q in\n%s", want, used)
+		}
+	}
+	left := plain(quotaLines(qs, true, true, 200, now))
+	for _, want := range []string{"36% left", "1% left", "345 / 28000 · 99% left", "% is how much is left"} {
+		if !strings.Contains(left, want) {
+			t.Errorf("left: missing %q in\n%s", want, left)
+		}
+	}
+	// a narrow terminal puts the windows that don't fit on lines of their own
+	if n := len(quotaLines(qs[:1], true, false, 60, now)); n != 3 {
+		t.Errorf("narrow: %d lines, want 3 (head, and a window a line)", n)
+	}
+	// a Codex account's rate-limit resets follow its windows, until when
+	// only when they run out
+	expires := now.Add(7 * 24 * time.Hour)
+	held := []provider.SubscriptionQuota{qs[0], qs[0]}
+	held[0].Resets = &provider.ResetCredits{Count: 2, Until: &expires}
+	held[1].Resets = &provider.ResetCredits{Count: 1}
+	got := quotaLines(held, true, false, 200, now)
+	if !strings.HasSuffix(got[1], "↺ 2 resets until "+provider.ResetClock(expires, now)) || !strings.HasSuffix(got[2], "↺ 1 reset") {
+		t.Errorf("resets:\n%s", plain(got))
+	}
+	// a ChatGPT account's credits are told beside its windows, not in
+	// their place
+	credits := []provider.SubscriptionQuota{qs[0]}
+	credits[0].Balance = "1.2K credits"
+	if got := plain(quotaLines(credits, true, false, 200, now)); !strings.Contains(got, "64% used") || !strings.Contains(got, "99% used") || !strings.Contains(got, "1.2K credits left") {
+		t.Errorf("credits:\n%s", got)
+	}
+	if quotaLines(nil, false, false, 80, now) != nil {
+		t.Error("not asked yet: want nothing")
+	}
+	if got := plain(quotaLines(nil, true, false, 80, now)); !strings.Contains(got, "asking the vendors") {
+		t.Errorf("asking: %q", got)
+	}
+}
+
+// fmtCost shows a computed cost at Settings' currency choice — $ (its own,
+// unconverted) by default, ¥ at the cached exchange rate once cny is chosen
+// — never touching a vendor's own balance string (that's quotaLines above).
+func TestFmtCostShowsChosenCurrency(t *testing.T) {
+	home(t)
+	// a currency read in the last second (an earlier run's ¥, -count) is
+	// kept; read this home's
+	costAt = time.Time{}
+
+	if got := fmtCost(usage.Totals{Cost: 1.23}); got != "≈$1.23" {
+		t.Fatalf("default currency: %q", got)
+	}
+
+	if err := settings.Save(settings.Settings{Currency: "cny"}); err != nil {
+		t.Fatal(err)
+	}
+	// pre-seed the fx cache so fmtCost's rate lookup hits no network
+	if err := os.MkdirAll(filepath.Dir(fx.CachePath()), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(fx.Rate{CNYPerUSD: 7.2, At: time.Now()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(fx.CachePath(), b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fx.Reset()
+	// costCurrency() only rereads settings once a second; force it stale
+	costAt = time.Time{}
+
+	if got := fmtCost(usage.Totals{Cost: 1.23}); got != "≈¥8.86" {
+		t.Fatalf("cny: %q", got)
+	}
+	if got := fmtCost(usage.Totals{Cost: 0, Unpriced: 1}); got != "no price" {
+		t.Fatalf("unpriced: %q", got)
+	}
+}
+
+func TestUnlimitedQuotaCell(t *testing.T) {
+	for _, left := range []bool{false, true} {
+		got := quotaCell(provider.QuotaWindow{Name: "Chat", Unlimited: true}, left, time.Now())
+		if !strings.Contains(got, "Unlimited") || strings.Contains(got, "%") || strings.Contains(got, "░") {
+			t.Fatalf("unlimited: %q", got)
+		}
+	}
+}
+
+// A plugin's row of text alone (AutoClaw's 积分余额) reads as its text: no
+// meter and no share after it, where its used 0 read "100% left".
+func TestTextQuotaCell(t *testing.T) {
+	for _, left := range []bool{false, true} {
+		got := quotaCell(provider.QuotaWindow{Name: "积分余额", Display: "1,234 积分", Text: true}, left, time.Now())
+		if !strings.Contains(got, "1,234 积分") || strings.Contains(got, "%") || strings.Contains(got, "░") {
+			t.Fatalf("text: %q", got)
+		}
+	}
+}
+
+// The Usage page shows, under the gateway's calls, those the agents made
+// on their own, read from their session files, as the app's Usage page
+// counts them (Kumo31 on Discord: Codex used outside uni-switch wasn't in the
+// TUI).
+func TestUsagePageShowsCallsNotThroughUniSwitch(t *testing.T) {
+	home(t)
+	// the usage clock held at noon, so that the calls a minute or two
+	// before it are today's whenever the test runs
+	now := time.Date(2026, 9, 30, 12, 0, 0, 0, time.Local)
+	oldClock := usage.Clock
+	usage.Clock = func() time.Time { return now }
+	t.Cleanup(func() { usage.Clock = oldClock })
+	usage.Append(usage.Record{Time: now.Add(-time.Minute), Agent: "claude", Provider: "relay", Model: "m", Input: 5, Status: 200})
+	old := usage.LogCalls
+	usage.LogCalls = func(time.Time) []sessions.Call {
+		return []sessions.Call{{Time: now.Add(-2 * time.Minute), Agent: "codex", Session: "c1", Model: "gpt-6-luna", Tokens: sessions.Tokens{Input: 1200, Output: 300}}}
+	}
+	t.Cleanup(func() { usage.LogCalls = old })
+	m := press(t, model{w: 160, h: 60, page: pageUsage}, "t")
+	v := m.viewUsage()
+	gw, own, ok := strings.Cut(v, "not through uni-switch")
+	if !ok || !strings.Contains(gw, "relay/m") || strings.Contains(gw, "gpt-6-luna") || !strings.Contains(own, "gpt-6-luna") {
+		t.Fatal(v)
+	}
+	if strings.Contains(own, usage.UnknownProvider) {
+		t.Fatalf("the unknown provider's id is shown:\n%s", own)
+	}
+}
+
+// The Usage page asked for as midnight falls shows the calls through uni-switch
+// and those not through it of one day, the day it was asked on, when a
+// period is picked and when the page is read again.
+func TestUsagePageAtMidnight(t *testing.T) {
+	home(t)
+	midnight := time.Date(2026, 10, 1, 0, 0, 0, 0, time.Local)
+	usage.Append(usage.Record{Time: midnight.Add(-time.Minute), Agent: "claude", Provider: "relay", Model: "m", Input: 5, Status: 200})
+	old := usage.LogCalls
+	usage.LogCalls = func(time.Time) []sessions.Call {
+		return []sessions.Call{{Time: midnight.Add(-2 * time.Minute), Agent: "codex", Session: "c1", Model: "gpt-6-luna", Tokens: sessions.Tokens{Input: 1200, Output: 300}}}
+	}
+	t.Cleanup(func() { usage.LogCalls = old })
+	// the usage clock reads a tenth of a second before midnight the first
+	// time and a tenth of a second after it from then on, as when midnight
+	// falls while the page is worked out
+	var read atomic.Bool
+	oldClock := usage.Clock
+	usage.Clock = func() time.Time {
+		if read.Swap(true) {
+			return midnight.Add(100 * time.Millisecond)
+		}
+		return midnight.Add(-100 * time.Millisecond)
+	}
+	t.Cleanup(func() { usage.Clock = oldClock })
+	both := func(how string, m model) {
+		t.Helper()
+		v := m.viewUsage()
+		gw, own, ok := strings.Cut(v, "not through uni-switch")
+		if !ok || !strings.Contains(gw, "relay/m") || !strings.Contains(own, "gpt-6-luna") {
+			t.Errorf("%s:\n%s", how, v)
+		}
+	}
+	m := press(t, model{w: 160, h: 60, page: pageUsage}, "t")
+	both("today picked", m)
+	read.Store(false)
+	m.reload()
+	both("read again", m)
+}
+
+// A Codex account set not to spend its credits says so beside them.
+func TestQuotaLinesCreditsNotSpent(t *testing.T) {
+	home(t)
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	qs := []provider.SubscriptionQuota{{Provider: "codex", Name: "Codex", User: "me@example.com", Balance: "1.2K credits",
+		Windows: []provider.QuotaWindow{{Name: "5 hours", Used: 100}}}}
+	if got := strings.Join(quotaLines(qs, true, false, 200, now), "\n"); strings.Contains(got, "not spent") {
+		t.Errorf("spends them by default:\n%s", got)
+	}
+	if err := provider.SetCodexCredits("Me@example.com", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(quotaLines(qs, true, false, 200, now), "\n"); !strings.Contains(got, "1.2K credits left · not spent") {
+		t.Errorf("set not to:\n%s", got)
+	}
+}
+
+// The Usage page's headline says how many calls its cost leaves out for
+// having no known price (#1856), not only a "+" after the sum.
+func TestUsagePageSaysCallsUnpriced(t *testing.T) {
+	home(t)
+	now := time.Date(2026, 9, 30, 12, 0, 0, 0, time.Local)
+	oldClock := usage.Clock
+	usage.Clock = func() time.Time { return now }
+	t.Cleanup(func() { usage.Clock = oldClock })
+	old := usage.LogCalls
+	usage.LogCalls = func(time.Time) []sessions.Call { return nil }
+	t.Cleanup(func() { usage.LogCalls = old })
+	for i := range 3 {
+		usage.Append(usage.Record{Time: now.Add(-time.Duration(i+1) * time.Minute), Agent: "claude", Provider: "relay", Model: "kimi-k3-auto", Input: 500, Output: 50, Status: 200})
+	}
+	m := press(t, model{w: 160, h: 60, page: pageUsage}, "t")
+	if v := m.viewUsage(); !strings.Contains(v, "(3 calls unpriced)") {
+		t.Fatal(v)
+	}
+}
+
+// u on the Usage page shows a window by how much of it is left rather than
+// used, as the app's toggle does, and that choice is Settings' QuotaLeft
+// where the app keeps it: the app and the tray panel change it there, so the
+// TUI starts from it (#122).
+func TestQleftSeededFromSettings(t *testing.T) {
+	home(t)
+	if err := settings.Save(settings.Settings{QuotaLeft: true}); err != nil {
+		t.Fatal(err)
+	}
+	if m := newModel(); !m.qleft {
+		t.Fatal("Settings say left, and the TUI starts showing used")
+	}
+}
+
+// u writes what it picked to Settings, so the pick survives the next start
+// and the app's own toggle and the menu bar follow it.
+func TestQleftWritesBack(t *testing.T) {
+	home(t)
+	if settings.Load().QuotaLeft {
+		t.Fatal("the sandbox's settings start with left chosen")
+	}
+	m := press(t, model{w: 120, h: 40, page: pageUsage}, "u")
+	if !m.qleft || !settings.Load().QuotaLeft {
+		t.Fatalf("after u: qleft %v, Settings %v", m.qleft, settings.Load().QuotaLeft)
+	}
+	m = press(t, m, "u")
+	if m.qleft || settings.Load().QuotaLeft {
+		t.Fatalf("after the second u: qleft %v, Settings %v", m.qleft, settings.Load().QuotaLeft)
+	}
+}

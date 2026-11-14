@@ -1,0 +1,8 @@
+{"model":"m1","instructions":"be brief — ok","service_tier":"priority","reasoning":{"effort":"medium","summary":"auto"},
+ "input":[{"type":"message","role":"user","content":[{"type":"input_text","text":"hi"},{"type":"input_image","image_url":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}]},
+ {"type":"reasoning","id":"rs_1","summary":[],"encrypted_content":"ZW5j"},
+ {"type":"function_call","call_id":"call_1","name":"Read","arguments":"{\"path\":\"/x\"}"},
+ {"type":"function_call_output","call_id":"call_1","output":"done\t\"x\""},
+ {"type":"message","role":"user","content":"go on"}],
+ "tools":[{"type":"function","name":"Read","description":"Reads","parameters":{"type":"object","properties":{"path":{"type":"string"}}}}],
+ "store":false,"stream":false,"include":["reasoning.encrypted_content"]}
