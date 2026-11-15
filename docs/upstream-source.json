@@ -48694,8 +48694,8 @@
     },
     {
       "path": "internal/omarchy/niri_test.go",
-      "sha256": "136f0a4bbfa089a11737244540e2a3d549616bc5412e0fad5eca151ccef3d787",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "deffdc35df4aa95855cd151e349bdf3e6f0b907a6c37bff59f9d71940a8f44d3",
+      "reason": "Retain product panel placement coverage with a fake Niri service that closes active accepted sockets before joining its worker; the connected-idle-client regression rejects cleanup that only closes the listener."
     },
     {
       "path": "internal/omarchy/niri.go",

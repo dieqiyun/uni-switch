@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // The JSON below is niri's own, as niri-ipc 26.4.0 (niri v26.04,
@@ -113,6 +114,12 @@ func TestWatchWindowsRefused(t *testing.T) {
 // fakeNiri answers on NIRI_SOCKET as niri does, one request a line, and
 // keeps the requests.
 func fakeNiri(t *testing.T, answer func(req string) string) (sent func() []string) {
+	sent, _ = fakeNiriWithStop(t, answer)
+	return sent
+}
+
+func fakeNiriWithStop(t *testing.T, answer func(req string) string) (sent func() []string, stop func()) {
+	t.Helper()
 	dir, err := os.MkdirTemp("", "niri") // a socket path fits in 104 bytes
 	if err != nil {
 		t.Fatal(err)
@@ -124,6 +131,8 @@ func fakeNiri(t *testing.T, answer func(req string) string) (sent func() []strin
 	}
 	var mu sync.Mutex
 	var got []string
+	var active net.Conn
+	var stopped bool
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -133,6 +142,14 @@ func fakeNiri(t *testing.T, answer func(req string) string) (sent func() []strin
 			if err != nil {
 				return
 			}
+			mu.Lock()
+			if stopped {
+				mu.Unlock()
+				c.Close()
+				return
+			}
+			active = c
+			mu.Unlock()
 			sc := bufio.NewScanner(c)
 			for sc.Scan() {
 				mu.Lock()
@@ -141,18 +158,58 @@ func fakeNiri(t *testing.T, answer func(req string) string) (sent func() []strin
 				io.WriteString(c, answer(sc.Text())+"\n")
 			}
 			c.Close()
+			mu.Lock()
+			active = nil
+			mu.Unlock()
 		}
 	}()
-	t.Cleanup(func() {
-		l.Close()
-		wg.Wait()
-		os.RemoveAll(dir)
-	})
+	var once sync.Once
+	stop = func() {
+		once.Do(func() {
+			l.Close()
+			mu.Lock()
+			stopped = true
+			c := active
+			mu.Unlock()
+			if c != nil {
+				c.Close()
+			}
+			wg.Wait()
+			os.RemoveAll(dir)
+		})
+	}
+	t.Cleanup(stop)
 	t.Setenv("NIRI_SOCKET", sock)
 	return func() []string {
 		mu.Lock()
 		defer mu.Unlock()
 		return append([]string(nil), got...)
+	}, stop
+}
+
+// Stopping the fake closes a connected idle client too. Closing only its
+// listener leaves the accepted socket's Scanner blocked during cleanup.
+func TestFakeNiriStopsConnectedClient(t *testing.T) {
+	_, stop := fakeNiriWithStop(t, func(string) string { return `{"Ok":"Handled"}` })
+	c, err := niriDial()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if _, err := io.WriteString(c, "\"FocusedOutput\"\n"); err != nil {
+		t.Fatal(err)
+	}
+	if !bufio.NewScanner(c).Scan() {
+		t.Fatal("fake did not accept and answer its client")
+	}
+	done := make(chan struct{})
+	go func() { stop(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		c.Close() // release the old fixture before reporting its failure
+		<-done
+		t.Fatal("fake Niri stop waited for the client to close its accepted connection")
 	}
 }
 

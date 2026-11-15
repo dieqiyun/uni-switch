@@ -88,6 +88,14 @@ Claude 终端和基础包通过；必须以完整回归与新三平台 CI 的最
 
 ## 历史发布阻塞与修复过程
 
+Windows 旧候选后续日志还暴露 Niri 假服务清理挂起：关闭监听器不会关闭已接收连接，
+Scanner 仍等待读取，清理的 WaitGroup 一直不结束。夹具现追踪并关闭活动连接，
+同步停止状态和接收过程，并保留等待协程退出及目录清理。新回归主动保持客户端连接，
+旧清理以 `fake Niri stop waited for the client to close its accepted connection` 失败
+（`niri-before-round132.log`）；修复后该回归及面板位置检查在普通模式和 race 模式
+各连续通过 100 次（`niri-ordinary-round133.log`、`niri-fixed-round133.log`）。
+该修改仅限测试；正式版仍等待包含它的新提交全部门槛通过。
+
 Linux 候选 `bbb49e6` 的普通完整测试发现 `TestUnroutedUnknownHoldAnsweredSooner`：
 观察记录可能在读取模型名之前显示，之后保存 504 报告时仍是空模型名；
 按模型查询只看到处理取消的另一条 499 记录。`noteAsked` 现在在同一观察记录上补齐模型，
