@@ -106,6 +106,13 @@ Windows 上帮助文本及相关专项再次通过；Unix 专属路径由下一�
 修复后通过。缺失与共享错误共用一次有界重试，避免交替错误反复延长等待。
 Windows QA 临时目录清理增加占用重试，完整保留测试退出码和清理失败检查。
 
+最终 Windows 完整回归 `full-final-round62.log` 全部通过，完整 vet、真实 Codex CLI、
+10 组分组浏览器检查和 22 项 Node 测试通过。Linux 原生完整测试其余包通过，
+网关仍失败：恢复的测试入口漏设 `claudeTUIRuns=false`，使仅支持 stream-json 的
+假程序被当成交互程序运行并重新执行测试套件。补回测试模式并增加入口断言；
+只读迁移用例按本机信任模型检查无效命名 Key，订阅凭据 fixture 写入后显式失效缓存。
+相关 Windows 专项通过；Linux/macOS 原生验证继续等待后续 CI。
+
 未解决的完整回归与发布条件跟踪于
 [GitHub #13](https://github.com/dieqiyun/uni-switch/issues/13)。
 

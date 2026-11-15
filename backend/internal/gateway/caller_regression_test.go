@@ -170,7 +170,7 @@ func TestLegacyCallerWithReadOnlyConfiguration(t *testing.T) {
 		if code := call(s.LANKey, header); code != http.StatusOK {
 			t.Fatal("unmigrated legacy client lost access", header, code)
 		}
-		for _, secret := range []string{"", "wrong", Token} {
+		for _, secret := range []string{"sk-uni-switch-wrong", "sk-uni-switch-revoked"} {
 			if code := call(secret, header); code != http.StatusUnauthorized {
 				t.Fatal("fallback accepted another credential", header, code)
 			}

@@ -34436,8 +34436,8 @@
     },
     {
       "path": "internal/gateway/caller_regression_test.go",
-      "sha256": "8c4b4549494057a2e680d4d50a3768ed7b171304760771edff0c7d21201a78e2",
-      "reason": "Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage."
+      "sha256": "0e7716f08e28dc6e530a66f4db5f9d6849dcdd1807bb8680ae6892dd9fa37c9d",
+      "reason": "Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage. Bound Windows known-file retries across alternating missing/sharing errors and verify the retry regression against the prior behavior."
     },
     {
       "path": "internal/gateway/caller_usage_test.go",
@@ -34546,8 +34546,8 @@
     },
     {
       "path": "internal/gateway/chatgpt_api_test.go",
-      "sha256": "ffbbd348f75e57b2fc131e2974ea5636db5bfbf186bca00cea52e8de4a09f767",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "6610d3a9742d026f1e6ee60df504ee691626070471a128bbfe20690c3dc3a89d",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Bound Windows known-file retries across alternating missing/sharing errors and verify the retry regression against the prior behavior."
     },
     {
       "path": "internal/gateway/chatgpt_cold_test.go",
@@ -37121,8 +37121,8 @@
     },
     {
       "path": "internal/gateway/main_test.go",
-      "sha256": "d8b9d7b3419ebe44ca20244bf77afa98fa0a9bc4a8962400bda0326e055ef625",
-      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Restore the retained isolated gateway TestMain and register core rotation/search/budget test services after removal of the extension bootstrap; keep synthetic HTTP backends plain unless a test explicitly opts into compression/socket behavior."
+      "sha256": "74eee54d8aec4efdeedc6609219684978433ddb1aa5ea2d286d358b89f7db50a",
+      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Restore the retained isolated gateway TestMain and register core rotation/search/budget test services after removal of the extension bootstrap; keep synthetic HTTP backends plain unless a test explicitly opts into compression/socket behavior. Bound Windows known-file retries across alternating missing/sharing errors and verify the retry regression against the prior behavior."
     },
     {
       "path": "internal/gateway/mantle_test.go",

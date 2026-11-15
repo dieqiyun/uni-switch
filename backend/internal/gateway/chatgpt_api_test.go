@@ -17,6 +17,7 @@ import (
 // agent speaks, with the agent's own instructions — none of Codex's — and
 // without the fields that API refuses for a ChatGPT token.
 func TestChatGPTAPIRequests(t *testing.T) {
+	fresh(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -47,6 +48,7 @@ func TestChatGPTAPIRequests(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "logins.json"), raw, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	provider.Changed()
 
 	for _, tt := range []struct{ name, path, body string }{
 		{"chat", "/v1/chat/completions", `{"model":"chatgpt-api/gpt-5.5","max_tokens":64,"temperature":0.3,"messages":[{"role":"system","content":"You are my agent."},{"role":"user","content":"ping"}]}`},

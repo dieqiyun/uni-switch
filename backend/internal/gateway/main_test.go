@@ -74,6 +74,10 @@ func isolatedTests(m *testing.M) (int, error) {
 	// The fakes of ChatGPT's backend read turns plain; codex_zstd_test's
 	// send them zstd, as the real one is sent.
 	provider.CodexZstdForTests(false)
+	// Fake Claude executables speak -p stream-json. This test executable
+	// does not dispatch the production interactive helper subcommand.
+	// Tests of the interactive path explicitly install their own helper.
+	claudeTUIRuns = false
 	// and speak HTTP: codex_socket_test's fakes speak the WebSocket
 	codexSocketOff.Store(true)
 	// Finding an inert CLI also prevents discovery from falling back to
@@ -127,6 +131,9 @@ func isolatedTests(m *testing.M) (int, error) {
 func TestRunsAsAnIsolatedTestBinary(t *testing.T) {
 	if os.Getenv(testenv.Marker) == "" {
 		t.Fatalf("TestMain left %s unset", testenv.Marker)
+	}
+	if claudeTUIRuns {
+		t.Fatal("test binary has no interactive helper; fake Claude runs must use stream-json")
 	}
 }
 
