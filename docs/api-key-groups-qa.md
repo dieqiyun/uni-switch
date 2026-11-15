@@ -2,10 +2,29 @@
 
 验证日期：2026-11-14 至 2026-11-15。候选版本：0.5.29。
 
-当前候选源码包含此前工作区的 Go 源码整合和已记录的功能移除。
-分组专项检查和完整 Windows Go 回归已通过；Linux race 检查发现的后续问题已修复，
-正在验证新的三平台候选，尚不符合正式发布条件。
-不应把本记录解读为三平台 Release 已通过验收。
+源码包含此前工作区的 Go 源码整合和已记录的功能移除。
+本记录保存专项验证、完整回归和历史发布阻塞的调查证据；各次提交的结果仅适用于
+对应源码。正式发布须以最终标签对应的三平台工作流、附件校验和 GitHub Release
+为准，发布状态见 [GitHub #13](https://github.com/dieqiyun/uni-switch/issues/13)。
+
+## 最终源码检查中的 Windows 独立读者
+
+候选 `8d234ed` 的原生运行 `43701475999`、PR 检查 `43701479188` 以及完整本机
+Windows race 均通过，合并为 `47c6a927`。最终源码 PR 运行 `43705572052` 的 Windows
+`TestSaveConcurrent` 记录到 0 保存错误、0 字段丢失及 2361 次独立读者错误；原日志
+没有记录读取错误类型，不能据此认定 JSON 损坏。带具体错误诊断的旧独立读者在
+本机重复 20 次通过（`settings-before-round135.log`）。
+
+该文件在启动独立读者前已保存，测试期间从不删除。独立读者现使用现有
+`steady.ReadThere`，等待 Windows 替换已知文件时的短暂缺失；仍不持有 `Load` 的锁，
+仍逐次解析完整 JSON 并检查所有保留字段。增加首个读取错误的具体诊断，不修改
+正式写入实现、超时或断言门槛。两个并发保存用例连续 5 轮 race 通过
+（`settings-fixed-round136.log`），settings 与 steady 完整 race 通过
+（`settings-suite-round137.log`）。临时用 Go overlay 将普通文件写入强制改为原地
+写入，修正后的独立读者仍以 240 次错误、首个错误
+`invalid character '3' after top-level value` 失败（`settings-inplace-round137.log`）。
+overlay 仅在隔离测试中使用，实际源码没有改成原地写入。最终源码仍须重新通过
+全部原生检查后才能发布。
 
 ## Codex 登录与请求错误修复
 
