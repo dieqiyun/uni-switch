@@ -21,6 +21,7 @@ def tutorial():
     text = (ROOT / "docs/tutorial.md").read_text(encoding="utf-8")
     text = text.replace("(../README.md)", "(https://github.com/dieqiyun/uni-switch)")
     text = text.replace("(sponsors.md)", "(https://github.com/dieqiyun/uni-switch/blob/main/docs/sponsors.md)")
+    text = text.replace("(api-key-groups.md)", f"(https://github.com/dieqiyun/uni-switch/blob/v{VERSION}/docs/api-key-groups.md)")
     text = text.replace("(screenshots/", f"(https://raw.githubusercontent.com/dieqiyun/uni-switch/v{VERSION}/docs/screenshots/")
     return text
 
