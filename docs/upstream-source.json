@@ -53591,8 +53591,8 @@
     },
     {
       "path": "internal/usage/codex_effort_rows_test.go",
-      "sha256": "b49bc7fb9a2a55c635ef4b7519cf038613a6aac3336bbb32fc7b2979ee8c2054",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "091b20a7ad1c55b30b133f421c357a803a925f04ad0769c0bf0c87d41148f940",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Read session-file fixtures outside the ledger-filter allocation measurement and average complete uncached rebuilds; retain the original byte limit and verify keeping unrelated records fails."
     },
     {
       "path": "internal/usage/codex_effort_shared_test.go",

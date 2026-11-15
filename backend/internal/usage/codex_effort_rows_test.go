@@ -78,20 +78,28 @@ func TestCodexModelEffortLetsUnrelatedCallsGo(t *testing.T) {
 		var before, after runtime.MemStats
 		runtime.GC()
 		runtime.ReadMemStats(&before)
-		fn()
+		// A single build's cost depends on whether the race runtime or
+		// GC discarded a borrowed buffer. Average complete rebuilds,
+		// comparing the same complete operations on each side.
+		const runs = 50
+		for range runs {
+			fn()
+		}
 		runtime.ReadMemStats(&after)
-		return after.TotalAlloc - before.TotalAlloc
+		return (after.TotalAlloc - before.TotalAlloc) / runs
 	}
-	// the session files read by a reader of their own: a build each ask
+	// Read the session fixture before measuring ledger filtering. Its file
+	// decoder also borrows large buffers, unrelated to retaining gateway
+	// calls. LogCalls still makes every ask rebuild rather than use a cache.
+	logs := codexCalls(All.Since(now))
 	old := LogCalls
-	LogCalls = codexCalls
+	LogCalls = func(time.Time) []sessions.Call { return logs }
 	t.Cleanup(func() { LogCalls = old })
 	if got := CodexModelEffort(All); len(got["main-a"]) != 1 {
 		t.Fatalf("main-a's consumption: %+v", got)
 	}
-	// a packed row a call: the bar was a visit of the log, but a visit
-	// decodes into a lent buffer now (#2278), and took 74 KB or 289 KB as
-	// a pool kept it or not
+	// Keep the original per-build byte limit: less than one packed row
+	// per unrelated gateway call.
 	rows := uint64(calls+1) * uint64(unsafe.Sizeof(packedRow{}))
 	build := measure(func() { CodexModelEffort(All) })
 	t.Logf("a build allocated %d bytes, the log's rows are %d", build, rows)
