@@ -23,6 +23,7 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/codexrelay"
 	"github.com/dieqiyun/uni-switch/backend/internal/gateway"
 	"github.com/dieqiyun/uni-switch/backend/internal/imagemcp"
+	"github.com/dieqiyun/uni-switch/backend/internal/library"
 	"github.com/dieqiyun/uni-switch/backend/internal/netproxy"
 	"github.com/dieqiyun/uni-switch/backend/internal/notices"
 
@@ -279,6 +280,7 @@ func run(args []string) error {
 	was := catalog.Changed
 	defer func() {
 		agent.SyncCatalogSettled()
+		library.RewiredSettled()
 		catalog.Changed = was
 	}()
 	// what a shell's agy runs (agy_cli.go): every argument after run is

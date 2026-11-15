@@ -28,6 +28,12 @@ agents RTK, a CLI that cuts shell output down before the model reads it.
 
 ## Responsibilities and sources of truth
 
+Connecting or disconnecting Codex schedules a library sync through
+`agent.Rewired` to switch its MCP entries between gateway URLs and direct
+commands. The CLI waits for `library.RewiredSettled` after catalog updates
+before returning, so the command's configuration changes finish before exit.
+The app can continue the same update in the background.
+
 | Part | Responsibility | Source |
 | --- | --- | --- |
 | library.json | `Library` holds the instruction sets, the MCP servers, the skills, the projects, skill groups and copy settings. `Applied` records what magpie last wrote into each agent, so it only ever takes away its own. The instruction texts and skill folders live under `Dir` (`library/` in magpie's config folder). | [`library.go`](../../internal/library/library.go) |

@@ -4962,6 +4962,8 @@ func bridgeName(name string) string {
 	return "mcp__uni-switch__" + bridgeToolName(name)
 }
 
+const bridgeToolMax = 64 - len("mcp__uni-switch__")
+
 // bridgeToolName is the name the MCP helper offers a tool of the caller's
 // under. Claude Code takes an MCP tool's name as [A-Za-z0-9_-] only, with
 // mcp__uni-switch__ before it in at most 64: it made "spawn.agent" its
@@ -4988,14 +4990,14 @@ func bridgeToolName(name string) string {
 	}
 	sum := sha256.Sum256([]byte(name))
 	short := bridgeToolNameBad.ReplaceAllString(name, "_")
-	if len(short) > 38 {
-		short = short[:38]
+	if len(short) > bridgeToolMax-13 {
+		short = short[:bridgeToolMax-13]
 	}
 	return short + "_" + hex.EncodeToString(sum[:6])
 }
 
 var (
-	bridgeToolNameOK     = regexp.MustCompile(`^[A-Za-z0-9_-]{1,51}$`)
+	bridgeToolNameOK     = regexp.MustCompile(fmt.Sprintf(`^[A-Za-z0-9_-]{1,%d}$`, bridgeToolMax))
 	bridgeToolNameBad    = regexp.MustCompile(`[^A-Za-z0-9_-]`)
 	bridgeToolNameHashed = regexp.MustCompile(`_[0-9a-f]{12}$`)
 )

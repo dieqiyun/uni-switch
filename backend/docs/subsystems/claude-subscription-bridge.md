@@ -64,9 +64,9 @@ user's own Claude Code sessions leaves a SOCKS proxy out (see
 A saved account added by a setup-token (see [Providers and accounts](providers-accounts.md)) has no sign-in in its config directory. `inClaudeDir`, which builds the env of every run in a saved account's directory (a turn's run, the warm-up, `askClaude`, `/usage`), drops any `CLAUDE_CODE_OAUTH_TOKEN` it was given and sets it to `provider.ClaudeDirToken(configDir)` when that directory is a token account's: the token reaches the real Claude Code there and nowhere else, never on its command line, never in a log, and never to Claude Code's own account. magpie asks Anthropic nothing with it; the entrypoint and everything else about the run are as for any account.
 
 The helper offers each of the client's tools under `bridgeToolName`
-(`bridgeTools`), which Claude Code calls `mcp__magpie__<name>`. Claude Code
+(`bridgeTools`), which Claude Code calls `mcp__uni-switch__<name>`. Claude Code
 keeps only `[A-Za-z0-9_-]` of an MCP tool's name, so a name it would change
-(`spawn.agent`, `fs/read`), one longer than 51 (64 with the prefix) or one
+(`spawn.agent`, `fs/read`), one longer than 47 (64 with the prefix) or one
 ending as a changed name ends (`_` and 12 hex digits) is cut, made of those
 characters and given a hash of the whole name: unique (`a.b` and `a_b`
 stay apart), the same in every run, so a resumed session, the history

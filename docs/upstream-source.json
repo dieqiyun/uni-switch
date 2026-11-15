@@ -29737,8 +29737,8 @@
     },
     {
       "path": "docs/subsystems/library.md",
-      "sha256": "d217ccae55437d3b3858acac41cef50cf36001c332ad07484af78891b33398d8",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove cross-computer synchronization, portable/manual/automatic backups and obsolete feature-only tests; retain local config write safety and historical data compatibility. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Provide client-page image setup with an explicit shared image-model choice and per-client built-in tool injection using the retained settings and Library APIs, preserving other clients and reporting failed reads/writes."
+      "sha256": "1992b1c69a4f2ec80fb2b6a46cbfe9de55bc7f2355420c8e23b18850e41d5405",
+      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove cross-computer synchronization, portable/manual/automatic backups and obsolete feature-only tests; retain local config write safety and historical data compatibility. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Provide client-page image setup with an explicit shared image-model choice and per-client built-in tool injection using the retained settings and Library APIs, preserving other clients and reporting failed reads/writes. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks."
     },
     {
       "path": "docs/subsystems/mcp-router.md",
@@ -32866,8 +32866,8 @@
     },
     {
       "path": "internal/cli/agent_args_cli_test.go",
-      "sha256": "51cf0a38ebb9d32c2114222f085f176b14f655e370b5cf25997fdfcafd91dfd7",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align isolated regression fixtures with retained provider, key-group, context-window and local-only contracts; use synthetic credentials and portable native-process/path fixtures."
+      "sha256": "7b3f9f28e4cf9d8e660da98594c1a1cc96c11bf8b232876036610f3e9f1c88c8",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align isolated regression fixtures with retained provider, key-group, context-window and local-only contracts; use synthetic credentials and portable native-process/path fixtures. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks."
     },
     {
       "path": "internal/cli/agent_default_cli_test.go",
@@ -33106,8 +33106,8 @@
     },
     {
       "path": "internal/cli/main.go",
-      "sha256": "01d4c3735c4fbdf4a6e3225098efc4b8eb3450e360e658647e0ad0234b23c27b",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure."
+      "sha256": "b0388501f1e1eab20eb97d0d7c77d9d62c51751488674399de7763624fae386a",
+      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks."
     },
     {
       "path": "internal/cli/model_alias_cli_test.go",
@@ -34926,8 +34926,8 @@
     },
     {
       "path": "internal/gateway/claude_subscription.go",
-      "sha256": "88a899937542fb1d2d4a6e4219d6c7ae25eb67e86392b518f0b0e1349b9d3ea9",
-      "reason": "Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "ebc06fd1692d87ea23e736f554a1b1aae0cdac9a0c964716cae152d62bf10f5a",
+      "reason": "Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Bound Claude MCP tool names to 64 characters including the uni-switch namespace and verify boundary names and uniqueness."
     },
     {
       "path": "internal/gateway/claude_switch_only_test.go",
@@ -34946,8 +34946,8 @@
     },
     {
       "path": "internal/gateway/claude_tool_names_test.go",
-      "sha256": "10abb23add70ed1e63ff5b4aea765b436db6ffaba2a162c5723c677ea49be633",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "79c8d6c55b1ef40f6153930aeb42287a5766d0dc612eedce793435e476c65e8f",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Bound Claude MCP tool names to 64 characters including the uni-switch namespace and verify boundary names and uniqueness."
     },
     {
       "path": "internal/gateway/claude_tool_result_text_test.go",
@@ -48079,13 +48079,13 @@
     },
     {
       "path": "internal/library/mcp_run_test.go",
-      "sha256": "8335a5c6e0c8766826ad5e7dd68c59a746d17df73737ed5ee3747c695c4be906",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "d25b374dab3fc89ac58d7258d2a389104afe9c3a730bd4f41dd9b22d3df96c3b",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks."
     },
     {
       "path": "internal/library/mcp_run.go",
-      "sha256": "2cb0b49f1b84633f14d5d6659854ca3483e4356c701d20a4c35f10373a79fd7a",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "d067cc59d4cc6457b53bf221bda5cb14551fe467930a37dba136d88f0389f7ee",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks."
     },
     {
       "path": "internal/library/mcp_signin_app_test.go",
@@ -54263,6 +54263,11 @@
       "path": "internal/steady/steady_test.go",
       "sha256": "a1451e506ef4ef01793eb1650c40ef883f738155217e324427492bebeaec2126",
       "reason": "Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage. Bound Windows known-file retries across alternating missing/sharing errors and verify the retry regression against the prior behavior."
+    },
+    {
+      "path": "docs/subsystems/claude-subscription-bridge.md",
+      "sha256": "f650a12032e6bd794094ed7e6537430d2fc2eaa2a08ba51c0ea058b86645a499",
+      "reason": "Bound Claude MCP tool names to 64 characters including the uni-switch namespace and verify boundary names and uniqueness."
     }
   ],
   "removedFiles": [

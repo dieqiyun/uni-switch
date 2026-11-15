@@ -416,6 +416,41 @@ func TestRunCodexEntry(t *testing.T) {
 	}
 }
 
+// A command must wait for the MCP rewrite it started, even when another
+// library operation holds the lock. The held lock forces the slow CI case.
+func TestRewiredSettledWaitsForCodexServers(t *testing.T) {
+	h := sandbox(t)
+	resetRuns(t)
+	runOn = true
+	wired := false
+	was := runWired
+	runWired = func(a *agent.Agent) bool { return wired }
+	t.Cleanup(func() { RewiredSettled(); runOn, runWired = false, was })
+	if _, err := SaveServer("", Server{Name: "mem", Transport: "stdio", Command: "node", Args: []string{"server.js"}, Agents: []string{"codex"}}); err != nil {
+		t.Fatal(err)
+	}
+	wired = true
+	mu.Lock()
+	agent.Rewired("codex")
+	done := make(chan struct{})
+	go func() { RewiredSettled(); close(done) }()
+	select {
+	case <-done:
+		mu.Unlock()
+		t.Fatal("rewiring settled before the held library rewrite completed")
+	case <-time.After(100 * time.Millisecond):
+	}
+	mu.Unlock()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("rewiring did not settle after the library lock was released")
+	}
+	if codex := read(t, filepath.Join(h, ".codex/config.toml")); !strings.Contains(codex, RunPath+"mem") {
+		t.Fatalf("rewiring settled without updating Codex's server:\n%s", codex)
+	}
+}
+
 // A server the user keeps direct (#4382, cuipengcx90: cocoindex reads its
 // project from the folder it starts in) is given to Codex on uni-switch as its
 // command, as to every other agent, with the hub on or off: Codex starts it

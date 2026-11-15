@@ -98,9 +98,8 @@ func writeHomeFile(t *testing.T, rel, s string) string {
 	return p
 }
 
-// codexOnAdvanced is the reporter's machine: Codex's own config.toml, a
-// routing group advanced, and Codex put on it with uni-switch codex
-// a/m. It gives the config's path.
+// codexOnAdvanced is the reporter's machine: Codex's own config.toml and
+// Codex put on provider a's model m. It gives the config's path.
 func codexOnAdvanced(t *testing.T) string {
 	t.Helper()
 	cliHome(t)

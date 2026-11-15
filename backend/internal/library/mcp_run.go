@@ -100,6 +100,12 @@ var runWired = func(a *agent.Agent) bool { return a.Wired() && !a.Disconnected()
 // runOn, off in the package's tests that aren't about it.
 var runOn = true
 
+var rewiring sync.WaitGroup
+
+// RewiredSettled waits for the library updates started by agent.Rewired.
+// A CLI command must finish these before it exits or changes its home.
+func RewiredSettled() { rewiring.Wait() }
+
 func init() {
 	gateway.RunMCP = ServeRun
 	// a Codex connected or disconnected is given its servers the other
@@ -116,11 +122,11 @@ func init() {
 			was, seen := runs.wired[id]
 			runs.Unlock()
 			if !seen || was != runsFor(t, gatewayOf(t)) {
-				go func() {
+				rewiring.Go(func() {
 					if _, err := Sync(); err != nil {
 						log.Printf("library: syncing %s's MCP servers: %v", id, err)
 					}
-				}()
+				})
 			}
 			return
 		}

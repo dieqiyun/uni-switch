@@ -94,7 +94,7 @@ done
 	}
 	paths := map[provider.Protocol]string{provider.Anthropic: "/v1/messages", provider.Chat: "/v1/chat/completions", provider.Responses: "/v1/responses"}
 	nameRe := regexp.MustCompile(`"name":"((?:[^"\\]|\\.)*)"`)
-	validRe := regexp.MustCompile(`^[A-Za-z0-9_-]{1,51}$`)
+	validRe := regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 	p := provider.Provider{ID: "claude", Account: &provider.Account{Agent: "claude", User: "u"}}
 	for _, from := range []provider.Protocol{provider.Anthropic, provider.Chat, provider.Responses} {
 		for _, stream := range []bool{false, true} {
@@ -126,8 +126,8 @@ done
 				names := strings.Fields(strings.ReplaceAll(string(b), " ", "\x00"))
 				seen := map[string]bool{}
 				for _, n := range names {
-					if !validRe.MatchString(n) || seen[n] {
-						t.Errorf("%s: Claude Code was offered %q, which isn't a valid, unique MCP tool name of at most 51: %q", what, n, names)
+					if !validRe.MatchString(n) || len("mcp__uni-switch__"+n) > 64 || seen[n] {
+						t.Errorf("%s: Claude Code was offered %q, which isn't a valid, unique MCP tool name within 64 characters including its prefix: %q", what, n, names)
 					}
 					seen[n] = true
 				}
@@ -155,6 +155,28 @@ done
 	}
 	if !strings.Contains(text.String(), "[tool call mcp__uni-switch__"+bridgeToolName(long)+" id=c2 ") || len("mcp__uni-switch__"+bridgeToolName(long)) > 64 {
 		t.Errorf("history tells the long name as %q", text.String())
+	}
+}
+
+func TestClaudeBridgeToolNameLength(t *testing.T) {
+	valid := regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+	seen := map[string]string{}
+	for _, name := range []string{
+		strings.Repeat("x", 47), strings.Repeat("x", 48), strings.Repeat("x", 49),
+		strings.Repeat("x", 51), strings.Repeat("x", 100), "a.b", "a_b",
+		"mcp__uni-switch__" + strings.Repeat("x", 49),
+	} {
+		got := bridgeName(name)
+		if len(got) > 64 || !valid.MatchString(got) {
+			t.Errorf("%q became an invalid tool name %q", name, got)
+		}
+		if other, ok := seen[got]; ok && other != name {
+			t.Errorf("%q and %q map to the same tool name", name, other)
+		}
+		seen[got] = name
+		if len(name)+len("mcp__uni-switch__") <= 64 && valid.MatchString(name) && got != "mcp__uni-switch__"+name {
+			t.Errorf("valid short tool changed: %q became %q", name, got)
+		}
 	}
 }
 
