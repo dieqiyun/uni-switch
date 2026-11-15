@@ -64,9 +64,13 @@ func retry(f func() error) error {
 // waited the whole 15ms (#1665: ~22ms an agent each catalog sync, 2.6s a
 // round of 116 on Windows).
 func retryGone(f func() error) error {
+	return retryMissing(f, goneTries, gonePause)
+}
+
+func retryMissing(f func() error, count int, delay time.Duration) error {
 	err := retry(f)
-	for i := 0; err != nil && windows && errors.Is(err, fs.ErrNotExist) && !errors.Is(err, errPathNotFound) && i < goneTries; i++ {
-		time.Sleep(gonePause)
+	for i := 0; err != nil && windows && errors.Is(err, fs.ErrNotExist) && !errors.Is(err, errPathNotFound) && i < count; i++ {
+		time.Sleep(delay)
 		err = retry(f)
 	}
 	return err
@@ -84,14 +88,27 @@ func Stat(p string) (fs.FileInfo, error) {
 	return fi, err
 }
 
+// StatThere is Stat for a file read successfully before. Concurrent Windows
+// replacements can keep it unavailable longer than a single rename, so give
+// them the same half-second allowance as a sharing violation. Files never
+// found still use Stat's short wait; a genuinely deleted file remains an error.
+func StatThere(p string) (fs.FileInfo, error) {
+	var fi fs.FileInfo
+	err := retryMissing(func() (err error) {
+		fi, err = stat(p)
+		return err
+	}, tries, pause)
+	return fi, err
+}
+
 // ReadThere is ReadFile of a file just found there (Stat): not there now is
 // it being replaced, waited out.
 func ReadThere(p string) ([]byte, error) {
 	var b []byte
-	err := retryGone(func() (err error) {
+	err := retryMissing(func() (err error) {
 		b, err = readFile(p)
 		return err
-	})
+	}, tries, pause)
 	return b, err
 }
 
@@ -101,10 +118,10 @@ func ReadThere(p string) ([]byte, error) {
 // as it started (a 1.5 MB config.toml read 150 times over).
 func ReadThereInto(p string, buf []byte) ([]byte, error) {
 	var b []byte
-	err := retryGone(func() (err error) {
+	err := retryMissing(func() (err error) {
 		b, err = readInto(p, buf[:0])
 		return err
-	})
+	}, tries, pause)
 	return b, err
 }
 

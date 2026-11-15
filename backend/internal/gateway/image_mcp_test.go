@@ -344,7 +344,7 @@ func TestImageMCPFileLinkOpensWithoutKey(t *testing.T) {
 	if _, err := access.Update("off-key", access.Change{Key: keys[0].ID}); err != nil {
 		t.Fatal(err)
 	}
-	if c := get(urls[0]); c != http.StatusUnauthorized {
+	if c := get(urls[0]); c != http.StatusNotFound {
 		t.Fatalf("its key off: %d", c)
 	}
 	if _, err := access.Update("on-key", access.Change{Key: keys[0].ID}); err != nil {
@@ -353,14 +353,9 @@ func TestImageMCPFileLinkOpensWithoutKey(t *testing.T) {
 	if c := get(urls[0]); c != 200 {
 		t.Fatalf("its key on again: %d", c)
 	}
-	// not shared, the token opens nothing from another computer
-	st := settings.Load()
-
-	if err := settings.Save(st); err != nil {
-		t.Fatal(err)
-	}
-	if c := get(urls[0]); c != http.StatusForbidden {
-		t.Fatalf("not shared: %d", c)
+	// A valid token still opens nothing from another computer.
+	if w := imageGet(h, "192.0.2.7:5000", urls[0]); w.Code != http.StatusForbidden {
+		t.Fatalf("remote file request: %d", w.Code)
 	}
 }
 

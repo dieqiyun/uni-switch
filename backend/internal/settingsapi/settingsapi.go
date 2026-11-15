@@ -194,17 +194,8 @@ func Merge(body []byte, cur settings.Settings, web bool) (settings.Settings, err
 	if _, sent := fields["imageTimeout"]; !sent {
 		in.ImageTimeout = cur.ImageTimeout
 	}
-	// nor what every routing group does that says nothing of its own,
-	// which the Routing groups page sets (jiezhengj on Discord)
-	if _, sent := fields["groupSink"]; !sent {
-		in.GroupSink = cur.GroupSink
-	}
-	if _, sent := fields["groupFirstToken"]; !sent {
-		in.GroupFirstToken = cur.GroupFirstToken
-	}
-	if _, sent := fields["groupPatience"]; !sent {
-		in.GroupPatience = cur.GroupPatience
-	}
+	// Retired routing-group preferences are carried from old files only.
+	in.GroupSink, in.GroupFirstToken, in.GroupPatience = cur.GroupSink, cur.GroupFirstToken, cur.GroupPatience
 	// nor whether animations are stilled (#3813)
 	if _, sent := fields["reduceMotion"]; !sent {
 		in.ReduceMotion = cur.ReduceMotion

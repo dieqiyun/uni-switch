@@ -96,7 +96,7 @@ func TestCORSOrigins(t *testing.T) {
 			t.Errorf("key %q: %d %v %s", key, w.Code, w.Header(), w.Body)
 		}
 	}
-	// a key turned off is no key
+	// An explicitly disabled key is an authentication failure.
 	keys, _ := access.List()
 	access.Update("off-key", access.Change{Key: keys[len(keys)-1].ID})
 	if w := do("GET", "/v1/models", "http://localhost:3000", secret, nil); w.Code != http.StatusUnauthorized {
@@ -372,7 +372,7 @@ func TestOpaqueOriginNeedsAKey(t *testing.T) {
 	// a key turned off is no key
 	keys, _ := access.List()
 	access.Update("off-key", access.Change{Key: keys[len(keys)-1].ID})
-	if w := do("POST", "/v1/chat/completions", "null", secret); w.Code != http.StatusForbidden {
+	if w := do("POST", "/v1/chat/completions", "null", secret); w.Code != http.StatusUnauthorized {
 		t.Errorf("with a key turned off: %d %s", w.Code, w.Body)
 	}
 	access.Update("on-key", access.Change{Key: keys[len(keys)-1].ID})

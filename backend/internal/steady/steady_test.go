@@ -42,6 +42,27 @@ func TestStatWaitsOutAReplace(t *testing.T) {
 	}
 }
 
+func TestKnownFileWaitsOutConcurrentReplacements(t *testing.T) {
+	windows = true
+	defer func() { windows, stat = runtime.GOOS == "windows", os.Stat }()
+	missing := goneTries + 1
+	stat = func(p string) (fs.FileInfo, error) {
+		if missing > 0 {
+			missing--
+			return nil, fs.ErrNotExist
+		}
+		return os.Stat(p)
+	}
+	p := t.TempDir()
+	if _, err := StatThere(p); err != nil {
+		t.Fatalf("a known file being replaced taken for gone: %v", err)
+	}
+	stat = os.Stat
+	if _, err := StatThere(p + "-removed"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("a genuinely removed file: %v", err)
+	}
+}
+
 // #1665: a file whose folder isn't there is not being renamed into it, and
 // is said gone without the wait; most agents aren't installed, and each
 // one's first look waited the whole of it

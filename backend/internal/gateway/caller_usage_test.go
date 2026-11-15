@@ -123,14 +123,12 @@ func TestRejectedRequestRetainsCallerIdentity(t *testing.T) {
 func TestManagedLocalQueryKey(t *testing.T) {
 	fresh(t)
 	keys, secrets := newCaller(t, "Desktop")
-	enabled := true
+	hits := 0
 	h := localGuard(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		who := access.Caller(r.Context())
-		if enabled && (who.KeyID != keys[0].ID || r.URL.Query().Get("key") != Token) {
+		hits++
+		if who.KeyID != keys[0].ID || r.URL.Query().Get("key") != Token {
 			t.Fatal("query key or user not normalized", who)
-		}
-		if !enabled && who.KeyID != "" {
-			t.Fatal("disabled key retained an identity", who)
 		}
 	}))
 	r := httptest.NewRequest("POST", "/v1beta/models/m:generateContent?key="+secrets[0], nil)
@@ -143,11 +141,10 @@ func TestManagedLocalQueryKey(t *testing.T) {
 	if _, err := access.Update("off-key", access.Change{Key: keys[0].ID}); err != nil {
 		t.Fatal(err)
 	}
-	enabled = false
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	if w.Code != 200 {
-		t.Fatal("trusted loopback access changed", w.Code)
+	if w.Code != http.StatusUnauthorized || hits != 1 {
+		t.Fatal("disabled key reached the handler", w.Code, hits)
 	}
 }
 

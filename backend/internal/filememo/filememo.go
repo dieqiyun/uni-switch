@@ -195,7 +195,7 @@ func read[T any](kind, path string, parse func([]byte) (T, error), held bool) (T
 	}
 	g := gen
 	mu.Unlock()
-	fi, err := statFile(path)
+	fi, err := statFile(path, ok)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			mu.Lock()
@@ -293,7 +293,7 @@ func parsed[T any](key memoKey, fi os.FileInfo, b []byte, parse func([]byte) (T,
 // time either: taken for gone, a file of accounts read as no accounts, and
 // the next write left them all out (Packing1 on Discord, Windows 11:
 // Antigravity's account gone after an update).
-func statFile(path string) (os.FileInfo, error) {
+func statFile(path string, known bool) (os.FileInfo, error) {
 	mu.Lock()
 	wasGone := gone[path]
 	stats++
@@ -302,6 +302,8 @@ func statFile(path string) (os.FileInfo, error) {
 	var err error
 	if wasGone {
 		fi, err = os.Stat(path)
+	} else if known {
+		fi, err = steady.StatThere(path)
 	} else {
 		fi, err = steady.Stat(path)
 	}

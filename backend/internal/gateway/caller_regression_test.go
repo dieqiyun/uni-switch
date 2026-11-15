@@ -24,20 +24,19 @@ func TestLoopbackRemainsPermissive(t *testing.T) {
 	fresh(t)
 	keys, secrets := newCaller(t, "Desk")
 	access.Update("off-key", access.Change{Key: keys[0].ID})
-	for _, shared := range []bool{false, true} {
-		if err := settings.Save(settings.Settings{}); err != nil {
-			t.Fatal(err)
-		}
-		for _, token := range []string{"", "anything", Token, TokenFor("alma"), "sk-uni-switch-stale", secrets[0]} {
-			for _, addr := range []string{"127.0.0.1:5000", "[::1]:5000"} {
-				r := httptest.NewRequest("GET", "/v1/models", nil)
-				r.RemoteAddr = addr
-				r.Header.Set("Authorization", "Bearer "+token)
-				w := httptest.NewRecorder()
-				localGuard(New().Handler()).ServeHTTP(w, r)
-				if w.Code != 200 {
-					t.Fatalf("shared=%v %s %q: %d", shared, addr, token, w.Code)
-				}
+	for _, token := range []string{"", "anything", Token, TokenFor("alma"), "sk-uni-switch-stale", secrets[0]} {
+		for _, addr := range []string{"127.0.0.1:5000", "[::1]:5000"} {
+			r := httptest.NewRequest("GET", "/v1/models", nil)
+			r.RemoteAddr = addr
+			r.Header.Set("Authorization", "Bearer "+token)
+			w := httptest.NewRecorder()
+			localGuard(New().Handler()).ServeHTTP(w, r)
+			want := http.StatusOK
+			if token == "sk-uni-switch-stale" || token == secrets[0] {
+				want = http.StatusUnauthorized
+			}
+			if w.Code != want {
+				t.Fatalf("%s %q: %d, want %d", addr, token, w.Code, want)
 			}
 		}
 	}

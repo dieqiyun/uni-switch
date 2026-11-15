@@ -513,3 +513,7 @@ Missing context-window overrides retain the explicit default-source marker.
 Model lists expose the provider/group label used by client pickers. A transient
 Windows connection refusal/reset does not erase the last successfully read
 allowance, and Git HEAD symlink inspection normalizes Windows path separators.
+Known credential files receive a bounded Windows retry during concurrent
+replacements; transient disappearance must not turn a saved account list into
+an empty list. Confirmed deletion still returns a missing-file error, while
+files never seen retain the short missing-file wait.
