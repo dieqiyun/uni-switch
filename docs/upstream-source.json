@@ -33196,8 +33196,8 @@
     },
     {
       "path": "internal/cli/pool_cli_test.go",
-      "sha256": "5a4cd57bcbdbd5a83755d5292e2d1e588e3adbda7ef475d850a4a97afec498fe",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "c842453f74339140180a3d49178f2a58dc692116680b3d9060d94714907e533e",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Wait for the pool fixture background catalog synchronization before restoring its environment and removing temporary configuration, matching the production CLI run lifecycle."
     },
     {
       "path": "internal/cli/pool_cli.go",

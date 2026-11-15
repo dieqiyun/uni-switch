@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dieqiyun/uni-switch/backend/internal/agent"
 	"github.com/dieqiyun/uni-switch/backend/internal/provider"
 )
 
@@ -35,6 +36,10 @@ func TestPoolCmd(t *testing.T) {
 	}
 	provider.ForgetAccounts()
 	t.Cleanup(provider.ForgetAccounts)
+	// This fixture calls providerCmd directly, bypassing run's wait for
+	// the account selection's background catalog sync. Finish it before
+	// restoring the environment or removing its configuration directory.
+	t.Cleanup(agent.SyncCatalogSettled)
 
 	if err := providerCmd([]string{"provider", "pool", "codex"}); err != nil {
 		t.Fatal(err)
