@@ -243,6 +243,14 @@ type unroutedKey struct{}
 func noteAsked(ctx context.Context, model string) {
 	if u, _ := ctx.Value(unroutedKey{}).(*unroutedHold); u != nil {
 		u.asked.Store(model)
+		// The watch can show while the body is still arriving, before its
+		// model is known. Keep that same row identifiable if it later times
+		// out and carries the saved report instead of giving way to a route.
+		u.f.mu.Lock()
+		if shown := u.shown; shown != nil {
+			u.s.trace.update(shown, func(r *Route) { r.Model = model })
+		}
+		u.f.mu.Unlock()
 	}
 }
 

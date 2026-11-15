@@ -88,6 +88,16 @@ Claude 终端和基础包通过；必须以完整回归与新三平台 CI 的最
 
 ## 历史发布阻塞与修复过程
 
+Linux 候选 `bbb49e6` 的普通完整测试发现 `TestUnroutedUnknownHoldAnsweredSooner`：
+观察记录可能在读取模型名之前显示，之后保存 504 报告时仍是空模型名；
+按模型查询只看到处理取消的另一条 499 记录。`noteAsked` 现在在同一观察记录上补齐模型，
+使超时及报告仍可按模型找到。测试通过管道先阻止请求体、明确显示观察记录再发送模型，
+稳定复现先显示后解析的顺序：旧实现以 `the held request's report was never saved` 失败
+（`unrouted-model-before-round129.log`），修复后三项超时/报告/慢请求体检查通过
+`-race -count=20`（`unrouted-model-fixed-round130.log`）。
+重新编译核心后，Chromium/WebKit × 五语言分组推理、未登录配置和无效请求检查共 10 组通过；
+真实隔离 Codex CLI 无登录、外连被阻断，恰好使用选中分组的合成 Key 请求一次本地上游。
+
 Windows 原生候选 `6d331db` 的普通完整测试发现四项夹具失败：WSL 测试只写内存记录，
 后续枚举会按宿主机器的安装列表移除虚构发行版；两项 Codex 缓存测试依赖连续请求之间
 至少经过 1 纳秒；本机 TLS 握手耗时可能被 Windows 时钟量化成 0。

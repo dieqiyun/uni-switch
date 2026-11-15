@@ -428,7 +428,11 @@ recorded as a prediction failure (`noPrediction`).
   empty, until Codex and magpie were restarted; what held it wasn't
   found). After `unroutedShow` (15s) a route of provider `magpie` shows it
   on the Routing page as routing, and gives way to the request's own route
-  once one is begun (`noteRoute`, `trace.drop`). It is answered 504 after
+  once one is begun (`noteRoute`, `trace.drop`). If it shows before the body
+  supplies its model, `noteAsked` fills that same row when the model becomes
+  known, so a subsequent timeout and its saved report remain identifiable
+  by model (`TestUnroutedUnknownHoldAnsweredSooner` forces this order).
+  It is answered 504 after
   `unroutedMost` (2m), excluding earned upload time
   (sharwowwow on X: two minutes of spinning before a 504). An upload
   earns one second per 32 KiB actually read from the wire, capped at the

@@ -29722,8 +29722,8 @@
     },
     {
       "path": "docs/subsystems/gateway-routing.md",
-      "sha256": "09f4a7a57caca681e2aba5b67650a742b5dedcc34ae138d48257d71f9a4a03a1",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Expose named API key groups with independent model selections, stable credential-free IDs, group-specific routing, backward-compatible ordinary selections, and accessible multilingual controls. Document adaptive Codex auth and structured request-validation failures in the integrated local core. Repair integrated retained behavior: local key attribution and revocation, ordinary provider/key fallback, stable client sync, native identity and Windows transport/path handling; remove retired terminal usage reports."
+      "sha256": "5839a4f4ddafc0c4d155cff63fd9783221bc720b55ac53da6e81c4ffdb494ee2",
+      "reason": "Document watch model updates after delayed body parsing so timeout reports remain identifiable, alongside the retained local gateway and ordinary fallback contracts."
     },
     {
       "path": "docs/subsystems/gateway-sessions.md",
@@ -39386,8 +39386,8 @@
     },
     {
       "path": "internal/gateway/unrouted_test.go",
-      "sha256": "6739f507aa568836ee9e899c04a04e73906aefd0462797ff5ba8b907b9f78379",
-      "reason": "Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Align isolated regression fixtures with retained provider, key-group, context-window and local-only contracts; use synthetic credentials and portable native-process/path fixtures."
+      "sha256": "251de99f586e90fd0c6a9c8ada37b7056f638406256676c5effd290051b2c369",
+      "reason": "Force the watch to show before any request-body model is available, reproducing the missing report-by-model regression deterministically."
     },
     {
       "path": "internal/gateway/unrouted_upload_test.go",
@@ -39396,8 +39396,8 @@
     },
     {
       "path": "internal/gateway/unrouted.go",
-      "sha256": "b116a8bb984724277b9e69e1752d1240b79554978585b17f36f4df3e870393f8",
-      "reason": "Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "3cd5a5c5b0d2f6625dde8585dfea41592270c68fcd22e62b94a53c403ac42467",
+      "reason": "Fill the already displayed unrouted-watch row when its model is parsed, preserving model-based discovery of a subsequent timeout and saved diagnostic report."
     },
     {
       "path": "internal/gateway/unserved_kept_test.go",

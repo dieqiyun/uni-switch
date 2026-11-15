@@ -141,7 +141,20 @@ func TestUnroutedUnknownHoldAnsweredSooner(t *testing.T) {
 	unlock := func() { once.Do(sticks.Unlock) }
 	t.Cleanup(unlock)
 
-	got := posted(srv, strings.NewReader(unroutedHi))
+	// Force the watch to show before the body has supplied its model. A
+	// loaded runner can put show ahead of parsing even for a small body.
+	pr, pw := io.Pipe()
+	t.Cleanup(func() { pw.Close() })
+	got := posted(srv, pr)
+	u := watchedHold(t, s)
+	u.show()
+	if rs := s.Trace(context.Background(), 0, 0).Routes; len(rs) != 1 || rs[0].Model != "" {
+		t.Fatalf("request not shown before its model was read: %+v", rs)
+	}
+	if _, err := io.WriteString(pw, unroutedHi); err != nil {
+		t.Fatal(err)
+	}
+	pw.Close()
 	var r unroutedReply
 	select {
 	case r = <-got:
