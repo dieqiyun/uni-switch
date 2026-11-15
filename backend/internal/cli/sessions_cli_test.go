@@ -14,7 +14,6 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/catalog"
 	"github.com/dieqiyun/uni-switch/backend/internal/sessions"
 	"github.com/dieqiyun/uni-switch/backend/internal/settings"
-	"github.com/dieqiyun/uni-switch/backend/internal/testenv"
 )
 
 // sessionsHome is a sandbox HOME with the sessions package's fixtures as
@@ -41,8 +40,7 @@ func sessionsHome(t *testing.T) time.Time {
 		}
 		t.Setenv(env, dir)
 	}
-	// put back after the Reset below, whose index write reads the zone
-	testenv.Zone(t, time.UTC)
+	// TestMain sets UTC once, before any background transport can read it.
 	oldPrice := sessions.PriceOf
 	sessions.PriceOf = func(_ settings.Settings, m string) (catalog.Price, bool) {
 		switch m {
@@ -54,8 +52,8 @@ func sessionsHome(t *testing.T) time.Time {
 		return catalog.Price{}, false
 	}
 	t.Cleanup(func() {
-		// the index is written behind the page: let that write finish before
-		// the zone it reads (a stat of the file it writes) goes back
+		// The index is written behind the page; wait before replacing its
+		// price hook and removing the fixture home.
 		sessions.Reset()
 		sessions.PriceOf = oldPrice
 	})

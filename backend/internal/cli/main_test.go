@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dieqiyun/uni-switch/backend/internal/testenv"
 )
@@ -18,6 +19,10 @@ import (
 // With UNI_SWITCH_CLI_TEST_SERVE set, inside a test's sandbox, the test binary
 // is `uni-switch serve` of a released version (serve_update_test.go).
 func TestMain(m *testing.M) {
+	// Session fixtures use UTC dates. Set this once before starting any
+	// test workers: changing time.Local between commands races the clock
+	// reads in long-lived HTTP transports and connection health checks.
+	time.Local = time.UTC
 	if os.Getenv("UNI_SWITCH_CLI_TEST_SERVE") != "" {
 		if os.Getenv(testenv.Marker) == "" {
 			os.Exit(2)

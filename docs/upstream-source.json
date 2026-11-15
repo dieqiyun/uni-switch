@@ -33101,8 +33101,8 @@
     },
     {
       "path": "internal/cli/main_test.go",
-      "sha256": "81ebfb6bb06a97d664a490aeb79f2b185f9499abb0487c5ea8a83eeee7489cc6",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "05b0b19f8d2f9695e18c2893f3e4f2570e22d1bfb5786b57350e0eea4f58ec94",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Set the CLI test timezone once before background workers start instead of swapping process time.Local in session fixtures; verify concurrent clock readers under the race detector."
     },
     {
       "path": "internal/cli/main.go",
@@ -33381,8 +33381,8 @@
     },
     {
       "path": "internal/cli/sessions_cli_test.go",
-      "sha256": "b4744107b64694bdbe74216d3043c61349bc6dcd50e43ab75392e4bc70a81945",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "51a39710d94ae51fd29e2e654f57a4757e947897c2e835488275875742b2b2d0",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Set the CLI test timezone once before background workers start instead of swapping process time.Local in session fixtures; verify concurrent clock readers under the race detector."
     },
     {
       "path": "internal/cli/sessions_cli.go",
