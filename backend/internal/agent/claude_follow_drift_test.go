@@ -89,17 +89,14 @@ func TestClaudeFollowerOnTheMainModelIsNoDrift(t *testing.T) {
 // stopped: a stopped one reads what was last seen there.
 func TestWSLClaudeFollowerOnTheMainModelIsNoDrift(t *testing.T) {
 	root, home := claudeDistroHome(t, `{"model": "opus"}`)
-	d := distro{Name: "Ubuntu", Root: root, Home: "/home/me", Has: map[string]bool{"dir:.claude": true},
-		Gateway: "172.20.0.1", Mirrored: true, Running: true}
-	// what uni-switch sees there is kept for when the distro stops
-	seen := d
-	wsl.Lock()
-	if wsl.seen == nil {
-		wsl.seen = map[string]*distro{}
+	t.Cleanup(FakeWSL(map[string]string{
+		"Ubuntu": "home:/home/me\ndir:.claude\nnet:mirrored\n",
+	}, map[string]string{"Ubuntu": root}))
+	ds := wslDistros()
+	if len(ds) != 1 || ds[0].Name != "Ubuntu" {
+		t.Fatalf("fake Ubuntu not discovered: %+v", ds)
 	}
-	wsl.seen["Ubuntu"] = &seen
-	wsl.Unlock()
-	t.Cleanup(func() { wsl.Lock(); delete(wsl.seen, "Ubuntu"); wsl.Unlock() })
+	d := ds[0]
 	a := wslAgent(wslKindOf("claude"), d)
 	path := claudeOpusThenSonnet(t, a, home)
 	sonnetFollowsAsBefore(t, a, path)
@@ -109,13 +106,18 @@ func TestWSLClaudeFollowerOnTheMainModelIsNoDrift(t *testing.T) {
 	if dr := a.Drift(); dr != nil {
 		t.Fatalf("drift on a tier following uni-switch's model: %+v", *dr)
 	}
+	StopFakeWSL("Ubuntu")
 	d.Running = false
 	stopped := wslAgent(wslKindOf("claude"), d)
+	asked := FakeWSLRuns("Ubuntu")
 	if v := stopped.Values(); v["model"] != "anth/claude-sonnet-5-5[1m]" || v["sonnet"] != "" {
 		t.Fatalf("stopped: not what was last seen: %v", v)
 	}
 	if dr := stopped.Drift(); dr != nil {
 		t.Fatalf("stopped: drift on a tier following uni-switch's model: %+v", *dr)
+	}
+	if got := FakeWSLRuns("Ubuntu"); got != asked {
+		t.Fatalf("stopped distro was started by a read: %d commands, want %d", got, asked)
 	}
 	noOwnClaude(t)
 }

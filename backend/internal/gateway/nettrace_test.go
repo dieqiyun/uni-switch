@@ -32,7 +32,14 @@ func (h heldHeaders) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func TestTryTellsWhereItsTimeWent(t *testing.T) {
 	fresh(t)
 	const hold = 300 * time.Millisecond
-	up := httptest.NewTLSServer(heldHeaders{hold: hold})
+	up := httptest.NewUnstartedServer(heldHeaders{hold: hold})
+	// Fast loopback handshakes can round to zero on Windows. Hold this
+	// handshake across a clock tick so the positive TLS assertion is useful.
+	up.TLS = &tls.Config{GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		time.Sleep(30 * time.Millisecond)
+		return nil, nil
+	}}
+	up.StartTLS()
 	t.Cleanup(up.Close)
 	// by name, so the resolver is asked
 	base := strings.Replace(up.URL, "127.0.0.1", "localhost", 1) + "/v1"

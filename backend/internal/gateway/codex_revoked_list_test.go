@@ -47,9 +47,6 @@ func TestCodexModelListRevokedSignIn(t *testing.T) {
 	os.MkdirAll(filepath.Join(home, ".codex"), 0o755)
 	os.WriteFile(filepath.Join(home, ".codex", "models_cache.json"),
 		[]byte(`{"etag":"\"v1\"","models":[{"slug":"gpt-5.5","priority":1,"base_instructions":"x"}]}`), 0o644)
-	was := codexListFor
-	codexListFor = time.Nanosecond
-	t.Cleanup(func() { codexListFor = was })
 	h := New().Handler()
 
 	if code, has := codexListAsk(h); code != 200 || !has["fake/m1"] || !has["gpt-5.5"] {

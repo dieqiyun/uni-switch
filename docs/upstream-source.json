@@ -30187,8 +30187,8 @@
     },
     {
       "path": "internal/agent/claude_follow_drift_test.go",
-      "sha256": "405306786f2dc46797fd0dcc2eaccc038178bff54a1be18b5f32a9b2529e1859",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align isolated regression fixtures with retained provider, key-group, context-window and local-only contracts; use synthetic credentials and portable native-process/path fixtures."
+      "sha256": "df71c286bba958ec36930561c012aa67ea33ee4e65e988de7ad44fbe6c7799bc",
+      "reason": "Isolate WSL discovery and stop behavior with the full fake distro; preserve follower drift and no-start assertions independently of the host installation."
     },
     {
       "path": "internal/agent/claude_haiku_test.go",
@@ -35421,8 +35421,8 @@
     },
     {
       "path": "internal/gateway/codex_models_shared_test.go",
-      "sha256": "f76cf1e6511e72b441b6e690d8a8c0bd2b0813ba6b8200b196dba229e2fd99b3",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "de6dfbf5897020730160bec6cec3e9d968cab7ebc353a49950e883d30a3daba1",
+      "reason": "Age fetched model cache entries explicitly instead of relying on a one-nanosecond clock advance on Windows; retain stale refresh and refused-token assertions."
     },
     {
       "path": "internal/gateway/codex_models_wait_test.go",
@@ -35556,8 +35556,8 @@
     },
     {
       "path": "internal/gateway/codex_revoked_list_test.go",
-      "sha256": "aa09526a6d54f20607032f5477a4e4ced89525cbe16d1aa0601afecca526ce32",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "fbe62e7509404f66a316c43fea5079631dfad3c03025b5730dec1531529ff2fc",
+      "reason": "Remove an unnecessary one-nanosecond lifetime override from the revoked-token fixture; revoked and expired responses have no successful cached list to age."
     },
     {
       "path": "internal/gateway/codex_rewrite_scan_test.go",
@@ -37351,8 +37351,8 @@
     },
     {
       "path": "internal/gateway/nettrace_test.go",
-      "sha256": "62f379ce9de9fd4a0b5a1a72035483f529816197b47356243ed5fa9ee0a7ac9c",
-      "reason": "Remove third-party extension integration and preserve statically compiled core features and legacy data; update related regression coverage and documentation. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "07b2653befb9efa13f87e41ab9834a87fb00e2aff3eaaf6252d3d40b94d49d61",
+      "reason": "Hold the local TLS test handshake across Windows clock ticks while retaining positive TLS timing, connection reuse and request timing assertions."
     },
     {
       "path": "internal/gateway/nettrace.go",

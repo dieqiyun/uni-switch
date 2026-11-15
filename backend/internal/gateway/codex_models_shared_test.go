@@ -28,6 +28,24 @@ func forgetCodexLists(t *testing.T) {
 	t.Cleanup(reset)
 }
 
+// ageCodexLists makes the fetched list stale without assuming the platform's
+// clock advances between two immediate requests (Windows may report zero).
+func ageCodexLists(t *testing.T) {
+	t.Helper()
+	codexLists.asking.Wait()
+	codexLists.Lock()
+	defer codexLists.Unlock()
+	if len(codexLists.at) != 1 {
+		t.Fatalf("want one fetched list to age, got %d", len(codexLists.at))
+	}
+	for _, e := range codexLists.at {
+		if e.body == nil {
+			t.Fatal("no fetched list to age")
+		}
+		e.got = time.Now().Add(-codexListFor - time.Minute)
+	}
+}
+
 // codexListAsk is one /models request as a Codex app-server sends it.
 func codexListAsk(h http.Handler) (int, map[string]bool) {
 	rec := httptest.NewRecorder()
@@ -148,13 +166,14 @@ func TestCodexModelListStaleAnsweredAtOnce(t *testing.T) {
 		w.Write([]byte(`{"models":[{"slug":"gpt-new","priority":1}]}`))
 	})
 	t.Cleanup(func() { close(slow) })
-	was, wasFor := codexModelsWait, codexListFor
-	codexModelsWait, codexListFor = 3*time.Second, time.Nanosecond
-	t.Cleanup(func() { codexModelsWait, codexListFor = was, wasFor })
+	was := codexModelsWait
+	codexModelsWait = 3 * time.Second
+	t.Cleanup(func() { codexModelsWait = was })
 	h := New().Handler()
 	if _, has := codexListAsk(h); !has["gpt-old"] {
 		t.Fatalf("first list %v", has)
 	}
+	ageCodexLists(t)
 	// stale at once; the backend now holds its answer. Each answer comes
 	// from the list it has, well inside the 3 s it would have waited
 	start := time.Now()
@@ -189,13 +208,11 @@ func TestCodexModelListRefusedSignInPassed(t *testing.T) {
 		w.WriteHeader(401)
 		w.Write([]byte(`{"detail":"token expired"}`))
 	})
-	was := codexListFor
-	codexListFor = time.Nanosecond
-	t.Cleanup(func() { codexListFor = was })
 	h := New().Handler()
 	if code, has := codexListAsk(h); code != 200 || !has["gpt-old"] {
 		t.Fatalf("first list %d %v", code, has)
 	}
+	ageCodexLists(t)
 	// stale: handed out while the backend is asked again, which refuses
 	codexListAsk(h)
 	codexLists.asking.Wait()
