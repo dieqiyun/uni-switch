@@ -2,10 +2,12 @@ package gateway
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,10 +17,12 @@ import (
 // slowThinker streams its reasoning a piece at a time, as GLM on ZCode's
 // Start Plan does, and notes when it has said its last.
 type slowThinker struct {
-	events []string
-	gap    time.Duration
-	done   chan time.Time
-	sent   []time.Time // when each event was written; read after done
+	events    []string
+	gap       time.Duration
+	done      chan time.Time
+	sent      []time.Time // when each event was written; read after done
+	textAt    int
+	textAfter <-chan struct{} // text waits until the client has received reasoning
 }
 
 func (s *slowThinker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +30,14 @@ func (s *slowThinker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.WriteHeader(200)
 	f := w.(http.Flusher)
-	for _, ev := range s.events {
+	for i, ev := range s.events {
+		if s.textAfter != nil && i == s.textAt {
+			select {
+			case <-s.textAfter:
+			case <-r.Context().Done():
+				return
+			}
+		}
 		io.WriteString(w, ev+"\n\n")
 		f.Flush()
 		s.sent = append(s.sent, time.Now())
@@ -190,13 +201,14 @@ func TestThinkingStreamsWithNoOneElse(t *testing.T) {
 		proto  provider.Protocol
 		events []string
 		model  string
+		textAt int
 	}{
-		{"anthropic", provider.Anthropic, glmThinksSlowly, "claude-opus-5-5"},
-		{"chat", provider.Chat, glmChatThinksSlowly, "claude-opus-5-5"},
-		{"chat gpt", provider.Chat, glmChatThinksSlowly, "gpt-5.2"},
-		{"responses", provider.Responses, responsesThinks, "gpt-5.2"},
-		{"gemini", provider.Gemini, geminiThinks, "gemini-3-pro"},
-		{"chat gemini", provider.Chat, glmChatThinksSlowly, "gemini-3-pro"},
+		{"anthropic", provider.Anthropic, glmThinksSlowly, "claude-opus-5-5", 6},
+		{"chat", provider.Chat, glmChatThinksSlowly, "claude-opus-5-5", 3},
+		{"chat gpt", provider.Chat, glmChatThinksSlowly, "gpt-5.2", 3},
+		{"responses", provider.Responses, responsesThinks, "gpt-5.2", 7},
+		{"gemini", provider.Gemini, geminiThinks, "gemini-3-pro", 3},
+		{"chat gemini", provider.Chat, glmChatThinksSlowly, "gemini-3-pro", 3},
 	} {
 		for _, ask := range []struct{ path, body, thought, text string }{
 			{"/v1/messages", claudeAsks, `"thinking_delta"`, `"text_delta"`},
@@ -204,7 +216,10 @@ func TestThinkingStreamsWithNoOneElse(t *testing.T) {
 		} {
 			t.Run(x.name+ask.path, func(t *testing.T) {
 				fresh(t)
-				up := &slowThinker{events: x.events, gap: 200 * time.Millisecond, done: make(chan time.Time, 1)}
+				textAfter := make(chan struct{})
+				var release sync.Once
+				allowText := func() { release.Do(func() { close(textAfter) }) }
+				up := &slowThinker{events: x.events, done: make(chan time.Time, 1), textAt: x.textAt, textAfter: textAfter}
 				vendor := httptest.NewServer(up)
 				t.Cleanup(vendor.Close)
 				p := provider.Provider{ID: "relay", Name: "Relay", Key: "k", Models: []string{x.model}}
@@ -223,7 +238,18 @@ func TestThinkingStreamsWithNoOneElse(t *testing.T) {
 				}
 				gw := httptest.NewServer(New().Handler())
 				t.Cleanup(gw.Close)
-				res, err := http.Post(gw.URL+ask.path, "application/json", strings.NewReader(strings.Replace(ask.body, "MODEL", x.model, 1)))
+				t.Cleanup(allowText)
+				// The upstream cannot send text until the client sees a
+				// thought. A gateway holding thinking therefore cannot pass,
+				// even if a loaded runner delays reading the stream.
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				req, err := http.NewRequestWithContext(ctx, "POST", gw.URL+ask.path, strings.NewReader(strings.Replace(ask.body, "MODEL", x.model, 1)))
+				if err != nil {
+					t.Fatal(err)
+				}
+				req.Header.Set("Content-Type", "application/json")
+				res, err := http.DefaultClient.Do(req)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -234,24 +260,25 @@ func TestThinkingStreamsWithNoOneElse(t *testing.T) {
 					ln, err := rd.ReadString('\n')
 					if firstThought.IsZero() && strings.Contains(ln, ask.thought) {
 						firstThought = time.Now()
+						allowText()
 					}
 					if firstText.IsZero() && strings.Contains(ln, ask.text) {
+						if firstThought.IsZero() {
+							t.Fatal("text reached the client before any reasoning")
+						}
 						firstText = time.Now()
 					}
 					if err != nil {
 						break
 					}
 				}
+				if firstThought.IsZero() || firstText.IsZero() {
+					t.Fatal("no thinking or no text reached the client")
+				}
 				select {
 				case <-up.done:
 				case <-time.After(5 * time.Second):
 					t.Fatal("the vendor never finished")
-				}
-				if firstThought.IsZero() || firstText.IsZero() {
-					t.Fatal("no thinking or no text reached the client")
-				}
-				if firstText.Sub(firstThought) < 300*time.Millisecond {
-					t.Fatalf("thinking held: first thought only %v before the text", firstText.Sub(firstThought))
 				}
 			})
 		}

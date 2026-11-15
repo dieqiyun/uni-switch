@@ -39096,8 +39096,8 @@
     },
     {
       "path": "internal/gateway/thinking_streams_test.go",
-      "sha256": "fc547eaf8a05773d69e2cac2d67b13575b0538c8b9031c4d3211978ca28e659a",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure."
+      "sha256": "0b37f9773e13811c61b809e5025ba9ad0e0f75844e0d8d5ac8fe6b5d734358d4",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Verify streamed thinking with a client acknowledgement gate before upstream text instead of wall-clock gaps; hold-thinking mutation must fail."
     },
     {
       "path": "internal/gateway/thinking_switch_test.go",
