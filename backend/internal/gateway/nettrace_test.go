@@ -79,7 +79,9 @@ func TestTryTellsWhereItsTimeWent(t *testing.T) {
 	if try := r.Tries[0]; float64(try.TTFT) < n.Head-1 || float64(try.Millis) < n.Head-1 {
 		t.Fatalf("first byte %v after the first token %d or the end %d", n.Head, try.TTFT, try.Millis)
 	}
-	if r.Sent <= 0 || r.Own <= 0 || r.Sent > r.TTFT || r.Own > r.Sent {
+	// Own is whole milliseconds; a fast local route can legitimately round
+	// to zero. Positive preprocessing is covered by TestSplitSent.
+	if r.Sent <= 0 || r.Own < 0 || r.Sent > r.TTFT || r.Own > r.Sent {
 		t.Fatalf("route: sent %d own %d ttft %d", r.Sent, r.Own, r.TTFT)
 	}
 	// the open connection carries the next one

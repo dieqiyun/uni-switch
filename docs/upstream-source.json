@@ -37351,7 +37351,7 @@
     },
     {
       "path": "internal/gateway/nettrace_test.go",
-      "sha256": "07b2653befb9efa13f87e41ab9834a87fb00e2aff3eaaf6252d3d40b94d49d61",
+      "sha256": "42d74238e39a8da2be063b987b21124f68e6b3daccb66697f816ee2404579efc",
       "reason": "Hold the local TLS test handshake across Windows clock ticks while retaining positive TLS timing, connection reuse and request timing assertions."
     },
     {
