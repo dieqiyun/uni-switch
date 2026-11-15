@@ -14,7 +14,12 @@ const vars=JSON.parse(query.stdout);
 const qa=resolve(root,".qa");mkdirSync(qa,{recursive:true});
 const home=mkdtempSync(resolve(qa,"go-suite-"));
 const env={...process.env,...vars,HOME:home,USERPROFILE:home,APPDATA:resolve(home,"roaming"),LOCALAPPDATA:resolve(home,"local"),XDG_CONFIG_HOME:resolve(home,"config"),XDG_CACHE_HOME:resolve(home,"cache"),GOENV:"off",GOTOOLCHAIN:"local"};
-const command=args[0]==="vet"?["vet","-tags=nogui",...args.slice(1)]:["test","-tags=nogui",...args];
+// Every run uses a fresh HOME, so cached test results cannot be reused safely.
+// Disable only result caching: filesystem-heavy suites otherwise produce huge
+// test-input logs that Go processes after the test binary has already exited.
+// Keep an explicit repeat count (including stress runs such as -count=20).
+const repeat=args.some(a=>a==="-count"||a.startsWith("-count="))?[]:["-count=1"];
+const command=args[0]==="vet"?["vet","-tags=nogui",...args.slice(1)]:["test","-tags=nogui",...repeat,...args];
 if(!command.some(a=>a.startsWith("./")))command.push("./...");
 const fd=log?openSync(resolve(root,log),"w"):undefined;
 try{
