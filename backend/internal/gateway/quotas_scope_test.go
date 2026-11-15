@@ -64,7 +64,7 @@ func TestHeldKeyToldItsOwnQuotas(t *testing.T) {
 	h := localGuard(New().Handler())
 	do := func(method, path, secret string) (int, string) {
 		r := httptest.NewRequest(method, path, nil)
-		r.RemoteAddr = "192.168.1.9:5000"
+		r.RemoteAddr = "127.0.0.1:5000"
 		r.Header.Set("Authorization", "Bearer "+secret)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)

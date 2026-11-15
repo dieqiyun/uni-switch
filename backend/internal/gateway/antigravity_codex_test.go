@@ -69,14 +69,14 @@ func codexAGTurn(switched, search bool) string {
 }
 
 func TestAntigravityCodexHintIsTheRoutingPages(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join("..", "gui", "assets", "plugins", "routing", "client.js"))
+	b, err := os.ReadFile(filepath.Join("..", "gui", "assets", "i18n.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(b), quote(antigravityCodexHint)) {
-		t.Fatal("plugins/routing/client.js doesn't know the note the gateway adds to Antigravity's refusal of Codex's prompt")
+		t.Fatal("shared diagnostics translations doesn't know the note the gateway adds to Antigravity's refusal of Codex's prompt")
 	}
 	if !strings.Contains(string(b), quote(antigravityHermesHint)) {
-		t.Fatal("plugins/routing/client.js doesn't know the note the gateway adds to Antigravity's refusal of Hermes' old persona")
+		t.Fatal("shared diagnostics translations doesn't know the note the gateway adds to Antigravity's refusal of Hermes' old persona")
 	}
 }

@@ -43,7 +43,7 @@ func TestModelSpecSetListReset(t *testing.T) {
 	if !ok {
 		t.Fatal("kenari/glm-5:free is not in the catalog")
 	}
-	if e.Context != 0 || e.Output != 0 || e.Images || e.ImageInput != nil || len(e.Efforts) != 0 {
+	if e.Context != DefaultContextWindow || e.Output != 0 || e.Images || e.ImageInput != nil || len(e.Efforts) != 0 {
 		t.Fatalf("before: a model nothing knows has %+v", e)
 	}
 	told := 0
@@ -66,7 +66,7 @@ func TestModelSpecSetListReset(t *testing.T) {
 		t.Errorf("levels after set: %v reasoning %v", e.Efforts, e.Reasoning)
 	}
 	// the other model of the provider is left as it was
-	if o, _ := EntryOf("kenari/qwen-x:free"); o.Context != 0 || o.Images || len(o.Efforts) != 0 {
+	if o, _ := EntryOf("kenari/qwen-x:free"); o.Context != DefaultContextWindow || o.Images || len(o.Efforts) != 0 {
 		t.Errorf("the model given nothing changed: %+v", o)
 	}
 	rows := ModelSpecs()
@@ -94,7 +94,7 @@ func TestModelSpecSetListReset(t *testing.T) {
 		t.Errorf("reset took away %v", gone)
 	}
 	e, _ = EntryOf("kenari/glm-5:free")
-	if e.Context != 0 || e.Output != 0 || e.Images || len(e.Efforts) != 0 || e.Reasoning {
+	if e.Context != DefaultContextWindow || e.Output != 0 || e.Images || len(e.Efforts) != 0 || e.Reasoning {
 		t.Errorf("after reset: %+v", e)
 	}
 	if rows := ModelSpecs(); len(rows) != 0 {
@@ -168,7 +168,7 @@ func TestModelSpecProviderWildcard(t *testing.T) {
 	if gone, err := ResetModelSpec("kenari/*"); err != nil || !slices.Equal(gone, []string{"context", "output"}) {
 		t.Errorf("provider reset: %v %v", gone, err)
 	}
-	if e, _ := EntryOf("kenari/qwen-x:free"); e.Context != 0 || e.Output != 0 {
+	if e, _ := EntryOf("kenari/qwen-x:free"); e.Context != DefaultContextWindow || e.Output != 0 {
 		t.Errorf("after the provider's reset: %d %d", e.Context, e.Output)
 	}
 }

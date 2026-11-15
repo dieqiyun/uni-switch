@@ -66,7 +66,7 @@ func TestBedrockProfileAnsweredByItsModelIsNoSwap(t *testing.T) {
 	fresh(t)
 	srv := httptest.NewServer(&bareBedrock{served: "claude-opus-5-5"})
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("bedrock")
+	p, err := savedProtocolFixture("bedrock")
 	if err != nil {
 		t.Fatal(err)
 	}

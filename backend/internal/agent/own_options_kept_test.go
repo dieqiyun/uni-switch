@@ -41,7 +41,7 @@ func TestOwnOptionsKept(t *testing.T) {
 		t.Fatalf("openai's models not offered: %d", len(got))
 	}
 	built := testing.AllocsPerRun(5, func() { ownProvider(nil, "openai") })
-	kept := testing.AllocsPerRun(20, func() { ownOptions("", "", "openai") })
+	kept := testing.AllocsPerRun(20, func() { ownOptions("", "", "openai") }) - stampAllocs()
 	if kept*5 > built {
 		t.Fatalf("a provider's options already built took %.0f allocations, building them %.0f", kept, built)
 	}

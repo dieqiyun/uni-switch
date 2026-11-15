@@ -38,7 +38,7 @@ func TestCloudflareDecideModelsTested(t *testing.T) {
 		w.Write([]byte(`{"result":{"answers":{"ok":{"type":"noul","noul":0.9}}},"success":true,"errors":[],"messages":[]}`))
 	}))
 	defer srv.Close()
-	p, err := FromPreset("cloudflare-jev")
+	p, err := legacyVendor("cloudflare-jev")
 	if err != nil {
 		t.Fatal(err)
 	}

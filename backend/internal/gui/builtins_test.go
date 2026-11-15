@@ -198,7 +198,7 @@ func TestBuiltinsTranslated(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, lang := range []string{"zh: {", `"zh-TW": {`, "ja: {", "de: {"} {
-		_, block, ok := strings.Cut(string(src), "\n  "+lang+"\n")
+		_, block, ok := strings.Cut(strings.ReplaceAll(string(src), "\r\n", "\n"), "\n  "+lang+"\n")
 		if !ok {
 			t.Fatalf("no %s block", lang)
 		}
@@ -215,7 +215,7 @@ func TestBuiltinsTranslated(t *testing.T) {
 					continue
 				}
 				k, _ := json.Marshal(s)
-				if !strings.Contains(block, "\n    "+string(k)+": ") {
+				if !strings.Contains("\n"+block, "\n    "+string(k)+": ") {
 					t.Errorf("%s doesn't say %s", lang, k)
 				}
 			}

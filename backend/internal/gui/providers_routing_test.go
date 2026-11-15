@@ -144,7 +144,7 @@ func TestDecidePresetSaveKeepsRouting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.Routing != provider.Ordered || p.Affinity != provider.AffinitySession || !p.Sink || !p.Unlisted || p.AccountProxies[second] != "http://127.0.0.1:7890" {
+	if p.Routing != provider.Ordered || p.Affinity != provider.AffinitySession || !p.Sink || p.Unlisted || p.AccountProxies[second] != "http://127.0.0.1:7890" {
 		t.Fatalf("after Save: routing %q, affinity %q, sink %v, unlisted %v, proxies %v", p.Routing, p.Affinity, p.Sink, p.Unlisted, p.AccountProxies)
 	}
 	if got := providerInfo(*p, nil).Routing; got != provider.Ordered {

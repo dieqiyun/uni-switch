@@ -28,11 +28,32 @@ func legacyVendor(id string) (Provider, error) {
 			p.Anthropic, p.Catalog = "https://api.kimi.com/coding", "kimi-code-plan-cn"
 		}
 	case "zhipu":
-		p.Chat, p.Anthropic = "https://open.bigmodel.cn/api/paas/v4", "https://open.bigmodel.cn/api/anthropic"
+		p.Chat, p.Responses, p.Anthropic = "https://open.bigmodel.cn/api/paas/v4", "https://open.bigmodel.cn/api/v1", "https://open.bigmodel.cn/api/anthropic"
 	case "typesafe":
 		p.Decide = "https://api.typesafe.ai/v1"
 	case "volcengine-decision":
 		p.Decide = "https://ark.cn-beijing.volces.com/api/v1"
+	case "clinepass":
+		p.Chat = "https://api.cline.bot/api/v1"
+	case "kilo":
+		p.Chat = "https://api.kilo.ai/api/gateway"
+	case "opencode-zen", "opencode-go":
+		base := "https://opencode.ai/zen"
+		if id == "opencode-go" {
+			base += "/go"
+		}
+		p.Chat, p.Responses, p.Anthropic, p.Decide = base+"/v1", base+"/v1", base, base+"/v1"
+		p.Catalog = "opencode"
+	case "commandcode":
+		p.Chat, p.Catalog = "https://api.commandcode.ai/provider/v1", "commandcode"
+	case "together":
+		p.Chat = "https://api.together.xyz/v1"
+	case "vercel-jev":
+		p.Decide = "https://ai-gateway.vercel.sh/typesafe"
+	case "cloudflare-jev":
+		p.Decide = "https://api.cloudflare.com/client/v4"
+	case "pipellm":
+		p.Chat, p.Responses, p.Anthropic = "https://api.pipellm.ai/openai/v1", "https://api.pipellm.ai/v1", "https://api.pipellm.ai"
 	case "voyage":
 		p.Chat, p.Models = "https://api.voyageai.com/v1", []string{"voyage-4-large", "rerank-3", "voyage-code-3"}
 	default:

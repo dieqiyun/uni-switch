@@ -133,31 +133,27 @@ func TestVolcengineEmbeddingResponses(t *testing.T) {
 	}
 }
 
-func TestPresetPlanEmbeddingResolvesOutsideChatModels(t *testing.T) {
+func TestExplicitEmbeddingResolvesOutsideChatModels(t *testing.T) {
 	fresh(t)
-	p, err := provider.FromPreset("volcengine")
-	if err != nil {
-		t.Fatal(err)
+	p := provider.Provider{ID: "ark-agent", Preset: "volcengine", Chat: "https://ark.cn-beijing.volces.com/api/plan/v3", Key: "key"}
+	if len(p.PlanEmbeddings()) != 0 {
+		t.Fatal("retired preset supplied embedding models")
 	}
-	pr := provider.Preset("volcengine")
-	p.ID = "ark-agent"
-	p.Chat, p.Responses, p.Anthropic = pr.Regions[1].Chat, pr.Regions[1].Responses, pr.Regions[1].Anthropic
-	p.Key = "key"
 	if err := provider.Save(p); err != nil {
 		t.Fatal(err)
 	}
-	embed := p.PlanEmbeddings()
-	if len(embed) == 0 {
-		t.Fatal("Agent Plan has no preset embedding model")
+	const embed = "embed-explicit"
+	if err := catalog.SaveLive(p.ID, p.Chat, []catalog.Model{{ID: embed, Serves: catalog.ServesEmbedding}}); err != nil {
+		t.Fatal(err)
 	}
 	for _, m := range p.Exposed() {
-		if m.ID == embed[0].ID {
-			t.Fatalf("embedding model exposed for chat: %+v", m)
+		if m.ID == embed {
+			t.Fatalf("embedding exposed for chat: %+v", m)
 		}
 	}
-	got, model, ok := resolveRetrievalModel(embed[0].ID, catalog.ServesEmbedding)
-	if !ok || got.ID != p.ID || model != embed[0].ID {
-		t.Fatalf("bare embedding resolved to %q/%q, %v", got.ID, model, ok)
+	got, model, ok := resolveRetrievalModel(embed, catalog.ServesEmbedding)
+	if !ok || got.ID != p.ID || model != embed {
+		t.Fatalf("embedding resolved to %q/%q, %v", got.ID, model, ok)
 	}
 }
 

@@ -313,6 +313,12 @@ func fakeClaude(args []string) {
 	// prompt shows, as Claude Code connects its MCP servers beside it; a
 	// message sent before then is answered without the tools
 	listed := mcpListed(args)
+	// proc.batch targets Node's CRT argument parser. The Go fake uses the
+	// older Windows parser, so supply this tool-list signal independently
+	// of its double-quote parsing; the shim still reads its real MCP config.
+	if p := os.Getenv("FAKE_MCP_LISTED"); p != "" {
+		listed = p
+	}
 	if d, err := time.ParseDuration(os.Getenv("FAKE_MCP_DELAY")); err == nil && listed != "" {
 		time.AfterFunc(d, func() { _ = os.WriteFile(listed, nil, 0o600) })
 	}
@@ -838,7 +844,7 @@ func TestShimFirstMessageWaitsForTools(t *testing.T) {
 	args := slices.Clone(pArgs)
 	args[slices.Index(args, "--mcp-config")+1] = string(cfg)
 	start := time.Now()
-	out := runShim(t, []string{"FAKE_MCP_DELAY=2s"}, append([]string{fakePath(t)}, args...), []string{"hello"}, 3)
+	out := runShim(t, []string{"FAKE_MCP_DELAY=2s", "FAKE_MCP_LISTED=" + listed}, append([]string{fakePath(t)}, args...), []string{"hello"}, 3)
 	b, _ := json.Marshal(out[1]["message"])
 	if out[1]["type"] != "assistant" || !strings.Contains(string(b), "echo: hello") || strings.Contains(string(b), "without uni-switch's tools") {
 		t.Fatalf("the first turn said %s", b)

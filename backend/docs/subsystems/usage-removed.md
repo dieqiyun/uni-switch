@@ -24,3 +24,8 @@ context text/reply and request archive endpoints remain.
 
 Verification: `scripts/qa-source-no-usage.mjs`,
 `scripts/tests/no-usage.test.mjs` and isolated GUI/gateway tests.
+
+The terminal UI follows the same boundary. Its Accounts page shows account
+allowances, balance and check-in controls without report summaries or timelines.
+Terminal Sessions retain filters, selection and resume while omitting token/cost
+rows and statistics panels; model/folder filters come from session metadata.

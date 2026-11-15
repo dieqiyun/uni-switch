@@ -73,16 +73,16 @@ func TestGatewayTraceIsLoopbackOnly(t *testing.T) {
 func TestOwnerReadOnLoopbackAlone(t *testing.T) {
 	for addr, want := range map[string]string{
 		"127.0.0.1:3561":       "http://127.0.0.1:3561",
-		"0.0.0.0:3561":         "http://127.0.0.1:3561",
-		":3561":                "http://127.0.0.1:3561",
-		"[::]:3561":            "http://127.0.0.1:3561",
+		"0.0.0.0:3561":         "http://127.0.0.1:3425",
+		":3561":                "http://127.0.0.1:3425",
+		"[::]:3561":            "http://127.0.0.1:3425",
 		"localhost:3561":       "http://127.0.0.1:3561",
 		"[::1]:3561":           "http://[::1]:3561",
 		"127.0.0.2:3561":       "http://127.0.0.2:3561",
-		"192.168.1.9:3561":     "",
-		"10.0.0.5:3561":        "",
-		"example.com:3561":     "",
-		"uni-switch.tail:3561": "",
+		"192.168.1.9:3561":     "http://127.0.0.1:3425",
+		"10.0.0.5:3561":        "http://127.0.0.1:3425",
+		"example.com:3561":     "http://127.0.0.1:3425",
+		"uni-switch.tail:3561": "http://127.0.0.1:3425",
 	} {
 		t.Setenv("UNI_SWITCH_ADDR", addr)
 		if got := ownerURL(); got != want {

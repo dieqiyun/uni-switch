@@ -21,11 +21,11 @@ func TestClaudeCompactWindow(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"big", "claude-opus-5-5"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "https://example.test/v1", []catalog.Model{{ID: "big", Context: 1000000}, {ID: "claude-opus-5-5", Context: 1000000}}); err != nil {
+	if err := saveWindowCatalog("v", "https://example.test/v1", []catalog.Model{{ID: "big", Context: 1000000}, {ID: "claude-opus-5-5", Context: 1000000}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".claude", "settings.json")
@@ -40,7 +40,7 @@ func TestClaudeCompactWindow(t *testing.T) {
 	}
 
 	must(a.Field("model").Set("v/big[1m]"))
-	if compact() != "272000" {
+	if compact() != "" {
 		t.Fatalf("on uni-switch: %q", compact())
 	}
 	must(settings.Save(settings.Settings{FullContext: true}))
@@ -50,7 +50,7 @@ func TestClaudeCompactWindow(t *testing.T) {
 	}
 	must(settings.Save(settings.Settings{}))
 	must(a.Sync())
-	if compact() != "272000" {
+	if compact() != "" {
 		t.Fatalf("back to the working window: %q", compact())
 	}
 	// a Claude model runs to its whole window, as Anthropic runs a [1m]
@@ -65,7 +65,7 @@ func TestClaudeCompactWindow(t *testing.T) {
 		t.Fatalf("a Claude model, synced: %q", compact())
 	}
 	must(a.Field("model").Set("v/big[1m]"))
-	if compact() != "272000" {
+	if compact() != "" {
 		t.Fatalf("after a Claude model: %q", compact())
 	}
 	must(a.Field("model").Set(""))
@@ -95,11 +95,11 @@ func TestClaudeCompactAt(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"big", "flash", "claude-opus-5-5"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "https://example.test/v1", []catalog.Model{{ID: "big", Context: 1000000}, {ID: "flash", Context: 1000000}, {ID: "claude-opus-5-5", Context: 1000000}}); err != nil {
+	if err := saveWindowCatalog("v", "https://example.test/v1", []catalog.Model{{ID: "big", Context: 1000000}, {ID: "flash", Context: 1000000}, {ID: "claude-opus-5-5", Context: 1000000}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".claude", "settings.json")
@@ -181,11 +181,11 @@ func TestClaudeCompactYieldsToOwnSetting(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"big", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "https://example.test/v1", []catalog.Model{{ID: "big", Context: 1000000}, {ID: "flash", Context: 1000000}}); err != nil {
+	if err := saveWindowCatalog("v", "https://example.test/v1", []catalog.Model{{ID: "big", Context: 1000000}, {ID: "flash", Context: 1000000}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".claude", "settings.json")
@@ -212,11 +212,11 @@ func TestClaudeCompactYieldsToOwnSetting(t *testing.T) {
 	}
 	must(edit.DelJSON(path, "autoCompactWindow"))
 	must(a.Sync())
-	expect("none set", "272000")
+	expect("none set", "")
 	// one for this model in modelSettings, not another's
 	must(edit.SetJSON(path, edit.KV{Path: "modelSettings", Value: map[string]any{"v/flash": map[string]any{"autoCompactWindow": 800000}}}))
 	must(a.Sync())
-	expect("another model's", "272000")
+	expect("another model's", "")
 	must(a.Field("model").Set("v/flash[1m]"))
 	expect("this model's", "")
 	// a size typed in uni-switch, or the model's own there, comes first
@@ -242,11 +242,11 @@ func TestClaudeCompactWindowBedrockClaude(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 	const opus, nova = "us.anthropic.claude-opus-5-5-v1", "us.amazon.nova-premier-v1"
-	if err := provider.Save(provider.Provider{ID: "br", Name: "Bedrock", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "br", Name: "Bedrock", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{opus, nova}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("br", "https://example.test/v1", []catalog.Model{{ID: opus, Context: 1000000}, {ID: nova, Context: 1000000}}); err != nil {
+	if err := saveWindowCatalog("br", "https://example.test/v1", []catalog.Model{{ID: opus, Context: 1000000}, {ID: nova, Context: 1000000}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".claude", "settings.json")
@@ -271,7 +271,7 @@ func TestClaudeCompactWindowBedrockClaude(t *testing.T) {
 		t.Fatalf("a 1M Claude model on Bedrock got autoCompactWindow %q", top)
 	}
 	must(a.Field("model").Set("br/" + nova + "[1m]"))
-	if compact() != "272000" {
+	if compact() != "" {
 		t.Fatalf("another vendor's 1M model on Bedrock: %q", compact())
 	}
 }

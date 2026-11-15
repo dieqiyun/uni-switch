@@ -83,12 +83,12 @@ func TestOpenCodeVariantsInOrder(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{
+	if err := saveWindowFixture(provider.Provider{
 		ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "key", Models: []string{"deep"},
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("think", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("think", "https://example.test/v1", []catalog.Model{
 		{ID: "deep", Efforts: []string{"low", "medium", "high", "xhigh", "max", "ultra"}},
 	}); err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestOpenCodeModelsInOrder(t *testing.T) {
 	home := syncHome(t)
 	// a provider the catalog lists after relay's, whose models sort before:
 	// uni-switch's own order and the alphabetical one differ
-	if err := provider.Save(provider.Provider{ID: "aaa", Name: "AAA", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"m1"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "aaa", Name: "AAA", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"m1"}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".config", "opencode", "opencode.json")
@@ -213,13 +213,13 @@ func TestOpenCodeWritesVariants(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{
+	if err := saveWindowFixture(provider.Provider{
 		ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "key",
 		Models: []string{"deep", "wide", "plain"},
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("think", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("think", "https://example.test/v1", []catalog.Model{
 		{ID: "deep", Efforts: []string{"none", "high", "max"}, Context: 1000000, Output: 64000},
 		{ID: "wide", Efforts: []string{"low", "medium", "high", "xhigh", "max"}},
 		{ID: "plain"},
@@ -314,15 +314,15 @@ func TestOpenCodeNoResellerLevelsForSwitchModel(t *testing.T) {
 	}`), 0o644)
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
-	xiaomi, err := provider.FromPreset("xiaomi")
+	xiaomi, err := savedAgentProtocol("xiaomi")
 	if err != nil {
 		t.Fatal(err)
 	}
 	xiaomi.Key, xiaomi.Models = "k", []string{"mimo-v2.6-flash"}
-	if err := provider.Save(xiaomi); err != nil {
+	if err := saveWindowFixture(xiaomi); err != nil {
 		t.Fatal(err)
 	}
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Chat: "https://relay.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Chat: "https://relay.test/v1", Key: "k",
 		Models: []string{"mimo-v2.6-flash", "open-model", "mystery-model"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -411,12 +411,12 @@ func TestOpenCodeZenModelReasons(t *testing.T) {
 	}`), 0o644)
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
-	zen, err := provider.FromPreset("opencode-zen")
+	zen, err := savedAgentProtocol("opencode-zen")
 	if err != nil {
 		t.Fatal(err)
 	}
 	zen.Models = []string{"mimo-v2.6-flash-free", "deepseek-v4-flash-free", "laguna-s-2.1-free", "ling-2.6-flash-free"}
-	if err := provider.Save(zen); err != nil {
+	if err := saveWindowFixture(zen); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".config", "opencode", "opencode.json")

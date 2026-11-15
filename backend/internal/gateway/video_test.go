@@ -119,20 +119,18 @@ func errorOf(obj map[string]any) string {
 	return ""
 }
 
-func TestVolcengineAgentPlanVideos(t *testing.T) {
-	p, err := provider.FromPreset("volcengine")
-	if err != nil {
+func TestExplicitArkVideosWithoutPreset(t *testing.T) {
+	fresh(t)
+	p := provider.Provider{ID: "ark", Preset: "volcengine", Key: "key", Chat: "https://ark.cn-beijing.volces.com/api/plan/v3"}
+	if ms := p.PlanVideos(); len(ms) != 0 {
+		t.Fatalf("retired preset supplied videos: %+v", ms)
+	}
+	if err := catalog.SaveLive(p.ID, p.Chat, []catalog.Model{{ID: "video-custom", Films: true}}); err != nil {
 		t.Fatal(err)
 	}
-	pr := provider.Preset("volcengine")
-	p.Chat, p.Responses, p.Anthropic = pr.Regions[1].Chat, pr.Regions[1].Responses, pr.Regions[1].Anthropic
-	ms, want := Videomakers(p), p.PlanVideos()
-	if len(ms) == 0 || !slices.EqualFunc(ms, want, func(a, b catalog.Model) bool { return a.ID == b.ID }) {
-		t.Fatalf("Agent Plan videos: %+v, want preset plan's %+v", ms, want)
-	}
-	p.Chat, p.Responses, p.Anthropic = pr.Regions[0].Chat, pr.Regions[0].Responses, pr.Regions[0].Anthropic
-	if ms := Videomakers(p); len(ms) != 0 {
-		t.Fatalf("Coding Plan videos: %+v", ms)
+	ms := Videomakers(p)
+	if len(ms) != 1 || ms[0].ID != "video-custom" {
+		t.Fatalf("explicit model list: %+v", ms)
 	}
 }
 
@@ -157,6 +155,9 @@ func TestVolcengineVideoBody(t *testing.T) {
 }
 
 func TestVolcengineVideoIsStartedPolledAndFetched(t *testing.T) {
+	wasArk := isArk
+	isArk = func(p provider.Provider) bool { return p.ID == "ark-agent" }
+	t.Cleanup(func() { isArk = wasArk })
 	fresh(t)
 	var mu sync.Mutex
 	var paths, bodies []string
@@ -197,11 +198,15 @@ func TestVolcengineVideoIsStartedPolledAndFetched(t *testing.T) {
 	}))
 	t.Cleanup(up.Close)
 
-	p, err := provider.FromPreset("volcengine")
+	p, err := savedProtocolFixture("volcengine")
 	if err != nil {
 		t.Fatal(err)
 	}
 	p.ID, p.Key = "ark-agent", "key"
+	p.Models = []string{"doubao-seedance-2.0-mini"}
+	if err := catalog.SaveLive(p.ID, up.URL+"/api/plan/v3", []catalog.Model{{ID: p.Models[0], Films: true}}); err != nil {
+		t.Fatal(err)
+	}
 	p.Chat, p.Responses = up.URL+"/api/plan/v3", up.URL+"/api/plan/v3"
 	p.Anthropic = up.URL + "/api/plan"
 	if err := provider.Save(p); err != nil {

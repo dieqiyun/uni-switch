@@ -64,11 +64,11 @@ func directTurn(system string, stream bool) string {
 // The Routing page says the note apart from Antigravity's words, in its own
 // language, only when it knows the very words the gateway adds.
 func TestAntigravityTurnedAwayHintIsTheRoutingPages(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join("..", "gui", "assets", "plugins", "routing", "client.js"))
+	b, err := os.ReadFile(filepath.Join("..", "gui", "assets", "i18n.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(b), quote(antigravityTurnedAwayHint)) {
-		t.Fatal("plugins/routing/client.js doesn't know the note the gateway adds to Antigravity's refusal")
+		t.Fatal("shared diagnostics translations doesn't know the note the gateway adds to Antigravity's refusal")
 	}
 }

@@ -46,7 +46,7 @@ func TestSameAsGivesAnUnlistedModelItsSpecs(t *testing.T) {
 		t.Fatalf("specs before any Same as: %d %v", e.Context, e.Efforts)
 	}
 	// a channel's tag in brackets on an id models.dev knows: no word needed
-	if e := entry("wb/deepseek-v4.1-flash [WB]"); e.Context != 1048576 || !slices.Equal(e.Efforts, []string{"high", "max"}) {
+	if e := entry("wb/deepseek-v4.1-flash [WB]"); e.Context != DefaultContextWindow || !slices.Equal(e.Efforts, []string{"high", "max"}) {
 		t.Errorf("tagged id: %d %v", e.Context, e.Efforts)
 	}
 	same := "deepseek-v4.1-flash"
@@ -61,7 +61,7 @@ func TestSameAsGivesAnUnlistedModelItsSpecs(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := entry("wb/ds.4.1(WB)")
-	if e.Context != 1048576 || e.Output != 393216 || !e.Reasoning || !slices.Equal(e.Efforts, []string{"high", "max"}) || e.Images {
+	if e.Context != DefaultContextWindow || e.Output != 393216 || !e.Reasoning || !slices.Equal(e.Efforts, []string{"high", "max"}) || e.Images {
 		t.Errorf("after Same as: window %d, out %d, reasoning %v, levels %v, images %v", e.Context, e.Output, e.Reasoning, e.Efforts, e.Images)
 	}
 	if e := entry("wb/ds.4.1(own)"); e.Context != 200000 {

@@ -118,6 +118,7 @@ func (k *fakeKeychain) item(account string) []byte {
 // one line, with a field uni-switch doesn't know, and auth.json gone.
 func codexInKeychain(t *testing.T, home, store string) (*fakeKeychain, string) {
 	t.Helper()
+	macKeychain(t)
 	dir := filepath.Join(home, ".codex")
 	b, err := os.ReadFile(filepath.Join(dir, "auth.json"))
 	if err != nil {
@@ -133,6 +134,15 @@ func codexInKeychain(t *testing.T, home, store string) (*fakeKeychain, string) {
 	codexKeychain, codexKeychainHere = k, true // isolate puts them back
 	resetCodexKeychain()
 	return k, codexKeychainAccount(dir)
+}
+
+// These fixtures emulate macOS's keychain, including its feature default.
+// Windows's encrypted-store default is a different storage contract.
+func macKeychain(t *testing.T) {
+	t.Helper()
+	old := secretAuthStorageDefault
+	secretAuthStorageDefault = false
+	t.Cleanup(func() { secretAuthStorageDefault = old })
 }
 
 // Codex's account key is its compute_store_key: SHA-256 of the canonical
@@ -197,6 +207,7 @@ func TestCodexSignedInInKeychain(t *testing.T) {
 // auto with no item is auth.json, as Codex falls back to it; keyring with
 // no item is signed out, whatever auth.json is left.
 func TestCodexKeychainFallback(t *testing.T) {
+	macKeychain(t)
 	home := signIn(t)
 	dir := filepath.Join(home, ".codex")
 	codexKeychain, codexKeychainHere = &fakeKeychain{}, true
@@ -559,6 +570,7 @@ func TestCodexKeychainSignOut(t *testing.T) {
 // (codex logout, keyring with no item) and a store uni-switch doesn't read
 // are known.
 func TestCodexSignInKnown(t *testing.T) {
+	macKeychain(t)
 	home := signIn(t)
 	dir := filepath.Join(home, ".codex")
 	auth := filepath.Join(dir, "auth.json")

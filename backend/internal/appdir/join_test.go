@@ -1,6 +1,7 @@
 package appdir
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -14,6 +15,14 @@ func TestFoldersJoinedOnce(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(r, "cache"))
 	t.Cleanup(func() { UseExecutable("") })
 	UseExecutable("")
+	// Go 1.26 on Windows reads UTF-16 environment values from the OS on
+	// every call. Count those separately from path joining, whose cache is
+	// what this test guards. Environment changes below must still be seen.
+	readEnv := map[string]float64{
+		"Config": testing.AllocsPerRun(20, func() { os.Getenv("XDG_CONFIG_HOME") }),
+		"Cache":  testing.AllocsPerRun(20, func() { os.Getenv("XDG_CACHE_HOME") }),
+	}
+	readEnv["JoinFile"] = readEnv["Cache"]
 
 	for name, f := range map[string]func(){
 		"Config":   func() { Config() },
@@ -21,7 +30,7 @@ func TestFoldersJoinedOnce(t *testing.T) {
 		"JoinFile": func() { JoinFile(Cache(), "openai", ".json") },
 	} {
 		f()
-		if n := testing.AllocsPerRun(20, f); n > 0 {
+		if n := testing.AllocsPerRun(20, f) - readEnv[name]; n > 0 {
 			t.Errorf("%s with the folders unchanged: %.0f allocations", name, n)
 		}
 	}

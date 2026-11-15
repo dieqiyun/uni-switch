@@ -385,6 +385,9 @@ func TestGatewayKeyAccountsVideoOnAnAllowedKey(t *testing.T) {
 		Chat: up.URL + "/v1", Key: "kA", Keys: []provider.KeyAccount{{Key: "kB"}}, Models: []string{"grok-imagine-video"}}); err != nil {
 		t.Fatal(err)
 	}
+	if err := catalog.SaveLive("office", up.URL+"/v1", []catalog.Model{{ID: "grok-imagine-video", Films: true}}); err != nil {
+		t.Fatal(err)
+	}
 	keys, secrets := newCaller(t, "Held")
 	if _, err := access.Update("accounts-key", access.Change{Key: keys[0].ID, Accounts: []string{"office/" + provider.KeyID("kB")}}); err != nil {
 		t.Fatal(err)

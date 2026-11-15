@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -25,8 +26,13 @@ import (
 // UNI_SWITCH_FAKE_MCP saying how it behaves.
 const fakeMode = "UNI_SWITCH_FAKE_MCP"
 
+var fakeModeFlag = flag.String("fake-mcp-mode", "", "fake MCP mode for test subprocesses")
+
 func TestFakeMCPServer(t *testing.T) {
 	mode := os.Getenv(fakeMode)
+	if *fakeModeFlag != "" {
+		mode = *fakeModeFlag
+	}
 	if mode == "" {
 		t.Skip("run by the checker's tests")
 	}

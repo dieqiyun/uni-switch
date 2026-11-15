@@ -22,9 +22,9 @@ const search1api = "@uni-switch-community/tools-search1api@0.1.1"
 // NAT) is given the plugin's tools at that address.
 func TestPluginToolsServerThroughAnotherAddress(t *testing.T) {
 	sandbox(t)
-	s := &Server{Name: "search1api", Transport: "http", URL: "http://127.0.0.1:3425" + gateway.ToolsMCPOne + "search1api", Plugin: "@uni-switch-community/tools-search1api", Local: true}
+	s := &Server{Name: "search1api", Transport: "http", URL: "http://127.0.0.1:3425" + gateway.ToolsMCPOne + "search1api", Plugin: "plugin", Local: true}
 	c := through(s, "http://172.20.0.1:3425")
-	if c.URL != "http://172.20.0.1:3425"+gateway.ToolsMCPOne+"search1api" {
+	if c.URL != "http://172.20.0.1:3425"+gateway.ToolsMCPOne+"plugin" {
 		t.Errorf("through another address: %s", c.URL)
 	}
 	if s.URL != "http://127.0.0.1:3425"+gateway.ToolsMCPOne+"search1api" {

@@ -48,7 +48,7 @@ func qwenDecision(t *testing.T, up http.Handler) {
 	t.Helper()
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("qwen-decision")
+	p, err := savedProtocolFixture("qwen-decision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestDecisionsImagesToClef(t *testing.T) {
 	up := &systemOneUp{reply: `{"result":{"model":"clef","answers":{"visible_damage":{"type":"noul","noul":0.97},"condition":{"type":"choice","choice":"new","probabilities":{"new":0.6,"used":0.4},"confidence":0.2}},"usage":{"input_tokens":900,"output_tokens":0}},"success":true,"errors":[],"messages":[]}`}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("cloudflare-jev")
+	p, err := savedProtocolFixture("cloudflare-jev")
 	if err != nil {
 		t.Fatal(err)
 	}

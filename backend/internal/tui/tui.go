@@ -24,7 +24,6 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/provider"
 	"github.com/dieqiyun/uni-switch/backend/internal/sessions"
 	"github.com/dieqiyun/uni-switch/backend/internal/settings"
-	"github.com/dieqiyun/uni-switch/backend/internal/usage"
 )
 
 // ---- styling ---------------------------------------------------------------
@@ -115,24 +114,18 @@ type model struct {
 	provsErr  error // providers.json can't be read: said, not "none yet"
 	prow      int
 	bal       map[string]string
-	asked     bool // balances were asked for
-	period    usage.Period
-	sum       usage.Summary
-	direct    usage.Summary                // the agents' own calls, read from their session files
+	asked     bool                         // balances were asked for
 	quotas    []provider.SubscriptionQuota // nil while the vendors are asked
 	qasked    bool                         // quotas were asked for
 	qaskedAt  time.Time                    // when they were last asked for (an asked read)
 	qgen      int                          // the quotas load the page waits for
 	qtries    int                          // that load's asks again while a read was under way
 	qleft     bool                         // windows read as what is left, not what is used
-	sstats    sessions.Stats               // the sessions' usage in the range picked
 	srange    int                          // in sessRanges
 	smodel    string                       // the model the sessions are narrowed to, "" for all
 	sfolder   string                       // the folder, "" for all
-	scost     bool                         // the chart shows cost, not tokens
 	slist     []sessions.Session           // the latest sessions, the most recently active first
 	ssel      int                          // the session picked among those shown
-	sstat     bool                         // the page shows the range's stats, not its sessions
 	lib       []libRow
 	lrow      int
 	libView   *library.View
@@ -184,7 +177,7 @@ func newModel() model {
 	}
 	s := settings.Load()
 	shown, hidden := settings.Arrange(s, set, func(a *agent.Agent) string { return a.ID })
-	m := model{agents: append(shown, hidden...), hidden: len(shown), period: usage.Week, srange: 1, qleft: s.QuotaLeft}
+	m := model{agents: append(shown, hidden...), hidden: len(shown), srange: 1, qleft: s.QuotaLeft}
 	// no model catalog yet: Init syncs it. Set here, as Init's receiver is
 	// a copy the program never sees.
 	m.syncing = catalog.Source() == ""
@@ -202,8 +195,6 @@ func (m *model) reload() {
 	switch m.page {
 	case pageProviders:
 		m.reloadProviders()
-	case pageUsage:
-		m.sum, m.direct = usage.Summaries(m.period)
 	case pageSessions:
 		m.reloadSessions()
 	case pageLibrary:
@@ -219,7 +210,7 @@ func (m *model) goTo(p page) tea.Cmd {
 		m.asked = true
 		return balancesCmd(m.provs)
 	}
-	if p == pageUsage {
+	if p == pageAccounts {
 		// opened: an asked read, or what is kept within quotasOpenGap of
 		// the last ask (going to another page and back)
 		return m.loadQuotas(!m.qasked || time.Since(m.qaskedAt) >= quotasOpenGap)
@@ -349,14 +340,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.goTo(p)
 			}
 			switch m.page {
-			case pageProviders, pageUsage, pageSessions, pageLibrary:
+			case pageProviders, pageAccounts, pageSessions, pageLibrary:
 				if s := msg.String(); s == "q" || s == "esc" {
 					return m, tea.Quit
 				}
 				if msg.String() == "r" {
 					m.reload()
 					m.flash, m.flashOK = "reloaded", true
-					if m.page == pageUsage {
+					if m.page == pageAccounts {
 						m.quotas = nil
 						// every account read again, a saved Claude
 						// account's /usage run too, as the app's
@@ -371,8 +362,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case pageProviders:
 				m.flash = ""
 				return m.updateProviders(msg)
-			case pageUsage:
-				return m.updateUsage(msg)
+			case pageAccounts:
+				return m.updateAccounts(msg)
 			case pageSessions:
 				m.flash = ""
 				return m.updateSessions(msg)
@@ -759,14 +750,11 @@ func (m model) View() string {
 			footer = hints("↑↓", "item", "↵", "agents", "a", "add", "e", "edit", "u", "update skill", "i", "bring in", "d", "remove", "s", "sync", "r", "reload", "1–5", "pages", "q", "quit")
 		case pageSessions:
 			body = m.viewSessions()
-			if m.sstat {
-				footer = hints("←→", "range", "M", "model", "f", "folder", "x", "clear", "c", "tokens / cost", "s", "sessions", "r", "reload", "1–5", "pages", "q", "quit")
-			} else {
-				footer = hints("↑↓", "session", "↵", "resume", "←→", "range", "M", "model", "f", "folder", "x", "clear", "s", "stats", "r", "reload", "1–5", "pages", "q", "quit")
-			}
-		case pageUsage:
-			body = m.viewUsage()
-			footer = hints("←→", "period", "t w m A", "today · 7 days · 30 days · all", "u", "used / left", "c", "daily check-in", "r", "reload", "1–5", "pages", "q", "quit")
+			footer = hints("↑↓", "session", "↵", "resume", "←→", "range", "M", "model", "f", "folder", "x", "clear", "r", "reload", "1–5", "pages", "q", "quit")
+
+		case pageAccounts:
+			body = m.viewAccounts()
+			footer = hints("u", "used / left", "c", "daily check-in", "r", "reload", "1–5", "pages", "q", "quit")
 		default:
 			body = m.viewList()
 			footer = hints("↑↓", "agent", "←→", "field", "↵", "change", "s", "save profile", "p", "profiles", "1–5", "pages", "q", "quit")

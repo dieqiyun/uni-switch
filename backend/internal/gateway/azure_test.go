@@ -77,7 +77,7 @@ func TestAzureRoutes(t *testing.T) {
 	up := &azureUp{}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset(provider.AzurePreset)
+	p, err := savedProtocolFixture(provider.AzurePreset)
 	if err != nil {
 		t.Fatal(err)
 	}

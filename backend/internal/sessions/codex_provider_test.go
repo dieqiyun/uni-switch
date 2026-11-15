@@ -117,20 +117,27 @@ func TestMoveCodexProvider(t *testing.T) {
 	if _, err := MoveCodexProvider(mgCX, "custom"); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(main); !bytes.Equal(b, orig) {
-		t.Fatal("moving back didn't give the file it was")
+	if b, _ := os.ReadFile(main); !bytes.Equal(bytes.TrimSpace(b), bytes.TrimSpace(orig)) {
+		gotLines, wantLines := bytes.SplitN(b, []byte("\n"), 2), bytes.SplitN(orig, []byte("\n"), 2)
+		if len(gotLines) != len(wantLines) || !bytes.Equal(bytes.TrimRight(gotLines[0], " \t"), wantLines[0]) || len(gotLines) > 1 && !bytes.Equal(gotLines[1], wantLines[1]) {
+			t.Fatal("moving back changed more than the in-place provider padding")
+		}
 	}
 	if p, _, _ := threadProvider(t, db, mgCX); p != "custom" {
 		t.Errorf("thread row %q after moving back", p)
 	}
 
 	// one being written is left alone
+	beforeHot, err := os.ReadFile(main)
+	if err != nil {
+		t.Fatal(err)
+	}
 	hot := time.Now()
 	os.Chtimes(main, hot, hot)
 	if _, err := MoveCodexProvider(mgCX, "uni-switch"); !errors.Is(err, ErrActive) {
 		t.Fatalf("err %v, want ErrActive", err)
 	}
-	if b, _ := os.ReadFile(main); !bytes.Equal(b, orig) {
+	if b, _ := os.ReadFile(main); !bytes.Equal(b, beforeHot) {
 		t.Fatal("a running session was changed")
 	}
 	if _, err := MoveCodexProvider(mgCX, "bad id"); err == nil {

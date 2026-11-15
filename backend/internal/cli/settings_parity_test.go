@@ -135,8 +135,6 @@ var cliForRoute = map[string]string{
 	"POST /api/sync":                       "uni-switch sync",
 	"GET /api/caller-keys":                 "uni-switch gateway-key list",
 	"POST /api/caller-keys/{action}":       "uni-switch gateway-key",
-	"GET /api/groups":                      "uni-switch groups",
-	"POST /api/groups/{action}":            "uni-switch group",
 	"GET /api/import/{id}":                 "uni-switch import",
 	"GET /api/library":                     "uni-switch library",
 	"POST /api/library/{what}/{action}":    "uni-switch library",
@@ -147,11 +145,8 @@ var cliForRoute = map[string]string{
 	"POST /api/sessions/reads":             "uni-switch sessions read",
 	"GET /api/sessions":                    "uni-switch sessions",
 	"POST /api/uninstall":                  "uni-switch uninstall",
-	"GET /api/usage":                       "uni-switch usage",
-	"GET /api/usage/quotas":                "uni-switch quota",
-	"GET /api/usage/quotas/history":        "uni-switch quota history",
-	"GET /api/usage/requests.csv":          "uni-switch usage --csv",
-	"POST /api/usage/workbuddy-checkin":    "uni-switch accounts checkin",
+	"GET /api/accounts/quotas":             "uni-switch quota",
+	"GET /api/accounts/quotas/history":     "uni-switch quota history",
 	"GET /api/update":                      "uni-switch update check",
 	"POST /api/update/check":               "uni-switch update check",
 	"POST /api/settings/agent-compact":     "uni-switch model compact",
@@ -223,7 +218,6 @@ var notYet = map[string]string{
 	"POST /api/settings/trae-checkin":            S2, // api.go
 	"POST /api/settings/update-skip":             S2, // api.go
 	"POST /api/settings/workbuddy-checkin":       S2, // api.go
-	"POST /api/usage/arrange":                    W,  // api.go
 	"POST /api/warm-now":                         A,  // api.go
 	"POST /api/window/{action}":                  W,  // api.go
 	"GET /api/archive":                           S2, // archive.go
@@ -239,7 +233,6 @@ var notYet = map[string]string{
 	"GET /api/caller-keys/models":                P,  // caller_keys.go
 	"GET /api/caller-keys/mcp":                   L,  // caller_keys.go: the servers `uni-switch gateway-key mcp` takes
 	"POST /api/config/repair":                    A,  // config_repair.go
-	"GET /api/context":                           U,  // context.go
 	"GET /api/context/text":                      W,  // context.go
 	"GET /api/context/reply":                     W,  // context_archive.go: the reply half of the same detail view
 	"GET /api/dev/wait":                          W,  // dev_on.go
@@ -308,9 +301,7 @@ var notYet = map[string]string{
 	"POST /api/sessions/restore":                 U,  // sessions_manage.go
 	"GET /api/sessions/markdown":                 U,  // sessions.go
 	"GET /api/sessions/one":                      U,  // sessions.go
-	"GET /api/sessions/overview":                 U,  // sessions.go
 	"GET /api/sessions/progress":                 U,  // sessions.go
-	"GET /api/sessions/stats":                    U,  // sessions.go
 	"GET /api/sessions/transcript":               U,  // sessions.go
 	"POST /api/agents/open":                      W,  // sessions.go
 	"POST /api/sessions/carry":                   U,  // sessions.go
@@ -324,28 +315,22 @@ var notYet = map[string]string{
 	"GET /api/gateway/trace":                     U,  // trace.go
 	"POST /api/gateway/session-titles":           U,  // trace.go
 	"POST /api/gateway/unrest":                   U,  // trace.go
-	"GET /api/tune":                              U,  // tune.go
-	"POST /api/tune/apply":                       U,  // tune.go
-	"POST /api/tune/undo":                        U,  // tune.go
 	"POST /api/uninstall/finish":                 A,  // uninstall.go
-	"GET /api/usage/deleted/into":                U,  // usage.go
-	"GET /api/usage/heatmap":                     U,  // usage.go
-	"GET /api/usage/quotas/history/holds":        U,  // usage.go
-	"GET /api/usage/requests":                    U,  // usage.go
-	"GET /api/usage/requests/content":            U,  // usage.go
-	"POST /api/usage/checkin-account":            U,  // usage.go: one account now; `uni-switch accounts checkin` does every account
-	"POST /api/usage/clear":                      U,  // usage.go
-	"POST /api/usage/codex-reset":                U,  // usage.go
-	"POST /api/usage/deleted":                    U,  // usage.go
-	"POST /api/usage/minimax-checkin":            U,  // usage.go
-	"POST /api/usage/qoder-checkin":              U,  // usage.go
-	"POST /api/usage/quotas/refresh":             U,  // usage.go
-	"POST /api/usage/requests/export":            U,  // usage.go
-	"POST /api/usage/trae-checkin":               U,  // usage.go
-	"GET /api/update/notes":                      W,  // update.go
-	"GET /api/whatsnew":                          W,  // whatsnew.go
-	"POST /api/whatsnew/seen":                    W,  // whatsnew.go
-	"POST /api/whatsnew/today":                   W,  // whatsnew.go
+	"GET /api/image-provider":                    P,
+	"POST /api/image-provider":                   P,
+	"POST /api/accounts/arrange":                 P,
+	"POST /api/accounts/workbuddy-checkin":       U,
+	"GET /api/accounts/quotas/history/holds":     U, // usage.go
+	"POST /api/accounts/checkin-account":         U, // usage.go: one account now; `uni-switch accounts checkin` does every account
+	"POST /api/accounts/codex-reset":             U, // usage.go
+	"POST /api/accounts/minimax-checkin":         U, // usage.go
+	"POST /api/accounts/qoder-checkin":           U, // usage.go
+	"POST /api/accounts/quotas/refresh":          U, // usage.go
+	"POST /api/accounts/trae-checkin":            U, // usage.go
+	"GET /api/update/notes":                      W, // update.go
+	"GET /api/whatsnew":                          W, // whatsnew.go
+	"POST /api/whatsnew/seen":                    W, // whatsnew.go
+	"POST /api/whatsnew/today":                   W, // whatsnew.go
 }
 
 // guiRoutes are the /api routes internal/gui serves, as "METHOD /path".

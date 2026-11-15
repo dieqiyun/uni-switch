@@ -73,7 +73,7 @@ func (v *kindVendor) log() []string {
 // A video model two providers list under one id is a group by that id on
 // /v1/videos: the first that can't make it passes it to the next. Before,
 // the bare id went to the first provider listing it and ended there.
-func TestVideoKindGroupByTheModelsID(t *testing.T) {
+func TestVideoBareModelTriesItsProviders(t *testing.T) {
 	fresh(t)
 	a, b := newOpenAIVideos(t), newOpenAIVideos(t)
 	a.lacks = "sk-a"
@@ -82,6 +82,11 @@ func TestVideoKindGroupByTheModelsID(t *testing.T) {
 	code, obj, raw := asKey(t, New().Handler(), "", "POST", "/v1/videos", `{"model":"vid-1","prompt":"a cat on a fence"}`)
 	if code != 200 || obj["model"] != "b/vid-1" {
 		t.Fatalf("video: %d %s", code, raw)
+	}
+	before := len(b.log())
+	code, _, raw = asKey(t, New().Handler(), "", "POST", "/v1/videos", `{"model":"a/vid-1","prompt":"a cat"}`)
+	if code != 404 || len(b.log()) != before {
+		t.Fatalf("qualified route crossed providers: %d %s", code, raw)
 	}
 	if got := strings.Join(a.log(), ","); !strings.Contains(got, "POST /v1/videos sk-a") {
 		t.Fatalf("the first provider was never asked: %v", a.log())

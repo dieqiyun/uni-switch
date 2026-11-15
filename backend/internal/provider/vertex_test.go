@@ -16,6 +16,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/dieqiyun/uni-switch/backend/internal/catalog"
 	"io"
 	"io/fs"
 	"net/http"
@@ -1352,7 +1353,7 @@ func TestVertexTestRequest(t *testing.T) {
 	f := newVertexGoogle(t)
 	file := filepath.Join(t.TempDir(), "application_default_credentials.json")
 	writeFile(t, file, vertexUser("1//0g-test-refresh"))
-	q := vertexAt("global", file)
+	q := vertexModelsFixture(t, "global", file)
 	base := f.url + "/vertex/v1/projects/acme-vertex/locations/global"
 	low, budget := map[string]any{"thinkingLevel": "low"}, func(n float64) map[string]any { return map[string]any{"thinkingBudget": n} }
 	for model, think := range map[string]map[string]any{
@@ -1409,7 +1410,7 @@ func TestVertexTestRequest(t *testing.T) {
 	if !rs[0].OK || rs[1].OK || rs[1].Status != http.StatusNotFound || !strings.Contains(rs[1].Error, "gemini-9-pro") {
 		t.Fatalf("models' tests: %+v", rs)
 	}
-	calls := f.vertexCalls()
+	calls := slices.DeleteFunc(f.vertexCalls(), func(c vertexCall) bool { return strings.HasSuffix(c.path, "/models") })
 	if len(calls) != 3 {
 		t.Fatalf("Vertex AI was asked %d times, want 3", len(calls))
 	}
@@ -1518,7 +1519,7 @@ func TestVertexPartnerModels(t *testing.T) {
 	f := newVertexGoogle(t)
 	file := filepath.Join(t.TempDir(), "application_default_credentials.json")
 	writeFile(t, file, vertexUser("1//0g-test-refresh"))
-	if err := Save(vertexAt("global", file)); err != nil {
+	if err := Save(vertexModelsFixture(t, "global", file)); err != nil {
 		t.Fatal(err)
 	}
 	p, err := Find("vertex-prod")
@@ -1546,7 +1547,7 @@ func TestVertexPartnerModels(t *testing.T) {
 		t.Errorf("Gemini asked on %v", apis)
 	}
 	for _, loc := range []string{"us", "us-central1"} {
-		q := vertexAt(loc, file)
+		q := vertexModelsFixture(t, loc, file)
 		if err := Save(q); err != nil {
 			t.Fatal(err)
 		}
@@ -1555,7 +1556,7 @@ func TestVertexPartnerModels(t *testing.T) {
 			t.Errorf("at %s, which serves no partner model: %v", loc, got)
 		}
 	}
-	if err := Save(vertexAt("global", file)); err != nil {
+	if err := Save(vertexModelsFixture(t, "global", file)); err != nil {
 		t.Fatal(err)
 	}
 	p, _ = Find("vertex-prod")
@@ -1567,7 +1568,7 @@ func TestVertexPartnerModels(t *testing.T) {
 	if len(rs) != 2 || !rs[0].OK || rs[0].Protocol != Chat || !rs[1].OK || rs[1].Protocol != Gemini {
 		t.Fatalf("models' tests: %+v", rs)
 	}
-	calls := f.vertexCalls()
+	calls := slices.DeleteFunc(f.vertexCalls(), func(c vertexCall) bool { return strings.HasSuffix(c.path, "/models") })
 	if len(calls) != 3 {
 		t.Fatalf("Vertex AI was asked %d times, want 3: %+v", len(calls), calls)
 	}
@@ -1609,7 +1610,7 @@ func TestVertexClaudeModels(t *testing.T) {
 	f := newVertexGoogle(t)
 	file := filepath.Join(t.TempDir(), "application_default_credentials.json")
 	writeFile(t, file, vertexUser("1//0g-test-refresh"))
-	if err := Save(vertexAt("global", file)); err != nil {
+	if err := Save(vertexModelsFixture(t, "global", file)); err != nil {
 		t.Fatal(err)
 	}
 	p, err := Find("vertex-prod")
@@ -1644,7 +1645,7 @@ func TestVertexClaudeModels(t *testing.T) {
 	if len(rs) != 1 || !rs[0].OK || rs[0].Protocol != Anthropic {
 		t.Fatalf("Claude's test: %+v", rs)
 	}
-	calls := f.vertexCalls()
+	calls := slices.DeleteFunc(f.vertexCalls(), func(c vertexCall) bool { return strings.HasSuffix(c.path, "/models") })
 	if len(calls) != 2 {
 		t.Fatalf("Vertex AI was asked %d times, want 2: %+v", len(calls), calls)
 	}
@@ -1688,4 +1689,20 @@ func TestVertexClaudeRequest(t *testing.T) {
 	if _, _, ok := VertexClaudeRequest("/v1/messages", []byte(`{"max_tokens":5}`)); ok {
 		t.Error("a body with no model was given a path")
 	}
+}
+
+func vertexModelsFixture(t *testing.T, location, credentials string) Provider {
+	p := vertexAt(location, credentials)
+	p.Models = []string{"gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-pro"}
+	if location == "global" {
+		p.Models = append(p.Models, "deepseek-ai/deepseek-v4.1-flash-maas", "zai-org/glm-5.2-maas", "openai/gpt-oss-120b-maas", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5", "claude-fable-5-1")
+	}
+	var models []catalog.Model
+	for _, id := range p.Models {
+		models = append(models, catalog.Model{ID: id, Name: id})
+	}
+	if err := catalog.SaveLive(p.ID, p.Base(Gemini), models); err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

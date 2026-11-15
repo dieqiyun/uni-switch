@@ -36,3 +36,9 @@ adapter tests, `scripts/qa-source-brand.mjs` and
 `scripts/qa-source-directory.mjs`. The UI checks use Chromium and WebKit
 in all five supported languages. Test credentials and configuration live
 under `.qa`, never in the user's client folders.
+
+## Integrated native identity verification
+
+Listener ownership recognizes the actual compiled core main-package identity.
+Test binaries and other embedded callers cannot redefine which executable is
+uni-switch; isolated takeover checks reject unrelated programs.

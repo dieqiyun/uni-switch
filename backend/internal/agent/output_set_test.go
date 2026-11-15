@@ -18,6 +18,11 @@ func TestAgentsTakeTheUsersMaxOutput(t *testing.T) {
 	home := syncHome(t)
 	os.WriteFile(catalog.CachePath(), []byte(`{"zai":{"models":{"glm-4.6":{"id":"glm-4.6","name":"GLM-4.6","limit":{"context":1000000,"output":384000}}}}}`), 0o644)
 	catalog.Reset()
+	p, _ := provider.Find("relay")
+	p.Contexts = map[string]int{"glm-4.6": 1000000}
+	if err := provider.Save(*p); err != nil {
+		t.Fatal(err)
+	}
 
 	outputs := func() map[string]any {
 		got := map[string]any{}

@@ -34,6 +34,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/dieqiyun/uni-switch/backend/internal/catalog"
 	"github.com/dieqiyun/uni-switch/backend/internal/plugin"
 	"github.com/dieqiyun/uni-switch/backend/internal/provider"
 	"github.com/dieqiyun/uni-switch/backend/internal/settings"
@@ -498,6 +499,12 @@ func (s *Server) candidates(p provider.Provider, model string, from provider.Pro
 
 // plan builds the provider account and fallback plan.
 func (s *Server) plan(p provider.Provider, model string, from provider.Protocol) ([]candidate, planned) {
+	return s.planProviders(p, model, from, nil)
+}
+
+// planProviders also tries providers listing the same bare model, in the
+// Providers order. Qualified provider and key-group requests pass no others.
+func (s *Server) planProviders(p provider.Provider, model string, from provider.Protocol, others []provider.Provider) ([]candidate, planned) {
 	var pl planned
 	add := func(q provider.Provider, m string, fallback bool) []candidate {
 		cs, aside, left, barred := perKeyBarred(q, m, from)
@@ -531,6 +538,14 @@ func (s *Server) plan(p provider.Provider, model string, from provider.Protocol)
 		return restLast(out, pl)
 	}
 	seen := map[string]bool{p.ID + "/" + model: true}
+	for _, q := range others {
+		ref := q.ID + "/" + model
+		if seen[ref] || !q.On() || q.ServesNone() || q.DecidesModel(model) || !slices.Contains(q.Models, model) && !slices.ContainsFunc(q.Available(), func(m catalog.Model) bool { return m.ID == model }) {
+			continue
+		}
+		seen[ref] = true
+		out = append(out, add(q, model, true)...)
+	}
 	for _, id := range p.Fallback {
 		fp, fm, ok := provider.ResolveRoute(id)
 		if !ok || seen[fp.ID+"/"+fm] {

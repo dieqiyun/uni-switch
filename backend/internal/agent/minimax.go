@@ -254,15 +254,20 @@ func writeMiniMaxEntryAt(path, gw string) error {
 			mn = &yaml.Node{Kind: yaml.MappingNode}
 		}
 		yamlSet(mn, "name", m.Name)
-		yamlDel(mn, "limit")
 		if m.Context > 0 || m.Output > 0 {
 			limit := yamlMap(mn, "limit")
 			if m.Context > 0 {
 				yamlSet(limit, "context", m.Context)
+			} else {
+				yamlDel(limit, "context")
 			}
 			if out := maxTokens(m); out > 0 {
 				yamlSet(limit, "output", out)
+			} else {
+				yamlDel(limit, "output")
 			}
+		} else {
+			yamlDel(mn, "limit")
 		}
 		// a thinking model's levels, for its effort picker: none is left
 		// out, MiniMax Code would ask for it as a level; high where the
@@ -279,7 +284,6 @@ func writeMiniMaxEntryAt(path, gw string) error {
 		if d := yamlGet(yamlGet(mn, "thinking"), "defaultEffort"); d != nil && d.Kind == yaml.ScalarNode {
 			was = d.Value
 		}
-		yamlDel(mn, "thinking")
 		if len(levels) > 0 {
 			th := yamlMap(mn, "thinking")
 			yamlSet(th, "effortOptions", levels)
@@ -289,7 +293,11 @@ func writeMiniMaxEntryAt(path, gw string) error {
 			}
 			if def = keptEffort(was, levels, def); def != "" {
 				yamlSet(th, "defaultEffort", def)
+			} else {
+				yamlDel(th, "defaultEffort")
 			}
+		} else {
+			yamlDel(mn, "thinking")
 		}
 		if caps := yamlGet(mn, "capabilities"); m.Images {
 			yamlSet(yamlMap(mn, "capabilities"), "support_image", true)

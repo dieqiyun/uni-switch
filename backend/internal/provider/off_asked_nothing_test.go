@@ -63,7 +63,7 @@ func TestPluginsOffNamesThePluginsOwnIDs(t *testing.T) {
 	slices.Sort(got)
 	// "openai-plugin" is both: a plugin's own "openai-plugin" is uni-switch's
 	// as it is, as its "openai" is uni-switch's "openai-plugin"
-	if want := []string{"fakeco", "openai", "openai-plugin"}; !slices.Equal(got, want) {
+	if want := []string{"deepseek", "fakeco", "openai-plugin"}; !slices.Equal(got, want) {
 		t.Fatalf("pluginsOff = %v, want %v", got, want)
 	}
 }

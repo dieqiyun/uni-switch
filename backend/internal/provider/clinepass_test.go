@@ -11,41 +11,18 @@ import (
 )
 
 func TestPlanModels(t *testing.T) {
-	p, err := FromPreset("clinepass")
+	p, err := legacyVendor("clinepass")
 	if err != nil {
 		t.Fatal(err)
 	}
-	n := len(Preset("clinepass").Models)
-	// the Cline API's list: its paid models, one of the plan's among them;
-	// its ":free" ones aren't what Cline offers free, and are left out
-	got := p.planModels([]catalog.Model{{ID: "anthropic/claude-opus-5-5"}, {ID: "cline-pass/glm-5.3"}, {ID: "qwen/qwen3.8-27b:free"}})
-	if len(got) != 1+len(clineFree) || got[0].ID != "cline-pass/glm-5.3" || got[1].ID != "cline-free/deepseek-v4.1-flash" {
-		t.Fatalf("kept: %+v", got)
+	listed := []catalog.Model{{ID: "anthropic/claude-opus-5-5"}, {ID: "cline-pass/glm-5.3"}, {ID: "qwen/qwen3.8-27b:free"}}
+	if got := p.planModels(listed); len(got) != len(listed) || got[0].ID != listed[0].ID {
+		t.Fatalf("explicit list changed: %+v", got)
 	}
-	// none of the plan's listed: the plan's own, then Cline's free models
-	// as its desktop app lists them (lml on Discord)
-	got = p.planModels(nil)
-	if len(got) != n+len(clineFree) || got[0].ID != "cline-pass/glm-5.3" {
-		t.Fatalf("plan's: %+v", got)
+	if got := p.planModels(nil); len(got) != 0 {
+		t.Fatalf("retired preset invented models: %+v", got)
 	}
-	var free []string
-	for _, m := range got {
-		if m.Free {
-			free = append(free, m.ID)
-		}
-	}
-	if want := []string{"cline-free/deepseek-v4.1-flash", "stealth/space-bunny-alpha", "cline-free/mimo-v2.6-flash", "cline-free/muse-spark-1.3-contributor"}; !slices.Equal(free, want) {
-		t.Fatalf("free: %v", free)
-	}
-	// a free model costs nothing, not its paid model's price
-	if pr, ok := p.ListPrice("cline-free/deepseek-v4.1-flash"); !ok || !pr.Same(catalog.Price{}) {
-		t.Fatalf("free price: %+v %v", pr, ok)
-	}
-	// another provider's list is left as it is
-	o, _ := FromPreset("opencode-go")
-	if got := o.planModels([]catalog.Model{{ID: "a"}, {ID: "b"}}); len(got) != 2 {
-		t.Fatalf("other: %+v", got)
-	}
+
 }
 
 // Cline's clients take their plan and free models from the
@@ -69,7 +46,7 @@ func TestClineFeed(t *testing.T) {
 			"clinePass":[{"id":"cline-pass/glm-5.3","name":"cline-pass/glm-5.3"},{"id":"cline-pass/mimo-v2.6-pro","name":"cline-pass/mimo-v2.6-pro"}]}`))
 	}))
 	defer srv.Close()
-	p, err := FromPreset("clinepass")
+	p, err := legacyVendor("clinepass")
 	if err != nil {
 		t.Fatal(err)
 	}

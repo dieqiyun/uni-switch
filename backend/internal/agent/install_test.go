@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -141,6 +142,17 @@ func TestInstallWithoutNodeParses(t *testing.T) {
 	c := npmInstall("@earendil-works/pi-coding-agent", "linux", false).Command
 	for _, sh := range []string{"bash", "zsh", "sh"} {
 		p, err := exec.LookPath(sh)
+		if runtime.GOOS == "windows" && strings.Contains(strings.ToLower(p), "windowsapps") {
+			for _, candidate := range filepath.SplitList(os.Getenv("PATH")) {
+				probe := filepath.Join(candidate, sh+".exe")
+				if !strings.Contains(strings.ToLower(probe), "windowsapps") {
+					if _, e := os.Stat(probe); e == nil {
+						p, err = probe, nil
+						break
+					}
+				}
+			}
+		}
 		if err != nil {
 			continue
 		}
@@ -169,6 +181,17 @@ func TestInstallWithoutNodeStopsWhenTheDownloadFails(t *testing.T) {
 		"https://raw.githubusercontent.com/nvm-sh/nvm/"+nvmVersion+"/install.sh", bad.URL+"/install.sh", 1)
 	for _, sh := range []string{"bash", "zsh", "sh"} {
 		p, err := exec.LookPath(sh)
+		if runtime.GOOS == "windows" && strings.Contains(strings.ToLower(p), "windowsapps") {
+			for _, candidate := range filepath.SplitList(os.Getenv("PATH")) {
+				probe := filepath.Join(candidate, sh+".exe")
+				if !strings.Contains(strings.ToLower(probe), "windowsapps") {
+					if _, e := os.Stat(probe); e == nil {
+						p, err = probe, nil
+						break
+					}
+				}
+			}
+		}
 		if err != nil {
 			continue
 		}

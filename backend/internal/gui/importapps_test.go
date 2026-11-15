@@ -254,7 +254,7 @@ func TestOpenCodeWaitsForThePicker(t *testing.T) {
 	found := false
 	for _, s := range sources {
 		for _, it := range s.Items {
-			found = found || s.ID == "opencode" && it.Ref == "opencode-go" && it.Skip == "" && it.Provider.Preset == "opencode-go"
+			found = found || s.ID == "opencode" && it.Ref == "opencode-go" && it.Skip == "it has no base URL" && it.Provider.Preset == ""
 		}
 	}
 	if !found {

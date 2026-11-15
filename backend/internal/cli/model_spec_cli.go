@@ -150,6 +150,8 @@ func showSpec(ref string) error {
 	}
 	from := func(part provider.SpecPart, flag string) string {
 		switch part.From {
+		case "default":
+			return "uni-switch default"
 		case "model":
 			return "yours · --" + flag + " auto goes back to the vendor's list"
 		case "provider":

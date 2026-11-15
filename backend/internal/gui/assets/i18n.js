@@ -4,6 +4,8 @@
 // works. {name} slots are filled by t(str, vars).
 const I18N = {
   zh: {
+    "Gateway settings": "网关设置",
+    "Local gateway status, request records and advanced connection settings": "本地网关状态、请求记录和高级连接设置",
     "Not available on this system yet": "此系统暂不支持",
     "Prefix": "前缀",
     "Regex": "正则",
@@ -4310,6 +4312,8 @@ const I18N = {
     "This report is no longer kept: uni-switch keeps the last 5.": "这份报告已经不在了：uni-switch 只保留最近 5 份。",
   },
   "zh-TW": {
+    "Gateway settings": "閘道設定",
+    "Local gateway status, request records and advanced connection settings": "本機閘道狀態、請求記錄與進階連線設定",
     "Not available on this system yet": "此系統暫不支援",
     "Prefix": "字首",
     "Regex": "正則",
@@ -8595,6 +8599,8 @@ const I18N = {
     "This report is no longer kept: uni-switch keeps the last 5.": "這份報告已經不在了：uni-switch 只保留最近 5 份。",
   },
   ja: {
+    "Gateway settings": "ゲートウェイ設定",
+    "Local gateway status, request records and advanced connection settings": "ローカルゲートウェイの状態、リクエスト記録、高度な接続設定",
     "Not available on this system yet": "このシステムではまだ使えません",
     "Prefix": "前方一致",
     "Regex": "正規表現",
@@ -12884,6 +12890,8 @@ const I18N = {
     "This report is no longer kept: uni-switch keeps the last 5.": "このレポートはもう残っていません。uni-switch は最新の 5 件だけを保存します。",
   },
   de: {
+    "Gateway settings": "Gateway-Einstellungen",
+    "Local gateway status, request records and advanced connection settings": "Lokaler Gateway-Status, Anfrageprotokolle und erweiterte Verbindungseinstellungen",
     "Not available on this system yet": "Auf diesem System noch nicht verfügbar",
     "Prefix": "Präfix",
     "Regex": "Regex",

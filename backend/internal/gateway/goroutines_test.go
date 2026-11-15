@@ -179,7 +179,7 @@ func TestGoroutineDumpAnswersWhileRequestsWait(t *testing.T) {
 	var body string
 	for deadline := time.Now().Add(30 * time.Second); ; {
 		body = dump()
-		if strings.Contains(body, "gateway.allowList(") {
+		if strings.Contains(body, "settings.LoadChecked(") {
 			break
 		}
 		if time.Now().After(deadline) {

@@ -17,11 +17,11 @@ import (
 func TestKiloClientHeaders(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	free, err := provider.FromPreset("kilo")
+	free, err := savedProtocolFixture("kilo")
 	if err != nil {
 		t.Fatal(err)
 	}
-	free.ID, free.Models = "kilo", []string{"qwen/qwen3.8-27b:free"}
+	free.ID, free.Key, free.Chat, free.Models = "kilo", "fixture-kilo", "https://api.kilo.ai/api/openrouter", []string{"qwen/qwen3.8-27b:free"}
 	keyed := free
 	keyed.ID, keyed.Key, keyed.Chat = "kilo-keyed", "kilo_jwt", "https://api.kilocode.ai/api/openrouter"
 	for _, p := range []provider.Provider{free, keyed,
@@ -59,8 +59,8 @@ func TestKiloClientHeaders(t *testing.T) {
 		"User-Agent": "Kilo-Code/" + provider.KiloVersion, "X-KILOCODE-EDITORNAME": "Kilo CLI " + provider.KiloVersion,
 		"x-kilocode-mode": "code",
 	}
-	if a := k.Header.Values("Authorization"); len(a) != 0 {
-		t.Errorf("keyless kilo sent Authorization %q", a)
+	if a := k.Header.Get("Authorization"); a != "Bearer fixture-kilo" {
+		t.Errorf("configured kilo sent Authorization %q", a)
 	}
 	for k2, v := range want {
 		if k.Header.Get(k2) != v {

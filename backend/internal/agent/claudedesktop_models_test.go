@@ -24,10 +24,10 @@ import (
 // as it is.
 func TestClaudeDesktopModelsList(t *testing.T) {
 	home, p := desktopSandbox(t)
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"a", "b"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"a", "b"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "a", Context: 272000}, {ID: "b", Context: 128000}}); err != nil {
+	if err := saveWindowCatalog("v", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "a", Context: 272000}, {ID: "b", Context: 128000}}); err != nil {
 		t.Fatal(err)
 	}
 	cc := filepath.Join(home, ".claude", "settings.json")
@@ -110,7 +110,7 @@ func TestClaudeDesktopModelsList(t *testing.T) {
 	}
 
 	// a model added reaches the list with the catalog
-	if err := provider.Save(provider.Provider{ID: "w", Name: "W", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"c"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "w", Name: "W", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"c"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := d.Sync(); err != nil {
@@ -166,10 +166,10 @@ func TestClaudeDesktopModelsList(t *testing.T) {
 // the behavesAs model's.
 func TestClaudeDesktopModelsSharedTier(t *testing.T) {
 	home, p := desktopSandbox(t)
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"a", "b"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"a", "b"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "a", Context: 272000}, {ID: "b", Context: 128000}}); err != nil {
+	if err := saveWindowCatalog("v", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "a", Context: 272000}, {ID: "b", Context: 128000}}); err != nil {
 		t.Fatal(err)
 	}
 	cc := filepath.Join(home, ".claude", "settings.json")

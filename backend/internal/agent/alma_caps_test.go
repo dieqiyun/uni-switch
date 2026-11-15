@@ -18,11 +18,11 @@ import (
 // kept; and a provider already told is left alone.
 func TestAlmaToldReasoning(t *testing.T) {
 	syncHome(t)
-	if err := provider.Save(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "key",
+	if err := saveWindowFixture(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "key",
 		Models: []string{"gpt-5.5", "switch-only"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("think", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("think", "https://example.test/v1", []catalog.Model{
 		{ID: "gpt-5.5", Efforts: []string{"xhigh", "minimal", "low", "medium", "high", "ultra"}, Context: 400000, Output: 128000, Images: true},
 		{ID: "switch-only", Reasoning: true},
 	}); err != nil {
@@ -114,7 +114,7 @@ func TestAlmaToldReasoning(t *testing.T) {
 // for says nothing of it.
 func TestAlmaToldPricing(t *testing.T) {
 	syncHome(t)
-	if err := provider.Save(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "key",
+	if err := saveWindowFixture(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "key",
 		Models: []string{"priced", "unpriced"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestAlmaToldPricing(t *testing.T) {
 // isn't written over again at every sync; one taken away is told again.
 func TestAlmaToldTools(t *testing.T) {
 	syncHome(t)
-	if err := provider.Save(provider.Provider{ID: "relay2", Name: "Relay Two", Chat: "https://example.test/v1", Key: "key",
+	if err := saveWindowFixture(provider.Provider{ID: "relay2", Name: "Relay Two", Chat: "https://example.test/v1", Key: "key",
 		Models: []string{"DeepSeek", "kimi"}}); err != nil {
 		t.Fatal(err)
 	}

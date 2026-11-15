@@ -34,9 +34,10 @@ func TestKimiCodeCost(t *testing.T) {
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
 	for _, id := range []string{"kimi-code-cn", "moonshot"} {
-		p, err := provider.FromPreset(id)
-		if err != nil {
-			t.Fatal(err)
+		p := provider.Provider{ID: id, Name: id, Preset: id,
+			Chat: "https://api.moonshot.ai/v1", Catalog: "moonshotai"}
+		if id == "kimi-code-cn" {
+			p.Chat, p.Catalog = "https://api.kimi.com/coding/v1", "kimi-code-plan-cn"
 		}
 		p.Key = "sk-test"
 		if err := provider.Save(p); err != nil {

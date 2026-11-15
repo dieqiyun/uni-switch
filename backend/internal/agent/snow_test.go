@@ -49,7 +49,7 @@ const snowWork = `{
 func snowHome(t *testing.T) (home, dir string) {
 	t.Helper()
 	home = syncHome(t)
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"pro"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"pro"}}); err != nil {
 		t.Fatal(err)
 	}
 	dir = filepath.Join(home, ".snow")
@@ -270,7 +270,7 @@ func TestSnowNoProfiles(t *testing.T) {
 			t.Fatal(err)
 		}
 		sc := snowCfg(t, filepath.Join(dir, "profiles", "uni-switch.json"))
-		if sc["baseUrl"] != gatewayV1() || sc["maxContextTokens"] != float64(snowContext) {
+		if sc["baseUrl"] != gatewayV1() || sc["maxContextTokens"] != float64(256000) {
 			t.Fatalf("%v", sc)
 		}
 		if err := a.Apply("model", ""); err != nil {
@@ -353,7 +353,7 @@ func snowSees(t *testing.T) {
 "glm-4.6":{"id":"glm-4.6","name":"GLM-4.6","modalities":{"input":["text"],"output":["text"]},"limit":{"context":204800,"output":131072}},
 "glm-4.5v":{"id":"glm-4.5v","name":"GLM-4.5V","modalities":{"input":["text","image"],"output":["text"]},"limit":{"context":65536,"output":16384}}}}}`), 0o644)
 	catalog.Reset()
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"glm-4.6", "glm-4.5v"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"glm-4.6", "glm-4.5v"}}); err != nil {
 		t.Fatal(err)
 	}
 }

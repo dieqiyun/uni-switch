@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -28,6 +29,10 @@ func copyTree(t *testing.T, from, to string) {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			return err
+		}
+		if strings.HasSuffix(p, ".jsonl") || strings.HasSuffix(p, ".json") {
+			b = bytes.ReplaceAll(b, []byte(`"magpie"`), []byte(`"uni-switch"`))
+			b = bytes.ReplaceAll(b, []byte(`custom_provider:magpie`), []byte(`custom_provider:uni-switch`))
 		}
 		return os.WriteFile(filepath.Join(to, rel), b, 0o644)
 	})

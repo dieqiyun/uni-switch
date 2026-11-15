@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"github.com/dieqiyun/uni-switch/backend/internal/catalog"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -20,6 +21,10 @@ func TestArkPlanModelThatSeesIsSentTheImage(t *testing.T) {
 	up := strings.TrimSuffix(mustFind(t, "probe").Chat, "/v1")
 	if err := provider.Save(provider.Provider{ID: "volcengine", Name: "Volcengine Ark", Preset: "volcengine", Chat: up + "/api/coding/v3", Key: "ark-k",
 		Models: []string{"doubao-seed-2.1-pro", "glm-5.3-flash", "deepseek-v4-pro"}}); err != nil {
+		t.Fatal(err)
+	}
+	sees := true
+	if err := catalog.SaveLive("volcengine", up+"/api/coding/v3", []catalog.Model{{ID: "doubao-seed-2.1-pro", ImageInput: &sees}, {ID: "glm-5.3-flash", ImageInput: &sees}, {ID: "deepseek-v4-pro"}}); err != nil {
 		t.Fatal(err)
 	}
 	for _, model := range []string{"doubao-seed-2.1-pro", "glm-5.3-flash", "deepseek-v4-pro"} {

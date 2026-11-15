@@ -567,11 +567,10 @@ func TestPlanQuotasKimiCodeMonthEveryRoute(t *testing.T) {
 		t.Fatal(err)
 	}
 	items, err := readOpenCodeAuth(auth)
-	if err != nil || len(items) != 1 || items[0].Skip != "" {
+	if err != nil || len(items) != 1 || items[0].Skip != "it has no base URL" {
 		t.Fatalf("OpenCode import: %+v %v", items, err)
 	}
-	oc := items[0].Provider
-	oc.ID = "kimi-oc"
+	oc := Provider{ID: "kimi-oc", Name: "Kimi explicit", Anthropic: "https://api.kimi.com/coding", Key: "sk-kimi-oc"}
 	for _, p := range []Provider{
 		FromPresetKey(t, "kimi-code-cn", "sk-kimi-cn"),
 		FromPresetKey(t, "kimi-code", "sk-kimi-global"),

@@ -24,30 +24,14 @@ func TestParseImportPreset(t *testing.T) {
 // SiliconFlow's international site is another account: its endpoint, key
 // page and console, while the preset's default stays the China site.
 func TestSiliconFlowInternational(t *testing.T) {
-	p, err := ParseImport("uni-switch://import?preset=siliconflow&region=intl")
-	if err != nil {
-		t.Fatal(err)
+	if _, err := ParseImport("uni-switch://import?preset=siliconflow&region=intl"); err == nil {
+		t.Fatal("retired region imported")
 	}
-	if p.Chat != "https://api.siliconflow.com/v1" || p.KeysURL != "https://cloud.siliconflow.com/account/ak" || p.Website != "https://cloud.siliconflow.com" {
-		t.Fatalf("intl: got %q %q %q", p.Chat, p.KeysURL, p.Website)
-	}
+	p := Provider{ID: "sf-intl", Chat: "https://api.siliconflow.com/v1", Key: "qa"}
 	if src, ok := balanceSourceOf(p); !ok || !strings.Contains(src.url, "api.siliconflow.com") {
-		t.Fatalf("intl balance: %+v %v", src, ok)
+		t.Fatalf("explicit international endpoint: %+v %v", src, ok)
 	}
-	d, err := FromPreset("siliconflow")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if d.Chat != "https://api.siliconflow.cn/v1" || d.KeysURL != "https://cloud.siliconflow.cn/account/ak" {
-		t.Fatalf("default: got %q %q", d.Chat, d.KeysURL)
-	}
-	pr := Preset("siliconflow")
-	if r := d.regionOf(pr); r == nil || r.ID != "cn" {
-		t.Fatalf("a China provider saved before the regions sits at %+v", r)
-	}
-	if r := p.regionOf(pr); r == nil || r.ID != "intl" {
-		t.Fatalf("the international one sits at %+v", r)
-	}
+
 }
 
 func TestParseImportCustom(t *testing.T) {

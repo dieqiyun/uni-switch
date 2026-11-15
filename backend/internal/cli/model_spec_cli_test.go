@@ -25,7 +25,7 @@ func TestModelSpecCmd(t *testing.T) {
 		return out
 	}
 	out, err := runOut(t, "model", "spec", "a/only-a")
-	if err != nil || strings.Count(out, "neither the vendor's list nor models.dev says") != 4 {
+	if err != nil || strings.Count(out, "neither the vendor's list nor models.dev says") != 3 || !strings.Contains(out, "256k") || !strings.Contains(out, "uni-switch default") {
 		t.Fatalf("unknown spec: %q %v", out, err)
 	}
 	if out, err = runOut(t, "model", "specs"); err != nil || !strings.Contains(out, "no model has a spec of yours yet") {

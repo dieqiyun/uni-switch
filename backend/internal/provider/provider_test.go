@@ -139,12 +139,12 @@ func TestAddSameKeyOtherFormat(t *testing.T) {
 	}
 	// two products of one vendor at one host, one account's key for both
 	// (#3388, ggbdpq's case): OpenCode Go beside OpenCode Zen
-	zen, _ := FromPreset("opencode-zen")
+	zen, _ := legacyVendor("opencode-zen")
 	zen.Key = "sk-opencode"
 	if _, err := Add(zen); err != nil {
 		t.Fatal(err)
 	}
-	gop, _ := FromPreset("opencode-go")
+	gop, _ := legacyVendor("opencode-go")
 	gop.Key = "sk-opencode"
 	id, err := Add(gop)
 	if err != nil {

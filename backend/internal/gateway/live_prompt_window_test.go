@@ -84,11 +84,11 @@ func TestLivePromptHasItsWindow(t *testing.T) {
 		up := httptest.NewServer(h)
 		t.Cleanup(up.Close)
 		t.Cleanup(let) // before the server's Close, which waits on it
-		if err := provider.Save(provider.Provider{ID: "remote-uni-switch", Name: "Remote", Key: "sk-uni-switch-x", Chat: up.URL}); err != nil {
+		if err := saveWindowFixture(provider.Provider{ID: "remote-uni-switch", Name: "Remote", Key: "sk-uni-switch-x", Chat: up.URL}); err != nil {
 			t.Fatal(err)
 		}
 		// the other uni-switch's /v1/models, which says the window
-		if err := catalog.SaveLive("remote-uni-switch", up.URL+"/v1", []catalog.Model{{ID: "claude/claude-opus-5-5", Context: 1000000}}); err != nil {
+		if err := saveWindowCatalog("remote-uni-switch", up.URL+"/v1", []catalog.Model{{ID: "claude/claude-opus-5-5", Context: 1000000}}); err != nil {
 			t.Fatal(err)
 		}
 		req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"remote-uni-switch/claude/claude-opus-5-5","stream":true,"messages":[{"role":"user","content":"refactor the parser"}]}`))
@@ -119,10 +119,10 @@ func TestLivePromptHasItsWindow(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer chatgpt-token")
 		req.Header.Set("chatgpt-account-id", "acct-1")
 		live, done := inFlight(t, New(), req, let)
-		if live == nil || live.Window != 272000 {
+		if live == nil || live.Window != 256000 {
 			t.Errorf("in flight: prompt %+v, want Codex's window 272000", live)
 		}
-		if done == nil || done.Window != 272000 {
+		if done == nil || done.Window != 256000 {
 			t.Errorf("done: prompt %+v, want Codex's window 272000", done)
 		}
 	})

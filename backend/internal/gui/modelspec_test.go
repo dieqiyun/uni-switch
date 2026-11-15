@@ -51,7 +51,7 @@ func TestModelSpecInProvidersState(t *testing.T) {
 	if m.Context != 131072 || m.Output != 16384 || !m.Images || !m.ImageSet || !m.Given || !slices.Equal(m.Kept, []string{"low", "medium", "high"}) {
 		t.Fatalf("glm-5:free: %+v", m)
 	}
-	if q := models["qwen-x:free"]; !q.Reasonless || len(q.Kept) != 0 || q.Images || q.Context != 0 {
+	if q := models["qwen-x:free"]; !q.Reasonless || len(q.Kept) != 0 || q.Images || q.Context != 256000 {
 		t.Fatalf("qwen-x:free: %+v", q)
 	}
 }

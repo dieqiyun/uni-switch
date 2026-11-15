@@ -149,6 +149,10 @@ func TestClaudeClientCacheKeepsEarlierTranscriptBoundary(t *testing.T) {
 // private header. Its marks must be kept like an opted-in client's (#3835),
 // and the transcript boundary must survive the round's growth.
 func TestClaudeClientCacheClassifierWithoutHeader(t *testing.T) {
+	fresh(t)
+	wasTUI := claudeTUIRuns
+	claudeTUIRuns = false
+	t.Cleanup(func() { claudeTUIRuns = wasTUI })
 	s := New()
 	t.Cleanup(s.subscription.abortAll)
 	var rounds [2]*Request

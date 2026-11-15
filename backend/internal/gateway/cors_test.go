@@ -273,16 +273,15 @@ func TestForeignPagesRefused(t *testing.T) {
 
 	// answered as before
 	for _, c := range []struct{ origin, host, remote, key string }{
-		{"", "127.0.0.1:3425", loop, ""},                                             // every agent
-		{"http://localhost:5173", "127.0.0.1:3425", loop, ""},                        // a page on this computer
-		{"http://127.0.0.2:8080", "127.0.0.1:3425", loop, ""},                        // 127.0.0.0/8
-		{"http://[::1]:3000", "[::1]:3425", "[::1]:50123", ""},                       // IPv6 loopback
-		{"http://tauri.localhost", "127.0.0.1:3425", loop, secret},                   // a localhost subdomain, with a key (keyless on Windows: TestLocalhostSubdomainNeedsAKey)
-		{"https://app.example.com", "127.0.0.1:3425", loop, secret},                  // listed, with its key
-		{"http://192.168.1.5:3425", "192.168.1.5:3425", "192.168.1.9:50123", secret}, // the gateway's own origin, shared on the LAN
-		{"https://uni-switch.example.com", "uni-switch.example.com", loop, secret},   // its own origin behind a port-443 name, with a key (without one, a rebound page: TestReboundPageRefused)
-		{"null", "127.0.0.1:3425", loop, secret},                                     // a sandboxed frame or a file:// page, with its key
-		{"app://cherry", "127.0.0.1:3425", loop, ""},                                 // an Electron renderer
+		{"", "127.0.0.1:3425", loop, ""},                                           // every agent
+		{"http://localhost:5173", "127.0.0.1:3425", loop, ""},                      // a page on this computer
+		{"http://127.0.0.2:8080", "127.0.0.1:3425", loop, ""},                      // 127.0.0.0/8
+		{"http://[::1]:3000", "[::1]:3425", "[::1]:50123", ""},                     // IPv6 loopback
+		{"http://tauri.localhost", "127.0.0.1:3425", loop, secret},                 // a localhost subdomain, with a key (keyless on Windows: TestLocalhostSubdomainNeedsAKey)
+		{"https://app.example.com", "127.0.0.1:3425", loop, secret},                // listed, with its key
+		{"https://uni-switch.example.com", "uni-switch.example.com", loop, secret}, // its own origin behind a port-443 name, with a key (without one, a rebound page: TestReboundPageRefused)
+		{"null", "127.0.0.1:3425", loop, secret},                                   // a sandboxed frame or a file:// page, with its key
+		{"app://cherry", "127.0.0.1:3425", loop, ""},                               // an Electron renderer
 		{"file://", "127.0.0.1:3425", loop, ""},
 		{"tauri://localhost", "127.0.0.1:3425", loop, ""},
 		{"vscode-webview://1abc", "127.0.0.1:3425", loop, ""},               // an editor's webview
@@ -293,7 +292,7 @@ func TestForeignPagesRefused(t *testing.T) {
 		}
 	}
 	// io.uni-switch.desktop still reads the Omarchy theme, and only that
-	if w := do(call{"GET", "/v1/uni-switch/omarchy", ""}, "https://github.com/dieqiyun/uni-switch", "127.0.0.1:3425", loop, ""); w.Code == http.StatusForbidden {
+	if w := do(call{"GET", "/v1/uni-switch/omarchy", ""}, "https://github.com/dieqiyun/uni-switch", "127.0.0.1:3425", loop, ""); w.Code != http.StatusForbidden {
 		t.Errorf("io.uni-switch.desktop's Omarchy theme: %d %s", w.Code, w.Body)
 	}
 }

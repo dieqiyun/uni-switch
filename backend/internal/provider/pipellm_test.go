@@ -37,7 +37,7 @@ func TestPipeLLMRoutesByTypeTarget(t *testing.T) {
 	if err := catalog.SaveLive("pipellm", "", ms); err != nil {
 		t.Fatal(err)
 	}
-	p, err := FromPreset("pipellm")
+	p, err := legacyVendor("pipellm")
 	if err != nil {
 		t.Fatal(err)
 	}

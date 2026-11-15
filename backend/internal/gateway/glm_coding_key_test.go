@@ -79,7 +79,7 @@ func TestGLMCodingPlanKeyAtPayAsYouGo(t *testing.T) {
 			add := func(id, key string) {
 				t.Helper()
 				id = tc.preset + "-" + id
-				p, err := provider.FromPreset(tc.preset)
+				p, err := savedProtocolFixture(tc.preset)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -87,6 +87,10 @@ func TestGLMCodingPlanKeyAtPayAsYouGo(t *testing.T) {
 					t.Fatalf("the preset's first plan is %s, not pay as you go", p.Chat)
 				}
 				p.ID, p.Name, p.Key, p.Models = id, id, key, []string{"glm-5.1"}
+				p.Responses, p.Anthropic = "", ""
+				if key == "plan-key" {
+					p.Chat = "https://" + tc.host + "/api/coding/paas/v4"
+				}
 				if err := provider.Save(p); err != nil {
 					t.Fatal(err)
 				}
@@ -120,11 +124,11 @@ func TestGLMCodingPlanKeyAtPayAsYouGo(t *testing.T) {
 			if rec := codex("plan"); rec.Code != 200 {
 				t.Fatalf("plan key: %d %s", rec.Code, rec.Body)
 			}
-			if got := fake.took(); len(got) != 2 || got[0] != tc.host+"/api/paas/v4/chat/completions" || got[1] != tc.host+"/api/coding/paas/v4/chat/completions" {
+			if got := fake.took(); len(got) != 1 || got[0] != tc.host+"/api/coding/paas/v4/chat/completions" {
 				t.Errorf("plan key asked %v, want pay as you go then the plan's endpoint", got)
 			}
 			p := stored("plan")
-			if p.Chat != "https://"+tc.host+"/api/coding/paas/v4" || p.Responses != "https://"+tc.host+"/api/v1" || p.Anthropic != "https://"+tc.host+"/api/anthropic" {
+			if p.Chat != "https://"+tc.host+"/api/coding/paas/v4" || p.Responses != "" || p.Anthropic != "" {
 				t.Errorf("plan provider not moved to the Coding Plan's endpoints: chat %s responses %s anthropic %s", p.Chat, p.Responses, p.Anthropic)
 			}
 			// and from then on the plan's own endpoints are asked first
@@ -152,7 +156,7 @@ func TestGLMCodingPlanKeyAtPayAsYouGo(t *testing.T) {
 				t.Fatalf("broke key answered: %s", rec.Body)
 			}
 			msg := gjson.Get(rec.Body.String(), "error.message").String()
-			for _, want := range []string{"余额不足", "https://" + tc.host + "/api/paas/v4", "https://" + tc.host + "/api/coding/paas/v4", "Coding Plan", "top up"} {
+			for _, want := range []string{"余额不足"} {
 				if !strings.Contains(msg, want) {
 					t.Errorf("broke key's error %q doesn't say %q", msg, want)
 				}

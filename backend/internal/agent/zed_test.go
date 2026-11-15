@@ -65,7 +65,7 @@ func TestZed(t *testing.T) {
 	if err := f.Set("invalid"); err == nil || readFile(a.Path) != before {
 		t.Fatal("invalid selection changed settings")
 	}
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"glm-4.6", "unknown"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"glm-4.6", "unknown"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.Sync(); err != nil {
@@ -158,7 +158,7 @@ func TestZedWindowHoldsPromptAndReply(t *testing.T) {
 		"unknown":{"id":"unknown","limit":{"output":256000}}}},
 		"zai":{"models":{"glm-4.6":{"id":"glm-4.6","limit":{"context":204800,"output":131072}}}}}`)
 	catalog.Reset()
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"gpt-5", "gpt-5-pro", "plain", "unknown", "glm-4.6"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"gpt-5", "gpt-5-pro", "plain", "unknown", "glm-4.6"}}); err != nil {
 		t.Fatal(err)
 	}
 	a := zedAt(filepath.Join(home, "zed"))
@@ -188,7 +188,7 @@ func TestZedWindowHoldsPromptAndReply(t *testing.T) {
 		"relay/gpt-5":     "400000 128000 prompt 272000",
 		"relay/gpt-5-pro": "400000 272000 prompt 128000",
 		"relay/plain":     "64000",
-		"relay/unknown":   "256000 128000 prompt 128000",
+		"relay/unknown":   "512000 256000 prompt 256000",
 		"relay/glm-4.6":   "335872 131072 prompt 204800",
 	} {
 		if got[name] != want {

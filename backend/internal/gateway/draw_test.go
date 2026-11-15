@@ -382,20 +382,18 @@ func TestAspectOf(t *testing.T) {
 	}
 }
 
-func TestVolcengineAgentPlanDrawers(t *testing.T) {
-	p, err := provider.FromPreset("volcengine")
-	if err != nil {
+func TestExplicitArkDrawersWithoutPreset(t *testing.T) {
+	fresh(t)
+	p := provider.Provider{ID: "ark", Preset: "volcengine", Key: "key", Chat: "https://ark.cn-beijing.volces.com/api/plan/v3"}
+	if ds := p.PlanDrawers(); len(ds) != 0 {
+		t.Fatalf("retired preset supplied drawers: %+v", ds)
+	}
+	if err := catalog.SaveLive(p.ID, p.Chat, []catalog.Model{{ID: "seedream-custom", Draws: true}}); err != nil {
 		t.Fatal(err)
 	}
-	pr := provider.Preset("volcengine")
-	p.Chat, p.Responses, p.Anthropic = pr.Regions[1].Chat, pr.Regions[1].Responses, pr.Regions[1].Anthropic
-	ds, want := Drawers(p), p.PlanDrawers()
-	if len(ds) == 0 || !slices.EqualFunc(ds, want, func(a, b catalog.Model) bool { return a.ID == b.ID }) {
-		t.Fatalf("Agent Plan drawers: %+v, want preset plan's %+v", ds, want)
-	}
-	p.Chat, p.Responses, p.Anthropic = pr.Regions[0].Chat, pr.Regions[0].Responses, pr.Regions[0].Anthropic
-	if ds := Drawers(p); len(ds) != 0 {
-		t.Fatalf("Coding Plan drawers: %+v", ds)
+	ds := Drawers(p)
+	if len(ds) != 1 || ds[0].ID != "seedream-custom" {
+		t.Fatalf("explicit model list: %+v", ds)
 	}
 }
 

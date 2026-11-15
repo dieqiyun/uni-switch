@@ -98,7 +98,7 @@ func TestShortDefaultAsksTheModelsOutput(t *testing.T) {
 		{ID: "relay", Name: "Relay", Key: "k", Catalog: "deepseek", Models: []string{"deepseek-flash"},
 			Chat: "http://relay.example.com/v1", Responses: "http://relay.example.com/v1"},
 	} {
-		if err := provider.Save(p); err != nil {
+		if err := saveWindowFixture(p); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -162,7 +162,7 @@ func TestTranslatedAsksTheModelsOutput(t *testing.T) {
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
 	// a vendor serving Chat alone: Codex's turn is translated
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Key: "k", Catalog: "kimi", Models: []string{"k-big"}, Chat: up.URL + "/v1"}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Key: "k", Catalog: "kimi", Models: []string{"k-big"}, Chat: up.URL + "/v1"}); err != nil {
 		t.Fatal(err)
 	}
 	s := New()

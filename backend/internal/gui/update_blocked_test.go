@@ -50,6 +50,10 @@ func TestUpdateThatWontStart(t *testing.T) {
 	os.WriteFile(staged, body, 0o755)
 
 	o := updates
+	replacement := exe + ".installed"
+	os.WriteFile(replacement, body, 0o755)
+	os.Rename(exe, exe+".old")
+	os.Rename(replacement, exe)
 	u := &updater{exe: exe, self: self, staged: staged, state: "ready", latest: &update.Release{Version: "0.1.11"}}
 	updates = u
 	defer func() { updates = o }()

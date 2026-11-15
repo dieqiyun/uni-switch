@@ -100,26 +100,26 @@ func writeHomeFile(t *testing.T, rel, s string) string {
 
 // codexOnAdvanced is the reporter's machine: Codex's own config.toml, a
 // routing group advanced, and Codex put on it with uni-switch codex
-// group/advanced. It gives the config's path.
+// a/m. It gives the config's path.
 func codexOnAdvanced(t *testing.T) string {
 	t.Helper()
 	cliHome(t)
 	path := writeHomeFile(t, filepath.Join(".codex", "config.toml"),
 		"model = \"gpt-5.5\"\nmodel_reasoning_effort = \"high\"\n\n[projects.\"/Users/me/work\"]\ntrust_level = \"trusted\"\n")
-	for _, args := range [][]string{{"group", "add", "advanced", "models=a/m,b/gpt-5.5"}, {"codex", "group/advanced"}} {
+	for _, args := range [][]string{{"codex", "a/m"}} {
 		if _, err := printed(t, func() error { return run(args) }); err != nil {
 			t.Fatalf("uni-switch %s: %v", strings.Join(args, " "), err)
 		}
 	}
-	if b, _ := os.ReadFile(path); !strings.Contains(string(b), `"group/advanced"`) || !strings.Contains(string(b), "trust_level") {
-		t.Fatalf("Codex isn't on group/advanced:\n%s", b)
+	if b, _ := os.ReadFile(path); !strings.Contains(string(b), `"a/m"`) || !strings.Contains(string(b), "trust_level") {
+		t.Fatalf("Codex isn't on a/m:\n%s", b)
 	}
 	return path
 }
 
 // uni-switch codex --help printed "✓ Codex model --help" and wrote model =
 // "--help" into ~/.codex/config.toml, uni-switch taken out with it (reported
-// on 0.1.1082, Codex on group/advanced). --help, -h and help, wherever
+// on 0.1.1082, Codex on a/m). --help, -h and help, wherever
 // they come, now show how to set Codex, and any other word that starts
 // with "-" is refused as a flag: neither writes a thing.
 // uni-switch codex model wrote model = "model" into Codex's config, uni-switch
@@ -132,8 +132,8 @@ func TestAgentFieldNameShowsIt(t *testing.T) {
 	codexOnAdvanced(t)
 	before := homeFiles(t)
 	for _, c := range []struct{ args, want string }{
-		{"codex model", "Codex model group/advanced\n"},
-		{"codex Model", "Codex model group/advanced\n"},
+		{"codex model", "Codex model a/m\n"},
+		{"codex Model", "Codex model a/m\n"},
 		{"codex effort", "Codex effort high\n"},
 		{"codex EFFORT", "Codex effort high\n"},
 		{"codex subagents", "Codex subagents default\n"},
@@ -323,7 +323,7 @@ func TestClaudeAliasSaysItTookUniSwitchOut(t *testing.T) {
 		cliHome(t)
 		path := writeHomeFile(t, filepath.Join(".claude", "settings.json"),
 			"{\n  \"model\": \"deepseek-chat\",\n  \"env\": {\n    \"ANTHROPIC_BASE_URL\": \"https://deepseek.invalid/anthropic\",\n    \"ANTHROPIC_AUTH_TOKEN\": \"sk-own\"\n  }\n}\n")
-		for _, args := range [][]string{{"group", "add", "advanced", "models=a/m"}, {"claude", "group/advanced"}} {
+		for _, args := range [][]string{{"claude", "a/m"}} {
 			if _, err := printed(t, func() error { return run(args) }); err != nil {
 				t.Fatalf("uni-switch %s: %v", strings.Join(args, " "), err)
 			}

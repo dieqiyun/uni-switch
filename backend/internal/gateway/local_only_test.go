@@ -67,8 +67,8 @@ func TestLocalGuardPreservesNamedKeyAttribution(t *testing.T) {
 	r.Header.Set("Authorization", "Bearer "+secret)
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	if w.Code != 200 || !called {
-		t.Fatalf("trusted local access changed: %d", w.Code)
+	if w.Code != http.StatusUnauthorized || called {
+		t.Fatalf("disabled named key passed: %d", w.Code)
 	}
 }
 

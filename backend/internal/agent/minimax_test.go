@@ -52,11 +52,11 @@ func miniMaxHome(t *testing.T) (home, path string) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 	t.Setenv("MINIMAX_DATA_DIR", "")
-	if err := provider.Save(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"deep", "v1.5-flash"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("think", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("think", "https://example.test/v1", []catalog.Model{
 		{ID: "deep", Efforts: []string{"none", "low", "high"}, Context: 400000, Output: 64000, Images: true},
 		{ID: "v1.5-flash"},
 	}); err != nil {
@@ -148,7 +148,7 @@ func TestMiniMaxCode(t *testing.T) {
 		deep.Capabilities["support_image"] != true {
 		t.Fatalf("deep:\n%s", raw)
 	}
-	if flash.Reasoning || flash.Thinking.EffortOptions != nil || flash.Capabilities != nil || flash.Limit.Context != 0 {
+	if flash.Reasoning || flash.Thinking.EffortOptions != nil || flash.Capabilities != nil || flash.Limit.Context != 256000 {
 		t.Fatalf("flash:\n%s", raw)
 	}
 	if c.CustomProvider["work"].Options["apiKey"] != "sk-mine" || c.Provider["minimax"] == nil || c.Memory["enabled"] != false ||
@@ -229,7 +229,7 @@ func TestMiniMaxCodeSync(t *testing.T) {
 	if err := a.Field("model").Set("uni-switch/think/deep"); err != nil {
 		t.Fatal(err)
 	}
-	if err := provider.Save(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "think", Name: "Think", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"deep", "v1.5-flash", "v2"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +247,7 @@ func TestMiniMaxCodeSync(t *testing.T) {
 	if st2, _ := os.Stat(path); !st2.ModTime().Equal(st.ModTime()) {
 		b, _ := os.ReadFile(path)
 		if string(b) != raw {
-			t.Fatalf("an unchanged catalog rewrote the file:\n%s", b)
+			t.Fatalf("an unchanged catalog rewrote the file:\n%s\nWAS:\n%s", b, raw)
 		}
 	}
 }
@@ -289,7 +289,7 @@ func TestMiniMaxCodeDataDir(t *testing.T) {
 // begun on it still resumes; stepping out still puts back what they had.
 func TestMiniMaxCodeOneSlash(t *testing.T) {
 	home, path := miniMaxHome(t)
-	if err := provider.Save(provider.Provider{ID: "bb-codex", Name: "BB Codex", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "bb-codex", Name: "BB Codex", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"gpt-6.1-sol"}}); err != nil {
 		t.Fatal(err)
 	}

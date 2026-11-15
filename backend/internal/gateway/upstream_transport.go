@@ -133,8 +133,17 @@ func (t drawsApart) RoundTrip(r *http.Request) (*http.Response, error) {
 	if time.Since(time.Unix(0, t.slow.Load())) < slowFor {
 		return t.uploads.RoundTrip(r)
 	}
-	res, err := t.any.RoundTrip(r)
-	if err == nil || !lostPing(err) || r.GetBody == nil || r.Context().Err() != nil {
+	var h2 atomic.Bool
+	trace := &httptrace.ClientTrace{GotConn: func(i httptrace.GotConnInfo) {
+		if tc, ok := i.Conn.(interface{ ConnectionState() tls.ConnectionState }); ok {
+			h2.Store(tc.ConnectionState().NegotiatedProtocol == "h2")
+		}
+	}}
+	res, err := t.any.RoundTrip(r.WithContext(httptrace.WithClientTrace(r.Context(), trace)))
+	// On Windows, the writer can observe the HTTP/2 connection's closure
+	// before the read loop reports its lost ping. No complete request or
+	// response exists in that case; retry it on the upload transport too.
+	if err == nil || !(lostPing(err) || h2.Load() && closedBeforeSent(err)) || r.GetBody == nil || r.Context().Err() != nil {
 		return res, err
 	}
 	body, gerr := r.GetBody()

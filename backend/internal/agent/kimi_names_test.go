@@ -38,13 +38,13 @@ func TestKimiNamesAndOutput(t *testing.T) {
 			dir = filepath.Join(home, ".kimi")
 		}
 		os.MkdirAll(dir, 0o755)
-		if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Chat: "https://example.test/v1", Key: "k",
+		if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Chat: "https://example.test/v1", Key: "k",
 			Models: []string{"big", "wide", "bare"}}); err != nil {
 			t.Fatal(err)
 		}
 		live := func(bigOut int) {
 			t.Helper()
-			if err := catalog.SaveLive("relay", "https://example.test/v1", []catalog.Model{
+			if err := saveWindowCatalog("relay", "https://example.test/v1", []catalog.Model{
 				{ID: "big", Name: "Big One", Context: 200000, Output: bigOut},
 				// models.dev lists some outputs above the window: the window caps it
 				{ID: "wide", Name: "Wide", Context: 128000, Output: 384000},

@@ -62,7 +62,7 @@ func TestProviderSaveInsecureTLS(t *testing.T) {
 		t.Fatal("unticked, still unchecked")
 	}
 
-	ds, err := provider.FromPreset("deepseek")
+	ds, err := savedEditorFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}

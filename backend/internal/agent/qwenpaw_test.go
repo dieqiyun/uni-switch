@@ -135,11 +135,11 @@ func qwenpawHome(t *testing.T) (home, work string) {
 	t.Setenv("QWENPAW_WORKING_DIR", "")
 	t.Setenv("QWENPAW_SECRET_DIR", "")
 	noKeychain(t)
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2", "k2-vision"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144, Output: 16384, Efforts: []string{"none", "low", "medium", "high", "max", "ultra"}},
 		{ID: "k2-vision", Images: true},
 	}); err != nil {
@@ -226,7 +226,7 @@ func TestQwenPawConnect(t *testing.T) {
 		!k2.Get("supports_tool_calling").Bool() || k2.Get("source").String() != "user" {
 		t.Errorf("kimi/k2: %s", k2.Raw)
 	}
-	if v := p.Get(`extra_models.#(id=="kimi/k2-vision")`); !v.Get("supports_image").Bool() || v.Get("max_input_length").Exists() {
+	if v := p.Get(`extra_models.#(id=="kimi/k2-vision")`); !v.Get("supports_image").Bool() || v.Get("max_input_length").Int() != 256000 {
 		t.Errorf("kimi/k2-vision: %s", v.Raw)
 	}
 	if runtime.GOOS != "windows" {
@@ -496,7 +496,7 @@ func TestQwenPawSyncAfterQwenPawSaved(t *testing.T) {
 		e["availability_status"], e["config_overrides"], e["thinking_budget"] = "unverified", []any{}, nil
 		if e["id"] == "kimi/k2-vision" {
 			// uni-switch knows no window for it: QwenPaw's own
-			e["max_input_length"], e["max_input_length_configured"], e["max_output_length"] = 131072, false, nil
+			e["max_input_length"], e["max_input_length_configured"], e["max_output_length"] = 256000, true, nil
 		}
 	}
 	b, _ := json.MarshalIndent(m, "", "  ")
@@ -577,7 +577,7 @@ func TestQwenPawModelsDeclareThinking(t *testing.T) {
 	}
 	b, _ := json.MarshalIndent(m, "", "  ")
 	writeFile(t, prov, string(b))
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144, Output: 16384},
 		{ID: "k2-vision", Images: true},
 	}); err != nil {

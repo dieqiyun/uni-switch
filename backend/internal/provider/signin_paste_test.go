@@ -177,6 +177,10 @@ func TestPastedAddressAndCallbackFinishOnce(t *testing.T) {
 // bar doesn't offer it. Claude's is Claude Code's own (signin_claude_test.go);
 // Command Code's, whose key is posted, is its plugin's (TestLoopbackPorts).
 func TestLoopbackSignInsTakePastedAddress(t *testing.T) {
+	for _, a := range []string{"GEMINI", "ANTIGRAVITY"} {
+		t.Setenv("UNI_SWITCH_"+a+"_OAUTH_CLIENT_ID", "qa-client")
+		t.Setenv("UNI_SWITCH_"+a+"_OAUTH_CLIENT_SECRET", "qa-secret")
+	}
 	claudeHome(t)
 	fakeCodexTokens(t, nil)
 	for _, agent := range []string{"codex", "gemini", "antigravity"} {

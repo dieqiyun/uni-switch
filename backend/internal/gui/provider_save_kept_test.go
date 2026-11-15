@@ -42,7 +42,7 @@ func TestProviderSaveKeepsWhatTheEditorDoesntShow(t *testing.T) {
 
 	// a preset's provider: the editor sends its key, picks and settings,
 	// never these
-	ds, err := provider.FromPreset("deepseek")
+	ds, err := savedEditorFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestProviderSaveKeepsWhatTheEditorDoesntShow(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := keptOf("deepseek")
-	post(`{"id":"deepseek","from":"deepseek","name":"DeepSeek","preset":"deepseek","key":"","chat":"` + ds.Chat + `","responses":"` + ds.Responses + `","anthropic":"` + ds.Anthropic + `","catalog":"deepseek","models":[],"headers":{},"searches":false,"pinUpstream":false,"unredacted":false,"contexts":{},"outputs":{},"compacts":{},"proxy":"","maxConcurrency":null,"queueLimit":0,"queueWait":0,"priceRate":null}`)
+	post(`{"id":"deepseek","from":"deepseek","name":"DeepSeek","preset":"deepseek","key":"","chat":"` + ds.Chat + `","responses":"` + ds.Responses + `","anthropic":"` + ds.Anthropic + `","balanceURL":"https://my.example.com/balance","balancePath":"data.left","modelsURL":"https://my.example.com/v1/models","catalog":"deepseek","models":[],"headers":{},"searches":false,"pinUpstream":false,"unredacted":false,"contexts":{},"outputs":{},"compacts":{},"proxy":"","maxConcurrency":null,"queueLimit":0,"queueWait":0,"priceRate":null}`)
 	if got := keptOf("deepseek"); got != want {
 		t.Errorf("preset's editor Save:\n got %+v\nwant %+v", got, want)
 	}

@@ -150,10 +150,10 @@ func TestImageMCPDrawsAndServesTheImage(t *testing.T) {
 	if w := imageGet(h, "127.0.0.1:5000", "http://127.0.0.1:3425"+ImageMCPFiles+"nothing.png"); w.Code != 404 {
 		t.Fatalf("no such file: %d", w.Code)
 	}
-	// UNI_SWITCH_PUBLIC_URL is the address the agent is given
+	// The retired public URL cannot replace the local image address.
 	t.Setenv("UNI_SWITCH_PUBLIC_URL", "https://uni-switch.example.net/")
 	m = readImageReply(t, imagePost(h, "127.0.0.1:5000", imageToolCall(GenerateImageTool, map[string]any{"prompt": "a uni-switch"})))
-	if u := urlsIn(m.Result.Content[0].Text); len(u) != 1 || !strings.HasPrefix(u[0], "https://uni-switch.example.net"+ImageMCPFiles) {
+	if u := urlsIn(m.Result.Content[0].Text); len(u) != 1 || !strings.HasPrefix(u[0], "http://127.0.0.1:3425"+ImageMCPFiles) {
 		t.Fatalf("public URL: %q", m.Result.Content[0].Text)
 	}
 	// a reference image makes it an edit
@@ -199,38 +199,35 @@ func TestImageMCPGuarded(t *testing.T) {
 		t.Fatalf("not shared: %d %s", w.Code, w.Body.String())
 	}
 	_, secrets := newCaller(t, "Laptop", "Phone")
-	if w := imagePost(h, there, draw); w.Code != http.StatusUnauthorized {
+	if w := imagePost(h, there, draw); w.Code != http.StatusForbidden {
 		t.Fatalf("shared, no key: %d %s", w.Code, w.Body.String())
 	}
 	if w := imagePost(h, "127.0.0.1:50000", draw, "Origin", "http://localhost:5173"); w.Code != http.StatusForbidden {
 		t.Fatalf("a page on this computer: %d %s", w.Code, w.Body.String())
 	}
-	for _, tool := range []string{GenerateImageTool, GenerateVideoTool} {
-		args := map[string]any{"prompt": "a uni-switch", "reference_images": []string{file}}
-		m := readImageReply(t, imagePost(h, there, imageToolCall(tool, args), "Authorization", "Bearer "+secrets[0]))
-		if !m.Result.IsError || !strings.Contains(m.Result.Content[0].Text, tool+" reads a file only for an agent on the computer uni-switch runs on") {
-			t.Fatalf("%s, another computer's file path: %+v", tool, m)
-		}
+	if w := imagePost(h, there, draw, "Authorization", "Bearer "+secrets[0]); w.Code != http.StatusForbidden {
+		t.Fatalf("remote valid key: %d", w.Code)
 	}
+	_ = file
 	if n := len(e.got("/v1/images/edits")); n != 0 {
 		t.Fatalf("drew from another computer's path %d times", n)
 	}
-	m := readImageReply(t, imagePost(h, there, draw, "Authorization", "Bearer "+secrets[0]))
+	m := readImageReply(t, imagePost(h, "127.0.0.1:5000", draw, "Authorization", "Bearer "+secrets[0]))
 	urls := urlsIn(m.Result.Content[0].Text)
 	if m.Result.IsError || len(urls) != 1 {
 		t.Fatalf("shared, with its key: %+v", m)
 	}
-	if w := imageGet(h, there, urls[0], "Authorization", "Bearer "+secrets[0]); w.Code != 200 || w.Body.String() != string(pngBytes) {
+	if w := imageGet(h, "127.0.0.1:5000", urls[0], "Authorization", "Bearer "+secrets[0]); w.Code != 200 || w.Body.String() != string(pngBytes) {
 		t.Fatalf("its own key: %d %s", w.Code, w.Body.String())
 	}
 	// without the link's token, only its key opens it
-	if w := imageGet(h, there, bare(urls[0]), "Authorization", "Bearer "+secrets[0]); w.Code != 200 {
+	if w := imageGet(h, "127.0.0.1:5000", bare(urls[0]), "Authorization", "Bearer "+secrets[0]); w.Code != 200 {
 		t.Fatalf("its own key, no token: %d %s", w.Code, w.Body.String())
 	}
-	if w := imageGet(h, there, bare(urls[0])); w.Code != http.StatusUnauthorized {
+	if w := imageGet(h, "127.0.0.1:5000", bare(urls[0])); w.Code != http.StatusNotFound {
 		t.Fatalf("no key: %d %s", w.Code, w.Body.String())
 	}
-	if w := imageGet(h, there, bare(urls[0]), "Authorization", "Bearer "+secrets[1]); w.Code != http.StatusNotFound {
+	if w := imageGet(h, "127.0.0.1:5000", bare(urls[0]), "Authorization", "Bearer "+secrets[1]); w.Code != http.StatusNotFound {
 		t.Fatalf("another key: %d %s", w.Code, w.Body.String())
 	}
 	if w := imageGet(h, "127.0.0.1:5000", bare(urls[0])); w.Code != http.StatusNotFound {
@@ -257,7 +254,7 @@ func TestImageMCPFileLinkOpensWithoutKey(t *testing.T) {
 	t.Cleanup(s.imageStore.running.Wait)
 	h := localGuard(s.Handler())
 	keys, secrets := newCaller(t, "Laptop", "Phone")
-	const there = "192.0.2.7:4000"
+	const there = "127.0.0.1:5000"
 	draw := imageToolCall(GenerateImageTool, map[string]any{"prompt": "a uni-switch"})
 	var urls []string
 	for range 2 {
@@ -279,7 +276,7 @@ func TestImageMCPFileLinkOpensWithoutKey(t *testing.T) {
 	if w := imageGet(h, there, urls[0]); w.Code != 200 || w.Body.String() != string(pngBytes) || w.Header().Get("Content-Type") != "image/png" {
 		t.Fatalf("no header: %d %s", w.Code, w.Body.String())
 	}
-	if c := get(urls[0], "Cf-Connecting-IP", "198.51.100.9", "Sec-Fetch-Site", "none", "Sec-Fetch-Mode", "navigate"); c != 200 {
+	if c := get(urls[0], "Cf-Connecting-IP", "198.51.100.9", "Sec-Fetch-Site", "none", "Sec-Fetch-Mode", "navigate"); c != http.StatusForbidden {
 		t.Fatalf("a browser through a tunnel: %d", c)
 	}
 	if w := imageGet(h, "127.0.0.1:5000", urls[0]); w.Code != 200 {
@@ -321,7 +318,7 @@ func TestImageMCPFileLinkOpensWithoutKey(t *testing.T) {
 			t.Fatalf("%s, another key: %d", what, c)
 		}
 	}
-	if c := get(q(urls[0], exp+"."+string(flipped))); c != http.StatusUnauthorized {
+	if c := get(q(urls[0], exp+"."+string(flipped))); c != http.StatusNotFound {
 		t.Fatalf("a tampered token is refused as no key is: %d", c)
 	}
 	// a web page reading it is refused as it was
@@ -333,14 +330,14 @@ func TestImageMCPFileLinkOpensWithoutKey(t *testing.T) {
 	r.RemoteAddr, r.Host = there, "127.0.0.1:3425"
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	if w.Code != http.StatusUnauthorized {
+	if w.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("a POST with the token: %d", w.Code)
 	}
 	// past its hour the file is gone, token and all
 	s.imageStore.mu.Lock()
 	s.imageStore.files[name(urls[1])].made = time.Now().Add(-imageMCPKeep - time.Second)
 	s.imageStore.mu.Unlock()
-	if c := get(urls[1]); c != http.StatusUnauthorized {
+	if c := get(urls[1]); c != http.StatusNotFound {
 		t.Fatalf("past its hour: %d", c)
 	}
 	// turning its key off takes its links with it

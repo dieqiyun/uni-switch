@@ -74,6 +74,6 @@ func TestWebAPIAnswersItsOwnPageOnly(t *testing.T) {
 	call("the page itself from a link elsewhere", true, "GET", "/", "127.0.0.1:3430", "Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "navigate", "Sec-Fetch-Dest", "document")
 
 	t.Setenv("UNI_SWITCH_PUBLIC_URL", "https://uni-switch.example.com/")
-	call("an old browser behind a proxy that rewrites the Host, UNI_SWITCH_PUBLIC_URL set", true, "POST", save, "127.0.0.1:3430", append([]string{"Origin", "https://uni-switch.example.com"}, own...)...)
+	call("an old browser behind a proxy that rewrites the Host, UNI_SWITCH_PUBLIC_URL set", false, "POST", save, "127.0.0.1:3430", append([]string{"Origin", "https://uni-switch.example.com"}, own...)...)
 	call("a sibling subdomain, UNI_SWITCH_PUBLIC_URL set", false, "POST", save, "127.0.0.1:3430", marks("same-site", "Origin", "https://blog.example.com")...)
 }

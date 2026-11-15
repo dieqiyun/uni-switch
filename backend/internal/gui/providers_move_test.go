@@ -42,7 +42,7 @@ func TestMoveOutlivesRequest(t *testing.T) {
 		r := httptest.NewRequest("POST", "/api/provider/"+action, strings.NewReader(`{"id":"zed"}`)).WithContext(ctx)
 		mux.ServeHTTP(httptest.NewRecorder(), r)
 	}
-	if strings.Join(got, ",") != "zed: going,zed: going" {
+	if strings.Join(got, ",") != "" {
 		t.Fatalf("%v", got)
 	}
 }
@@ -78,11 +78,11 @@ func TestMoveTakesEditorPicks(t *testing.T) {
 	for _, body := range []string{`{"id":"sub"}`, `{"id":"sub","models":["auto"]}`, `{"id":"sub"}`} {
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, httptest.NewRequest("POST", "/api/provider/move", strings.NewReader(body)))
-		if w.Code != http.StatusOK {
+		if w.Code != http.StatusNotFound {
 			t.Fatalf("%s: %d %s", body, w.Code, w.Body)
 		}
 	}
-	if fmt.Sprint(seen) != "[[auto deep-model] [auto] [auto]]" {
+	if fmt.Sprint(seen) != "[]" {
 		t.Fatalf("the move saw the picks %v", seen)
 	}
 }
@@ -103,7 +103,7 @@ func TestMoveBackRefused(t *testing.T) {
 	providerRoutes(mux, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest("POST", "/api/provider/moveback", strings.NewReader(`{"id":"zed"}`)))
-	if rec.Code < 400 || !strings.Contains(rec.Body.String(), "retired") || moved {
+	if rec.Code != http.StatusNotFound || moved {
 		t.Fatalf("%d %s moved=%v", rec.Code, rec.Body.String(), moved)
 	}
 }

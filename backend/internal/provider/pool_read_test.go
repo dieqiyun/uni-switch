@@ -15,7 +15,9 @@ func TestUsageReadAndReadAgain(t *testing.T) {
 	signIn(t)
 	resets := time.Now().Add(3 * time.Hour)
 	var meFails atomic.Bool
+	var reads atomic.Int32
 	LoginUsageVia(func(context.Context, string) map[string]SubscriptionQuota {
+		reads.Add(1)
 		me := SubscriptionQuota{Windows: []QuotaWindow{{Span: 5 * time.Hour, Used: 40, ResetsAt: &resets}}}
 		if meFails.Load() {
 			me = SubscriptionQuota{Error: "usage endpoint said 503"}
@@ -61,10 +63,11 @@ func TestUsageReadAndReadAgain(t *testing.T) {
 
 	// read again: a newer good reading
 	good := at
+	readBefore := reads.Load()
 	if !ReadUsageNow(ctx, "codex", "me@example.com") {
 		t.Fatal("no second reading")
 	}
-	if at, failed, _ := UsageRead("codex", "me@example.com"); failed || !at.After(good) {
+	if at, failed, _ := UsageRead("codex", "me@example.com"); failed || at.Before(good) || reads.Load() <= readBefore {
 		t.Fatalf("read again: at %v, was %v, failed %v", at, good, failed)
 	}
 	good, _, _ = UsageRead("codex", "me@example.com")

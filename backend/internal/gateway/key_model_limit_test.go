@@ -20,6 +20,7 @@ func usedReply(id string) string {
 // keyCall sends body to path with secret as the gateway key.
 func keyCall(h http.Handler, secret, path, body string) *httptest.ResponseRecorder {
 	r := httptest.NewRequest("POST", path, strings.NewReader(body))
+	r.RemoteAddr = "127.0.0.1:5000"
 	r.Header.Set("Authorization", "Bearer "+secret)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

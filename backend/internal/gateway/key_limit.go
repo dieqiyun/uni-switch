@@ -87,6 +87,7 @@ func keyLimited(next http.Handler) http.Handler {
 			if errors.As(err, &refused) {
 				status, errType = http.StatusTooManyRequests, "gateway_key_limit"
 				w.Header().Set("Retry-After", strconv.Itoa(refused.RetryAfter(now)))
+				w.Header().Set("X-Uni-Switch-Limit-Reset", refused.ResetAt().Format(time.RFC3339))
 				// a limit of some models rests a remote's model, not its key
 
 			}

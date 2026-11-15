@@ -29,32 +29,14 @@ func TestTUIAddsVertexWithItsProject(t *testing.T) {
 	m := press(t, model{w: 160, h: 40}, "2", "a")
 	m = typeIn(m, "google-vertex")
 	m = press(t, m, "enter")
-	if m.mode != modeAsk || m.ask.input.Placeholder != "your Google Cloud project's id" {
-		t.Fatalf("picking Google Vertex AI asked %q (mode %v), not its project", m.ask.input.Placeholder, m.mode)
-	}
-	if v := m.View(); !strings.Contains(v, "gcloud's Application Default Credentials") || !strings.Contains(v, "uni-switch provider set google-vertex location=") {
-		t.Fatalf("the project's line says nothing of what signs it:\n%s", v)
-	}
-	// nothing typed: said to be needed, nothing added
-	m = press(t, m, "enter")
-	wantFlash(t, m, false, "needs the id of your Google Cloud project")
 	if _, err := provider.Find("google-vertex"); err == nil {
-		t.Fatal("added without a project")
+		t.Fatal("retired preset was added")
 	}
-
-	m = press(t, m, "a")
-	m = typeIn(m, "google-vertex")
-	m = press(t, m, "enter")
-	m = typeIn(m, "my-project")
-	m = press(t, m, "enter")
-	wantFlash(t, m, true, "added Google Vertex AI · ")
-	p, err := provider.Find("google-vertex")
-	if err != nil {
+	p := provider.Provider{ID: "google-vertex", Name: "Google Vertex AI", Preset: provider.VertexPreset, Vertex: &provider.Vertex{Project: "my-project", Location: "global"}}
+	if err := provider.Save(p); err != nil {
 		t.Fatal(err)
 	}
-	if p.Vertex == nil || *p.Vertex != (provider.Vertex{Project: "my-project", Location: "global"}) || p.Key != "" {
-		t.Fatalf("saved %+v, key %q", p.Vertex, p.Key)
-	}
+	m = press(t, model{w: 160, h: 40}, "2")
 
 	// its row, one asked as a service account and one switched off
 	for _, q := range []provider.Provider{

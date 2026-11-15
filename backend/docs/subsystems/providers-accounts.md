@@ -506,3 +506,10 @@ These are configuration choices; authenticated inference at the new nodes
 has not been verified. `TestUniSwitchDieqiyunEndpoints` covers import/save
 round trips and `scripts/qa-source-directory.mjs` covers menu selection,
 protocol display and submitted URLs in both engines and all UI languages.
+
+## Integrated provider metadata repairs
+
+Missing context-window overrides retain the explicit default-source marker.
+Model lists expose the provider/group label used by client pickers. A transient
+Windows connection refusal/reset does not erase the last successfully read
+allowance, and Git HEAD symlink inspection normalizes Windows path separators.

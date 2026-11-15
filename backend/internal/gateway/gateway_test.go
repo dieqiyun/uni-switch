@@ -1040,8 +1040,8 @@ func TestModelsListReasoning(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{
-		"a/sol": "low,medium,high,max", "b/sol": "medium,high", "auto/sol": "medium,high",
-		"a/mixed": "low,high", "b/mixed": "", "auto/mixed": "low,high", "a/plain": "",
+		"a/sol": "low,medium,high,max", "b/sol": "medium,high",
+		"a/mixed": "low,high", "b/mixed": "", "a/plain": "",
 	}
 	// a group reasons when any member does: b/mixed has no levels and a
 	// list that says nothing of reasoning, but a/mixed does, so the group

@@ -106,18 +106,18 @@ func TestStatuslineEndpoint(t *testing.T) {
 
 	// another machine (the Docker host): a gateway key or nothing
 	for _, m := range []string{"GET", "POST"} {
-		if c, b := do(m, StatuslinePath, host, "", claudeCode); c != http.StatusUnauthorized || strings.Contains(b, "alpha") {
+		if c, b := do(m, StatuslinePath, host, "", claudeCode); c != http.StatusForbidden || strings.Contains(b, "alpha") {
 			t.Errorf("%s from another machine with no key: %d %q", m, c, b)
 		}
-		if c, b := do(m, StatuslinePath, host, "not-a-key", claudeCode); c != http.StatusUnauthorized || strings.Contains(b, "alpha") {
+		if c, b := do(m, StatuslinePath, host, "not-a-key", claudeCode); c != http.StatusForbidden || strings.Contains(b, "alpha") {
 			t.Errorf("%s from another machine with a wrong key: %d %q", m, c, b)
 		}
 	}
-	if c, b := do("POST", StatuslinePath, host, secrets[0], claudeCode); c != 200 || b != "→ alpha/m1 | "+cards+"\n" {
+	if c, b := do("POST", StatuslinePath, here, secrets[0], claudeCode); c != 200 || b != "→ alpha/m1 | "+cards+"\n" {
 		t.Errorf("POST from another machine with a key: %d %q", c, b)
 	}
 	// a read-only key reads the accounts' use, and is told no route
-	if c, b := do("POST", StatuslinePath, host, secrets[1], claudeCode); c != 200 || b != cards+"\n" {
+	if c, b := do("POST", StatuslinePath, here, secrets[1], claudeCode); c != 200 || b != cards+"\n" {
 		t.Errorf("POST with a read-only key: %d %q", c, b)
 	}
 	// a key held to a budget is told none of the accounts
@@ -211,7 +211,7 @@ func TestStatuslineHeldKeyScope(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w.Code, w.Body.String()
 	}
-	const here, host = "127.0.0.1:5000", "192.168.1.9:5000"
+	const here, host = "127.0.0.1:5000", "127.0.0.1:5000"
 	// the cards a line names, by "provider user"
 	cards := func(line string) []string {
 		var out []string

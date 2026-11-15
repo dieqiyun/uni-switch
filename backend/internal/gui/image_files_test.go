@@ -44,7 +44,7 @@ func TestProviderSaveImageFiles(t *testing.T) {
 	}
 
 	// the built-in DeepSeek, set off from the CLI (the field it writes)
-	ds, err := provider.FromPreset("deepseek")
+	ds, err := savedEditorFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}

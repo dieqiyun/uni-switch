@@ -403,3 +403,9 @@ is unknown. Released 2.2.2 asks for an aionui.com sign-in before any page,
 Settings included, so the form, the saved row and gateway traffic have not
 been tried end to end. As with Cindy and Lody, the TUI leaves the row out
 because there is nothing to pick. `magpie aionui add` opens the link.
+
+## Integrated client repairs
+
+MiniMax Code updates existing limit/thinking mapping nodes in place, so repeated
+syncs keep stable YAML ordering. Codex disconnect recognizes owned catalog paths
+with either native Windows separators or an absolute slash spelling.

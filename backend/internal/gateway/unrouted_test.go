@@ -414,7 +414,7 @@ func TestUnroutedShownAsItsCaller(t *testing.T) {
 	go func() {
 		req, _ := http.NewRequest(http.MethodPost, srv.URL+"/v1/chat/completions", pr)
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", "uni-switch/0.1.0")
+		req.Header.Set("User-Agent", "pi/1.0")
 		req.Header.Set("X-Uni-Switch-Agent", "pi")
 		resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
 		if err != nil {
@@ -446,7 +446,7 @@ func TestUnroutedShownAsItsCaller(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	if agent != "pi" {
-		t.Errorf("shown as %q while held, want pi, the agent another uni-switch passed it on for", agent)
+		t.Errorf("shown as %q while held, want pi, the local agent named by its User-Agent", agent)
 	}
 	if _, err := pw.Write([]byte(unroutedHi[10:])); err != nil {
 		t.Fatal(err)

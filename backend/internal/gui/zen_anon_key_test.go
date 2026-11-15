@@ -54,7 +54,7 @@ func TestZenAddAnotherKeyEmptyAddsPublic(t *testing.T) {
 		return ""
 	}
 
-	zen, err := provider.FromPreset("opencode-zen")
+	zen, err := savedEditorFixture("opencode-zen")
 	if err != nil {
 		t.Fatal(err)
 	}

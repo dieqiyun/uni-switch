@@ -25,7 +25,7 @@ func TestUnknownModelSaysWhatToAsk(t *testing.T) {
 	if !strings.Contains(body, "did you mean opencode-zen-free/space-bunny-free") {
 		t.Fatalf("the id meant isn't named first: %s", body)
 	}
-	for _, form := range []string{"provider/model", "routing group's id or name", "bare model id", "Providers order"} {
+	for _, form := range []string{"provider/model", "bare model id", "Providers order"} {
 		if !strings.Contains(body, form) {
 			t.Fatalf("doesn't say %q: %s", form, body)
 		}

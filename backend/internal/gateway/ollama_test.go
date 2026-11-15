@@ -22,7 +22,7 @@ import (
 func ollamaPlan(t *testing.T, chat string) {
 	t.Helper()
 	yes, no := true, false
-	if err := provider.Save(provider.Provider{ID: "plan", Name: "Plan", Key: "upstream-secret", Chat: chat,
+	if err := saveWindowFixture(provider.Provider{ID: "plan", Name: "Plan", Key: "upstream-secret", Chat: chat,
 		Models: []string{"seer", "plain"}, Contexts: map[string]int{"seer": 400000}}); err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestOllamaModelRoutes(t *testing.T) {
 	// a client from before Ollama 0.5 names it "name"; a window uni-switch
 	// doesn't know is told as the one VS Code's Copilot assumes, never 0
 	c, s = show(`{"name":"plan/plain"}`)
-	if c != 200 || !slices.Equal(s.Capabilities, []string{"completion", "tools"}) || s.ModelInfo[arch+".context_length"] != float64(32768) {
+	if c != 200 || !slices.Equal(s.Capabilities, []string{"completion", "tools"}) || s.ModelInfo[arch+".context_length"] != float64(provider.DefaultContextWindow) {
 		t.Fatalf("show plain: %d %+v", c, s)
 	}
 	// the ollama CLI before 0.7 reads these as numbers unchecked, and
@@ -239,9 +239,9 @@ func TestOllamaRoutesGuarded(t *testing.T) {
 		at := rt.method + " " + rt.path
 		for _, hdr := range [][]string{nil, {"Authorization", "Bearer uni-switch"}, {"Authorization", "Bearer sk-uni-switch-wrong"}} {
 			resetAuthThrottle()
-			refused(at+" from the LAN with "+strings.Join(hdr, " "), do(rt.method, rt.path, rt.body, "192.168.1.9:5000", "192.168.1.2:3425", hdr...), http.StatusUnauthorized)
+			refused(at+" from the LAN with "+strings.Join(hdr, " "), do(rt.method, rt.path, rt.body, "192.168.1.9:5000", "192.168.1.2:3425", hdr...), http.StatusForbidden)
 		}
-		if w := do(rt.method, rt.path, rt.body, "192.168.1.9:5000", "192.168.1.2:3425", "Authorization", "Bearer "+secrets[0]); w.Code != 200 {
+		if w := do(rt.method, rt.path, rt.body, "192.168.1.9:5000", "192.168.1.2:3425", "Authorization", "Bearer "+secrets[0]); w.Code != http.StatusForbidden {
 			t.Errorf("%s from the LAN with its key: %d %s", at, w.Code, w.Body)
 		}
 		// a sandboxed frame or a rebound page with an enabled key is

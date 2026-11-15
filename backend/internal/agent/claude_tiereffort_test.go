@@ -21,11 +21,11 @@ func TestClaudeTierEffort(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"glm", "flash", "big"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("v", "https://example.test/v1", []catalog.Model{
 		{ID: "glm", Context: 200000, Efforts: []string{"low", "medium", "high", "max"}},
 		{ID: "flash", Context: 128000, Efforts: []string{"low", "high"}},
 		{ID: "big", Context: 1000000},

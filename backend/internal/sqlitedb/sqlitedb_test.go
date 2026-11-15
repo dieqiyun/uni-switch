@@ -9,11 +9,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"modernc.org/libc"
 )
 
 // childDB names the database the started-again test binary opens; only
@@ -31,6 +34,11 @@ func TestSQLiteSurvivesMalformedEnv(t *testing.T) {
 	defer cancel()
 	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestOpenInChild$", "-test.count=1", "-test.v")
 	child.Env = append([]string{"hains/MacSec/libesafenet.dylib"}, os.Environ()...)
+	if runtime.GOOS == "windows" {
+		// CreateProcess rejects malformed environment entries before SQLite
+		// can run. Inject into libc inside the child on this platform instead.
+		child.Env = os.Environ()
+	}
 	child.Env = append(child.Env, childDB+"="+db)
 	out, err := child.CombinedOutput()
 	if err != nil || strings.Contains(string(out), "TODOTODO") || !strings.Contains(string(out), "opened 1") {
@@ -45,7 +53,9 @@ func TestOpenInChild(t *testing.T) {
 	if path == "" {
 		t.Skip("run by TestSQLiteSurvivesMalformedEnv")
 	}
-	if !slices.Contains(os.Environ(), "hains/MacSec/libesafenet.dylib") {
+	if runtime.GOOS == "windows" {
+		libc.SetEnviron(nil, wellFormed(append([]string{"hains/MacSec/libesafenet.dylib"}, os.Environ()...)))
+	} else if !slices.Contains(os.Environ(), "hains/MacSec/libesafenet.dylib") {
 		t.Fatal("the child wasn't handed the entry with no \"=\"")
 	}
 	db, err := sql.Open("sqlite", path)

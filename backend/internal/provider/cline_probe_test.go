@@ -56,7 +56,7 @@ func TestClineModelTestStreams(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	p, err := FromPreset("clinepass")
+	p, err := legacyVendor("clinepass")
 	if err != nil {
 		t.Fatal(err)
 	}

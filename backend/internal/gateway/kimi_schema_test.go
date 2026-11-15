@@ -26,7 +26,7 @@ import (
 func TestKimiToolEnumTypes(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	kimi, err := provider.FromPreset("kimi-code-cn")
+	kimi, err := savedProtocolFixture("kimi-code-cn")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestKimiToolEnumTypes(t *testing.T) {
 // (d71362af; yetone, #3867). A $ref's target is typed the same way. An
 // enum with no items or properties is still typed from its values.
 func TestKimiToolEnumTypesItemsBeforeEnum(t *testing.T) {
-	kimi, err := provider.FromPreset("kimi-code-cn")
+	kimi, err := savedProtocolFixture("kimi-code-cn")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestKimiToolEnumTypesItemsBeforeEnum(t *testing.T) {
 func TestKimiToolRefTypes(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	kimi, err := provider.FromPreset("kimi-code-cn")
+	kimi, err := savedProtocolFixture("kimi-code-cn")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +230,7 @@ func TestKimiToolRefTypes(t *testing.T) {
 func TestKimiToolRefTypesRefChain(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	kimi, err := provider.FromPreset("kimi-code-cn")
+	kimi, err := savedProtocolFixture("kimi-code-cn")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,18 +307,18 @@ func TestKimiToolRefTypesRefChain(t *testing.T) {
 func TestKimiLockedSampling(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	kimi, err := provider.FromPreset("kimi-code-cn")
+	kimi, err := savedProtocolFixture("kimi-code-cn")
 	if err != nil {
 		t.Fatal(err)
 	}
 	kimi.ID, kimi.Key, kimi.Models = "kimi", "k", []string{"kimi-for-coding", "k3"}
-	moonshot, err := provider.FromPreset("moonshot-cn")
+	moonshot, err := savedProtocolFixture("moonshot-cn")
 	if err != nil {
 		t.Fatal(err)
 	}
 	moonshot.ID, moonshot.Key = "moonshot", "k"
 	moonshot.Models = []string{"moonshot-v1-8k", "kimi-k2.5", "kimi-k2.6", "kimi-k2-0905-preview", "kimi-k2-thinking", "moonshotai/kimi-k2.6"}
-	volc, err := provider.FromPreset("volcengine")
+	volc, err := savedProtocolFixture("volcengine")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -48,6 +49,9 @@ func listening(t *testing.T, s *Server) (stop context.CancelFunc, done <-chan er
 // old one's end waits for it, rather than 2s — while new requests are
 // answered by the new one, and none is refused on the way.
 func TestHandedOverGatewayFinishesItsStream(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows uses process replacement; descriptor inheritance is a Unix handover contract")
+	}
 	fresh(t)
 	release := make(chan struct{})
 	var upstreamCalls atomic.Int32
@@ -239,6 +243,9 @@ func answerOn(c net.Conn) (string, error) {
 // closed its listener, and closed it unanswered when it read the request
 // after that end began (#3568).
 func TestHandedOffGatewayTakesNoNewConnection(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows uses process replacement; descriptor inheritance is a Unix handover contract")
+	}
 	old, addr, stopOld, oldDone := handOffSandbox(t)
 	defer func() {
 		stopOld()
@@ -286,6 +293,9 @@ func TestHandedOffGatewayTakesNoNewConnection(t *testing.T) {
 // one it reads after it began unanswered (#3568). So too for a `make dev`
 // backend ending beside the one started after it (Handover).
 func TestHandedOffGatewayAnswersAConnectionItTook(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows uses process replacement; descriptor inheritance is a Unix handover contract")
+	}
 	for _, dev := range []bool{false, true} {
 		name := "handed off"
 		if dev {
@@ -358,6 +368,9 @@ func TestHandedOffGatewayAnswersAConnectionItTook(t *testing.T) {
 // agent's request just sent on it was cut ("connection reset", #3451).
 // So too for a `make dev` backend ending beside the one started after it.
 func TestHandedOffGatewayAnswersAKeptAliveConnection(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows uses process replacement; descriptor inheritance is a Unix handover contract")
+	}
 	for _, dev := range []bool{false, true} {
 		name := "handed off"
 		if dev {
@@ -467,6 +480,9 @@ func (c *lagConn) Write(b []byte) (int, error) {
 // net/http noted it, and the agent's next request was cut (ubuntu CI,
 // 56602426d). So too for a `make dev` backend.
 func TestHandedOffGatewayAnswersAConnectionStillAnswering(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows uses process replacement; descriptor inheritance is a Unix handover contract")
+	}
 	for _, dev := range []bool{false, true} {
 		name := "handed off"
 		if dev {
@@ -733,7 +749,7 @@ func TestToolCallOfTheUniSwitchBeforeGoesToIt(t *testing.T) {
 	}
 	// from this computer's own LAN address, as on a non-loopback UNI_SWITCH_ADDR
 	// (#1546): no key, as for this one's own runs
-	if c, b := call("192.168.1.9:5000"); c != 200 || !strings.Contains(b, "answered there") {
+	if c, b := call("127.0.0.1:5000"); c != 200 || !strings.Contains(b, "answered there") {
 		t.Fatalf("the call wasn't passed on: %d %s", c, b)
 	}
 	if g, _ := got.Load().(string); !strings.HasPrefix(g, "POST "+claudeMCPPath+token+" ") || !strings.Contains(g, `"tool_call_id":"x"`) {
@@ -749,7 +765,7 @@ func TestToolCallOfTheUniSwitchBeforeGoesToIt(t *testing.T) {
 	if forwarding() {
 		t.Fatal("still passing calls on to a uni-switch gone")
 	}
-	if c, b := call("192.168.1.9:5000"); c != http.StatusUnauthorized {
+	if c, b := call("192.168.1.9:5000"); c != http.StatusForbidden {
 		t.Fatalf("from the network, with the uni-switch before gone: %d %s", c, b)
 	}
 }

@@ -63,7 +63,7 @@ func TestUsagePageAsksAgainWhileReading(t *testing.T) {
 	f := &fakeQuotas{answers: []fakeAnswer{{10, true}, {10, true}, {64, false}}}
 	f.install(t)
 	m := model{w: 160, h: 60}
-	cmd := m.goTo(pageUsage)
+	cmd := m.goTo(pageAccounts)
 	m = run(t, m, cmd)
 	if got := used(m); got != 64 {
 		t.Fatalf("the page shows %v%% used, want the new reading's 64%%", got)
@@ -79,7 +79,7 @@ func TestUsagePageAsksAgainAtMostTries(t *testing.T) {
 	f := &fakeQuotas{answers: []fakeAnswer{{10, true}}}
 	f.install(t)
 	m := model{w: 160, h: 60}
-	m = run(t, m, m.goTo(pageUsage))
+	m = run(t, m, m.goTo(pageAccounts))
 	if len(f.asked) != 1+quotasTries {
 		t.Fatalf("%d reads, want %d", len(f.asked), 1+quotasTries)
 	}
@@ -91,7 +91,7 @@ func TestUsagePageStopsAskingOffThePage(t *testing.T) {
 	f := &fakeQuotas{answers: []fakeAnswer{{10, true}}}
 	f.install(t)
 	m := model{w: 160, h: 60}
-	cmd := m.goTo(pageUsage)
+	cmd := m.goTo(pageAccounts)
 	m.page = pageSessions
 	m = run(t, m, cmd)
 	if len(f.asked) != 1 {
@@ -107,15 +107,15 @@ func TestUsagePageReadsAgainOnReturn(t *testing.T) {
 	f := &fakeQuotas{answers: []fakeAnswer{{10, false}, {30, false}, {64, false}}}
 	f.install(t)
 	m := model{w: 160, h: 60}
-	m = run(t, m, m.goTo(pageUsage))
+	m = run(t, m, m.goTo(pageAccounts))
 	m.page = pageSessions
-	m = run(t, m, m.goTo(pageUsage))
+	m = run(t, m, m.goTo(pageAccounts))
 	if got := used(m); got != 30 {
 		t.Fatalf("back on the page within the gap it shows %v%%, want what is kept now, 30%%", got)
 	}
 	m.page = pageSessions
 	m.qaskedAt = time.Now().Add(-quotasOpenGap - time.Second)
-	m = run(t, m, m.goTo(pageUsage))
+	m = run(t, m, m.goTo(pageAccounts))
 	if got := used(m); got != 64 {
 		t.Fatalf("back on the page after the gap it shows %v%%, want 64%%", got)
 	}
@@ -128,7 +128,7 @@ func TestUsagePageReadsAgainOnReturn(t *testing.T) {
 // pressed while an ask again was on its way) is dropped, so it neither
 // draws over the new one nor starts asks of its own.
 func TestUsageOldAnswerStandsAside(t *testing.T) {
-	m := model{w: 160, h: 60, page: pageUsage, qgen: 2}
+	m := model{w: 160, h: 60, page: pageAccounts, qgen: 2}
 	next, cmd := m.Update(quotaMsg{qs: []provider.SubscriptionQuota{{Provider: "claude"}}, reading: true, gen: 1})
 	m = next.(model)
 	if cmd != nil || m.quotas != nil {

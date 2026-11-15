@@ -3,6 +3,7 @@ package agent
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -30,12 +31,12 @@ func TestCopilotFolderFromAnIDEPluginIsNotTheCLI(t *testing.T) {
 	if copilot(home).Detected() {
 		t.Errorf("a ~/.copilot holding only the JetBrains plugin's folders is taken for the Copilot CLI")
 	}
-	writeAt(t, filepath.Join(bin, "copilot"), "#!/bin/sh\n")
-	os.Chmod(filepath.Join(bin, "copilot"), 0o755)
+	writeAt(t, filepath.Join(bin, executableFixtureName("copilot")), "#!/bin/sh\n")
+	os.Chmod(filepath.Join(bin, executableFixtureName("copilot")), 0o755)
 	if !copilot(home).Detected() {
 		t.Error("the copilot command on PATH no longer finds the Copilot CLI")
 	}
-	os.Remove(filepath.Join(bin, "copilot"))
+	os.Remove(filepath.Join(bin, executableFixtureName("copilot")))
 	writeAt(t, a.Path, `{"model":"auto"}`)
 	if !copilot(home).Detected() {
 		t.Error("~/.copilot/settings.json no longer finds the Copilot CLI")
@@ -80,8 +81,8 @@ func TestQoderSettingsFromAnIDEPluginIsNotTheCLI(t *testing.T) {
 				}
 			}
 			writeAt(t, a.Path, plugin)
-			writeAt(t, filepath.Join(bin, c.bin), "#!/bin/sh\n")
-			os.Chmod(filepath.Join(bin, c.bin), 0o755)
+			writeAt(t, filepath.Join(bin, executableFixtureName(c.bin)), "#!/bin/sh\n")
+			os.Chmod(filepath.Join(bin, executableFixtureName(c.bin)), 0o755)
 			if !c.mk(home).Detected() {
 				t.Errorf("%s on PATH no longer finds %s", c.bin, a.Name)
 			}
@@ -130,4 +131,11 @@ func TestQoderAppIsQoder(t *testing.T) {
 			}
 		})
 	}
+}
+
+func executableFixtureName(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
+	}
+	return name
 }

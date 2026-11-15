@@ -34,7 +34,7 @@ func TestClaudeViaUniSwitchKept(t *testing.T) {
 		t.Fatalf("oa's models not offered: %v", got)
 	}
 	built := testing.AllocsPerRun(5, func() { buildClaudeVia(false) })
-	kept := testing.AllocsPerRun(20, func() { claudeViaUniSwitch(false) })
+	kept := testing.AllocsPerRun(20, func() { claudeViaUniSwitch(false) }) - stampAllocs()
 	if kept > 20 || kept*5 > built {
 		t.Fatalf("Claude Code's options already built took %.0f allocations, building them %.0f", kept, built)
 	}

@@ -34,7 +34,7 @@ func TestWithViaKeepsTheJoinedList(t *testing.T) {
 	if &again[0] != &first[0] {
 		t.Fatal("the same own models joined the catalog again")
 	}
-	if n := testing.AllocsPerRun(20, func() { withVia(own("m1"), "pi", uniSwitchID+"/") }); n > 60 {
+	if n := testing.AllocsPerRun(20, func() { withVia(own("m1"), "pi", uniSwitchID+"/") }) - stampAllocs(); n > 60 {
 		t.Fatalf("a list already joined took %.0f allocations", n)
 	}
 	if cap(again) != len(again) {

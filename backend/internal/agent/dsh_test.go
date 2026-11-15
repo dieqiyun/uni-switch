@@ -46,7 +46,7 @@ func dshTempHome(t *testing.T) string {
 
 func TestDsh(t *testing.T) {
 	home := dshTempHome(t)
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(home, ".dsh", "config.yaml")
@@ -117,7 +117,7 @@ func TestDsh(t *testing.T) {
 // and new sessions start on agent-default-model.
 func TestDshProfiles(t *testing.T) {
 	home := dshTempHome(t)
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Join(home, ".dsh")
@@ -199,10 +199,10 @@ func TestDshSettingsEndpoint(t *testing.T) {
 func TestDshModelLimits(t *testing.T) {
 	dshTempHome(t)
 	visionOff(t) // else v/see describes images to v/plain, which takes them then
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k", Models: []string{"see", "plain"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k", Models: []string{"see", "plain"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("v", "https://example.test/v1", []catalog.Model{
 		{ID: "see", Name: "see", Images: true, ImageInput: imageInputBool(true), Context: 400000, Output: 128000},
 		{ID: "plain", Name: "plain", ImageInput: imageInputBool(false)},
 	}); err != nil {
@@ -217,8 +217,9 @@ func TestDshModelLimits(t *testing.T) {
       input: [text, image]
     - id: v/plain
       name: plain · V
+      contextWindow: 256000
       input: [text]`
-	if !strings.Contains(s, want) || strings.Count(s, "contextWindow") != 1 {
+	if !strings.Contains(s, want) || strings.Count(s, "contextWindow") != 2 {
 		t.Fatalf("models:\n%s", s)
 	}
 }
@@ -228,7 +229,7 @@ func TestDshModelLimits(t *testing.T) {
 // is reported and, on the next sync, given the model the web's has.
 func TestDshProfileMadeLater(t *testing.T) {
 	home := dshTempHome(t)
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Join(home, ".dsh")
@@ -301,7 +302,7 @@ func TestDshSetEffortLeavesALegacyEntryWithNoCatalogAlone(t *testing.T) {
 // With a catalog the legacy entry is rewritten as before.
 func TestDshSetEffortWritesALegacyEntryWithTheCatalog(t *testing.T) {
 	home := dshTempHome(t)
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Join(home, ".dsh")

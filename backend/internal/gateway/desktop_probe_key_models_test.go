@@ -32,7 +32,7 @@ func TestClaudeDesktopProbeRefusalNamesTheModelChecked(t *testing.T) {
 		}
 	}
 	shown, _ := provider.CatalogFor("claude-desktop")
-	if len(shown) == 0 || shown[0].Group == "" {
+	if len(shown) == 0 || shown[0].Group != "" {
 		t.Fatalf("want the found group first on Desktop's list, got %v", shown)
 	}
 	first := shown[0].ID
@@ -40,7 +40,7 @@ func TestClaudeDesktopProbeRefusalNamesTheModelChecked(t *testing.T) {
 		t.Fatal(err)
 	}
 	keys, secrets := newCaller(t, "Held", "Free")
-	if _, err := access.Update("models-key", access.Change{Key: keys[0].ID, Models: []string{"prova/*"}}); err != nil {
+	if _, err := access.Update("models-key", access.Change{Key: keys[0].ID, Models: []string{"provb/*"}}); err != nil {
 		t.Fatal(err)
 	}
 	srv := New()
@@ -65,7 +65,7 @@ func TestClaudeDesktopProbeRefusalNamesTheModelChecked(t *testing.T) {
 	// the same key on the model it holds goes on another agent (Desktop's
 	// lists alone stand a request on the group): the refusal was the
 	// group's, not its own model's
-	plain := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"prova/glm-5-turbo","messages":[{"role":"user","content":"hi"}]}`))
+	plain := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"provb/glm-5-turbo","messages":[{"role":"user","content":"hi"}]}`))
 	plain.Header.Set("Authorization", "Bearer "+secrets[0])
 	w2 := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(w2, plain)

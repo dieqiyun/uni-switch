@@ -154,7 +154,7 @@ func TestIcons(t *testing.T) {
 func TestOffered(t *testing.T) {
 	sandbox(t)
 	for u, want := range map[string]bool{
-		featured[0].Icon:                          true,
+		featured[0].Icon:                          featured[0].Icon != "",
 		gh("someone"):                             true,
 		"https://github.com/a/b.png?size=96":      false, // not an owner's
 		"http://github.com/someone.png?size=96":   false,

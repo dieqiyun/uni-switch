@@ -165,6 +165,14 @@ func TestGooseRunsOnUniSwitch(t *testing.T) {
 	// the catalog as it is now reaches the file
 	writeFile(t, catalog.CachePath(), `{"zai":{"models":{"glm-4.6":{"id":"glm-4.6","name":"GLM-4.6","limit":{"context":131072}}}}}`)
 	catalog.Reset()
+	pv, err := provider.Find("relay")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pv.Contexts["glm-4.6"] = 131072
+	if err := provider.Save(*pv); err != nil {
+		t.Fatal(err)
+	}
 	if err := a.Sync(); err != nil {
 		t.Fatal(err)
 	}

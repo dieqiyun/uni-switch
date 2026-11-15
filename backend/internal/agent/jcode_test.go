@@ -47,11 +47,11 @@ func jcodeHome(t *testing.T, body string) (home, path string) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 	t.Setenv("JCODE_HOME", "")
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2", "k2-vision"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144, Efforts: []string{"low", "medium", "high"}},
 		{ID: "k2-vision", Images: true},
 	}); err != nil {
@@ -145,7 +145,7 @@ func TestJcode(t *testing.T) {
 	if k2["context_window"] != int64(262144) || k2["reasoning"] != true || k2["reasoning_effort"] != nil {
 		t.Fatalf("k2: %v", k2)
 	}
-	if vision["context_window"] != int64(jcodeContext) || !reflect.DeepEqual(vision["input"], []any{"text", "image"}) ||
+	if vision["context_window"] != int64(256000) || !reflect.DeepEqual(vision["input"], []any{"text", "image"}) ||
 		vision["reasoning"] != nil {
 		t.Fatalf("k2-vision: %v", vision)
 	}
@@ -234,12 +234,12 @@ X-Team = "mine"
 `
 	writeFile(t, path, saved)
 	// a model uni-switch lists no more leaves jcode's list
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144, Efforts: []string{"low", "medium", "high"}},
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2"}}); err != nil {
 		t.Fatal(err)
 	}

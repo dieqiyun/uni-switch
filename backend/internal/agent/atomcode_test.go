@@ -14,7 +14,7 @@ import (
 
 func atomcodeSaveFake(t *testing.T) {
 	t.Helper()
-	if err := provider.Save(provider.Provider{ID: "fake", Name: "Fake", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"m1", "m2"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "fake", Name: "Fake", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"m1", "m2"}}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -46,7 +46,7 @@ func TestAtomcodeWiring(t *testing.T) {
 		`[models."uni-switch/fake/m1"]`,
 		`account = "uni-switch"`,
 		`model = "fake/m1"`,
-		`context_window = 128000`,
+		`context_window = 256000`,
 	} {
 		if !strings.Contains(cfg, want) {
 			t.Errorf("want %s in:\n%s", want, cfg)
@@ -184,7 +184,7 @@ func TestAtomcodeSync(t *testing.T) {
 	if d := a.Drift(); d != nil {
 		t.Fatalf("valid unquoted account/single-quoted model reported drift: %+v", d)
 	}
-	if err := provider.Save(provider.Provider{ID: "fake", Name: "Fake", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"m1", "m2", "m3"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "fake", Name: "Fake", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"m1", "m2", "m3"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.Sync(); err != nil {

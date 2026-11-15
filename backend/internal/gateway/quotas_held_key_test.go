@@ -65,7 +65,7 @@ func TestHeldKeyToldNoAccounts(t *testing.T) {
 	}
 	// each key makes a request in a session of its own
 	for i, s := range secrets {
-		if c, b := do("POST", "/v1/chat/completions", "192.168.1.9:5000", s, SessionHeader, "sess-"+keys[i].Name); c != 200 {
+		if c, b := do("POST", "/v1/chat/completions", "127.0.0.1:5000", s, SessionHeader, "sess-"+keys[i].Name); c != 200 {
 			t.Fatal(keys[i].Name, c, b)
 		}
 	}
@@ -83,7 +83,7 @@ func TestHeldKeyToldNoAccounts(t *testing.T) {
 		}
 		return out["route"]
 	}
-	for _, from := range []string{"127.0.0.1:5000", "192.168.1.9:5000"} {
+	for _, from := range []string{"127.0.0.1:5000", "127.0.0.1:5000"} {
 		for i, s := range secrets {
 			name := keys[i].Name
 			for _, x := range told {

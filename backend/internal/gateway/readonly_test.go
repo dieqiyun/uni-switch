@@ -189,7 +189,7 @@ func TestReadOnlyKeyEveryRoute(t *testing.T) {
 		}
 		// the usage summary, which a held key isn't told, and the quotas
 		c, b := do("GET", "/v1/uni-switch/usage", from, display)
-		if c != 200 || !strings.Contains(b, "Laptop") {
+		if c != http.StatusForbidden || !strings.Contains(b, ReadOnlyCode) {
 			t.Errorf("read-only key from %s: the usage summary: %d %.300s", from, c, b)
 		}
 		if c, b := do("GET", "/v1/uni-switch/quotas", from, display); c != 200 || strings.Contains(b, "gateway_key_held") {

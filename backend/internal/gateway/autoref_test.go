@@ -28,21 +28,25 @@ func TestFoundGroupServedByBothIDs(t *testing.T) {
 	for _, m := range list.Data {
 		ids = append(ids, m.ID)
 	}
-	if !slices.Contains(ids, "auto/glm-5.3") || slices.Contains(ids, "group/auto-glm-5-3") {
+	if slices.Contains(ids, "auto/glm-5.3") || !slices.Contains(ids, "a/glm-5.3") || !slices.Contains(ids, "b/glm-5.3") || slices.Contains(ids, "group/auto-glm-5-3") {
 		t.Fatalf("/v1/models: %v", ids)
 	}
 
-	for _, model := range []string{"auto/glm-5.3", "group/auto-glm-5-3", "auto/GLM-5.3", "auto/glm-5-3"} {
-		code, body := postAs(t, s, "", `{"model":"`+model+`","messages":[{"role":"user","content":"hi `+model+`"}]}`)
-		if code != 200 {
-			t.Fatalf("%s: %d %s", model, code, body)
+	for _, model := range []string{"auto/glm-5.3", "group/auto-glm-5-3"} {
+		code, body := postAs(t, s, "", `{"model":"`+model+`","messages":[{"role":"user","content":"hi"}]}`)
+		if code != 404 {
+			t.Fatalf("retired %s: %d %s", model, code, body)
 		}
-		r := s.trace.routes[len(s.trace.routes)-1]
-		if r.Group == nil || r.Group.ID != "auto-glm-5-3" {
-			t.Fatalf("%s, not routed as the found group: %+v", model, r)
-		}
-		if u := lastUsage(t); u.Requested != "group/auto-glm-5-3" {
-			t.Errorf("%s logged as asked for %q", model, u.Requested)
-		}
+	}
+	code, body := postAs(t, s, "", `{"model":"glm-5.3","messages":[{"role":"user","content":"hi"}]}`)
+	if code != 200 {
+		t.Fatalf("bare model: %d %s", code, body)
+	}
+	route := s.trace.routes[len(s.trace.routes)-1]
+	if route.Group != nil {
+		t.Fatalf("created group: %+v", route)
+	}
+	if u := lastUsage(t); u.Requested != "glm-5.3" {
+		t.Fatalf("recorded %q", u.Requested)
 	}
 }

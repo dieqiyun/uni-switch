@@ -643,6 +643,9 @@ func TestCodexDaemonEnvIsTheTerminals(t *testing.T) {
 	daemonLoginPath = func() string { return "/home/u/.local/bin:/usr/bin" }
 	got := codexDaemonEnv([]string{"HOME=/home/u", "PATH=/usr/bin", "no_proxy=*", "LANG=C"})
 	want := []string{"HOME=/home/u", "LANG=C", "PATH=/home/u/.local/bin:/usr/bin", "https_proxy=http://127.0.0.1:7890", "NO_PROXY=localhost"}
+	if runtime.GOOS == "windows" {
+		want = []string{"HOME=/home/u", "PATH=/usr/bin", "no_proxy=*", "LANG=C"}
+	}
 	if !slices.Equal(got, want) {
 		t.Errorf("env %q, want %q", got, want)
 	}

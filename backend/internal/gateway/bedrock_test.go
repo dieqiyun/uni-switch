@@ -80,7 +80,7 @@ func TestBedrockRoutes(t *testing.T) {
 	up := &bedrock{}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("bedrock")
+	p, err := savedProtocolFixture("bedrock")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestBedrockBetas(t *testing.T) {
 		"context-management-2025-06-27", "tool-search-tool-2025-10-19"}}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("bedrock")
+	p, err := savedProtocolFixture("bedrock")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ func TestBedrockGPTOnResponses(t *testing.T) {
 	up := &gptBedrock{responses: true}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("bedrock")
+	p, err := savedProtocolFixture("bedrock")
 	if err != nil {
 		t.Fatal(err)
 	}

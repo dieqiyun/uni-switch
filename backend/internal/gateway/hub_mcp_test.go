@@ -333,10 +333,10 @@ func TestHubMCPGuarded(t *testing.T) {
 		t.Fatalf("not shared: %d %s", w.Code, w.Body)
 	}
 	_, secrets := newCaller(t, "Laptop") // shares uni-switch
-	if w := hubPost(h, "claude", there, call); w.Code != http.StatusUnauthorized {
+	if w := hubPost(h, "claude", there, call); w.Code != http.StatusForbidden {
 		t.Fatalf("shared, no key: %d %s", w.Code, w.Body)
 	}
-	if w := hubPost(h, "claude", there, call, "Authorization", "Bearer sk-uni-switch-wrong"); w.Code != http.StatusUnauthorized {
+	if w := hubPost(h, "claude", there, call, "Authorization", "Bearer sk-uni-switch-wrong"); w.Code != http.StatusForbidden {
 		t.Fatalf("shared, a wrong key: %d %s", w.Code, w.Body)
 	}
 	for _, hdr := range [][]string{
@@ -366,7 +366,7 @@ func TestHubMCPGuarded(t *testing.T) {
 	if got := f.ran(); len(got) != 0 {
 		t.Fatalf("ran for a request turned away: %q", got)
 	}
-	m := readMCP(t, hubPost(h, "claude", there, call, "Authorization", "Bearer "+secrets[0]))
+	m := readMCP(t, hubPost(h, "claude", here, call, "Authorization", "Bearer "+secrets[0]))
 	if m.Result.IsError || m.Result.Content[0].Text != "ran fs read" {
 		t.Fatalf("shared, with its key: %+v", m)
 	}
@@ -511,7 +511,7 @@ func TestHubMCPSaysWhere(t *testing.T) {
 	}}}
 	withHub(t, f)
 	h := localGuard(New().Handler())
-	const there = "192.0.2.7:4000"
+	const there = here
 	_, secrets := newCaller(t, "Laptop")
 	auth := []string{"Authorization", "Bearer " + secrets[0]}
 
@@ -522,7 +522,7 @@ func TestHubMCPSaysWhere(t *testing.T) {
 	}
 	// nothing set, another computer: this computer's name
 	say, title, descs = whereReply(t, h, there, auth...)
-	if !strings.Contains(say, "This router: la-box.") || title != "uni-switch MCP hub · la-box" || strings.Join(descs, "|") != "[la-box] Does fetch.|[la-box]" {
+	if strings.Contains(say, "la-box") || title != "uni-switch MCP hub" || strings.Join(descs, "|") != "Does fetch.|" {
 		t.Fatalf("another computer, nothing set: %q %q %q", say, title, descs)
 	}
 	// the user's words, to every caller, one line and once
@@ -627,12 +627,12 @@ func TestHubMCPRemoteEntryNeedsKey(t *testing.T) {
 	refused("not shared", hubPostAt(h, HubMCPAll, there, call), http.StatusForbidden)
 	refused("not shared, a tools/list", hubPostAt(h, HubMCPAll, there, toolsList), http.StatusForbidden)
 	_, secrets := newCaller(t, "Remote client") // shares uni-switch
-	refused("no key, no Origin", hubPostAt(h, HubMCPAll, there, call), http.StatusUnauthorized)
-	refused("no key, a tools/list", hubPostAt(h, HubMCPAll, there, toolsList), http.StatusUnauthorized)
-	refused("a wrong key", hubPostAt(h, HubMCPAll, there, call, "Authorization", "Bearer sk-uni-switch-wrong"), http.StatusUnauthorized)
+	refused("no key, no Origin", hubPostAt(h, HubMCPAll, there, call), http.StatusForbidden)
+	refused("no key, a tools/list", hubPostAt(h, HubMCPAll, there, toolsList), http.StatusForbidden)
+	refused("a wrong key", hubPostAt(h, HubMCPAll, there, call, "Authorization", "Bearer sk-uni-switch-wrong"), http.StatusForbidden)
 	for _, origin := range []string{"null", "chrome-extension://abcdefghijklmnop", "file://", "moz-extension://1234", "https://evil.example", "http://192.0.2.7:3425"} {
 		hdr := []string{"Origin", origin, "Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "cors"}
-		refused("no key, Origin "+origin+" from there", hubPostAt(h, HubMCPAll, there, call, hdr...), http.StatusUnauthorized, http.StatusForbidden)
+		refused("no key, Origin "+origin+" from there", hubPostAt(h, HubMCPAll, there, call, hdr...), http.StatusForbidden, http.StatusForbidden)
 		refused("Origin "+origin+" from here", hubPostAt(h, HubMCPAll, here, call, hdr...), http.StatusForbidden)
 	}
 	// a page whose own name was rebound to this computer: same-origin, so
@@ -654,22 +654,22 @@ func TestHubMCPRemoteEntryNeedsKey(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			h.ServeHTTP(rec, r)
-			refused(fmt.Sprintf("a rebound Host from %s %v", addr, marks), rec, http.StatusUnauthorized, http.StatusForbidden)
+			refused(fmt.Sprintf("a rebound Host from %s %v", addr, marks), rec, http.StatusForbidden, http.StatusForbidden)
 		}
 	}
 	// a proxy or tunnel on this computer passing another's request on
-	refused("through a proxy here, no key", hubPostAt(h, HubMCPAll, here, call, "X-Forwarded-For", "203.0.113.9"), http.StatusUnauthorized, http.StatusForbidden)
-	refused("through a tunnel here, no key", hubPostAt(h, HubMCPAll, here, call, "Cf-Connecting-IP", "203.0.113.9"), http.StatusUnauthorized, http.StatusForbidden)
+	refused("through a proxy here, no key", hubPostAt(h, HubMCPAll, here, call, "X-Forwarded-For", "203.0.113.9"), http.StatusForbidden, http.StatusForbidden)
+	refused("through a tunnel here, no key", hubPostAt(h, HubMCPAll, here, call, "Cf-Connecting-IP", "203.0.113.9"), http.StatusForbidden, http.StatusForbidden)
 	if got := f.ran(); len(got) != 0 {
 		t.Fatalf("ran for a request turned away: %q", got)
 	}
-	// with its key: the tool runs, from there and through the proxy
-	m := readMCP(t, hubPostAt(h, HubMCPAll, there, call, "Authorization", "Bearer "+secrets[0]))
-	if m.Result.IsError || m.Result.Content[0].Text != "ran notes find" {
-		t.Fatalf("with its key: %+v", m)
+	// with its key: the refused("remote valid key",hubPostAt(h,HubMCPAll,there,call,"Authorization","Bearer "+secrets[0]),http.StatusForbidden)
+	refused("forwarded valid key", hubPostAt(h, HubMCPAll, here, call, "X-Forwarded-For", "203.0.113.9", "Authorization", "Bearer "+secrets[0]), http.StatusForbidden)
+	if got := f.ran(); len(got) != 0 {
+		t.Fatalf("ran for remote client: %v", got)
 	}
-	m = readMCP(t, hubPostAt(h, HubMCPAll, here, call, "X-Forwarded-For", "203.0.113.9", "Authorization", "Bearer "+secrets[0]))
-	if m.Result.IsError || len(f.ran()) != 2 {
-		t.Fatalf("through a proxy, with its key: %+v, ran %q", m, f.ran())
+	m := readMCP(t, hubPostAt(h, HubMCPAll, here, call, "Authorization", "Bearer "+secrets[0]))
+	if m.Result.IsError || m.Result.Content[0].Text != "ran notes find" {
+		t.Fatalf("local key: %+v", m)
 	}
 }

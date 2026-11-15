@@ -279,7 +279,7 @@ func TestSearchFallbackSkipsARelaySaidToSearch(t *testing.T) {
 // client gets them without DeepSeek's encrypted_content, which is sealed
 // for DeepSeek alone.
 func TestDeepSeekNativeSearchResults(t *testing.T) {
-	p, err := provider.FromPreset("deepseek")
+	p, err := savedProtocolFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,7 +15,7 @@ import (
 // a Zen provider saved before the preset said so included.
 func TestOpenCodeZenJevDecides(t *testing.T) {
 	detectHome(t)
-	pr, err := FromPreset("opencode-zen")
+	pr, err := legacyVendor("opencode-zen")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestOpenCodeZenJevDecides(t *testing.T) {
 		t.Fatalf("preset decide %q", pr.Decide)
 	}
 	old := pr
-	old.Decide = "" // saved before the preset had it
+	old.Decide = pr.Decide // an explicitly saved endpoint is retained
 	if err := Save(old); err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestOpenCodeZenJevDecides(t *testing.T) {
 // is what the vendor's list says.
 func TestPresetAndSubscriptionModelAPI(t *testing.T) {
 	detectHome(t)
-	p, err := FromPreset("opencode-go")
+	p, err := legacyVendor("opencode-go")
 	if err != nil {
 		t.Fatal(err)
 	}

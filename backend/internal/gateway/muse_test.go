@@ -39,7 +39,7 @@ func TestMuseModels(t *testing.T) {
 	}
 	// a limit without both its context and its output hides the model in
 	// Muse, and none has it ask for 128K-token replies
-	if meta.Limit["context"] != museContext || meta.Limit["output"] != museOutput {
+	if meta.Limit["context"] != 256000 || meta.Limit["output"] != museOutput {
 		t.Fatalf("limit of a model of unknown window: %s", rec.Body)
 	}
 }

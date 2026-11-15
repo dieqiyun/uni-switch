@@ -39,7 +39,7 @@ func TestZhipuResponsesRefusalIsRefusal(t *testing.T) {
 			t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 			t.Setenv("XDG_CACHE_HOME", t.TempDir())
 			for _, id := range []string{"bad", "good"} {
-				p, err := provider.FromPreset(tc.preset)
+				p, err := savedProtocolFixture(tc.preset)
 				if err != nil {
 					t.Fatal(err)
 				}

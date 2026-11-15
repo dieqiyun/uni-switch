@@ -61,7 +61,7 @@ func TestGatewayHeldByAContainer(t *testing.T) {
 			name += ".exe"
 		}
 		bin := filepath.Join(dir, name)
-		if err := os.Link(self, bin); err != nil {
+		if runtime.GOOS == "windows" || os.Link(self, bin) != nil {
 			b, err := os.ReadFile(self)
 			if err != nil {
 				t.Fatal(err)

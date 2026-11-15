@@ -123,7 +123,7 @@ func minimaxProvider(t *testing.T, preset, id string, up *fakeMiniMax) provider.
 	t.Cleanup(func() { isMiniMaxHost = was })
 	host := strings.TrimPrefix(up.URL, "http://")
 	isMiniMaxHost = func(h string) bool { return h == host || was(h) }
-	p, err := provider.FromPreset(preset)
+	p, err := savedProtocolFixture(preset)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func minimaxProvider(t *testing.T, preset, id string, up *fakeMiniMax) provider.
 func TestMiniMaxKeysMakeH3Videos(t *testing.T) {
 	fresh(t)
 	for _, preset := range []string{"minimax", "minimax-cn"} {
-		p, err := provider.FromPreset(preset)
+		p, err := savedProtocolFixture(preset)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -449,7 +449,7 @@ func TestMiniMaxVideoMovesPastATokenPlanKey(t *testing.T) {
 	t.Cleanup(func() { isMiniMaxHost = was })
 	host := strings.TrimPrefix(up.URL, "http://")
 	isMiniMaxHost = func(h string) bool { return h == host }
-	p, _ := provider.FromPreset("minimax")
+	p, _ := savedProtocolFixture("minimax")
 	p.ID, p.Key, p.Chat, p.Anthropic = "minimax", "plan-key", up.URL+"/v1", up.URL+"/anthropic"
 	p.Keys = []provider.KeyAccount{{Key: "plan-key"}, {Key: "payg-key"}}
 	if err := provider.Save(p); err != nil {

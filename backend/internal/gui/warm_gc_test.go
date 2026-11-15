@@ -4,6 +4,7 @@ import (
 	"math"
 	"runtime"
 	"runtime/debug"
+	"runtime/metrics"
 	"testing"
 	"time"
 )
@@ -205,10 +206,16 @@ func TestSteadyGCRetunesAfterACollection(t *testing.T) {
 	if got := gcPercent(); got != steadyGCPercent {
 		t.Fatalf("GOGC before a collection = %d, want %d", got, steadyGCPercent)
 	}
-	collectUntil := func(want int) {
+	collectUntil := func() {
 		t.Helper()
 		deadline := time.Now().Add(10 * time.Second)
-		for gcPercent() != want {
+		for {
+			samples := []metrics.Sample{{Name: "/gc/heap/live:bytes"}}
+			metrics.Read(samples)
+			want := steadyPercent(int64(samples[0].Value.Uint64()))
+			if gcPercent() == want {
+				return
+			}
 			if time.Now().After(deadline) {
 				t.Fatalf("GOGC after collections = %d, want %d", gcPercent(), want)
 			}
@@ -216,7 +223,7 @@ func TestSteadyGCRetunesAfterACollection(t *testing.T) {
 			time.Sleep(time.Millisecond)
 		}
 	}
-	collectUntil(100)
+	collectUntil()
 	debug.SetGCPercent(steadyGCPercent)
 	undo := tightenGC()
 	if got := gcPercent(); got != tightGCPercent {
@@ -228,5 +235,5 @@ func TestSteadyGCRetunesAfterACollection(t *testing.T) {
 		t.Fatalf("a read under a tight GC runs under %d after collections, want %d", got, tightGCPercent)
 	}
 	undo()
-	collectUntil(100)
+	collectUntil()
 }

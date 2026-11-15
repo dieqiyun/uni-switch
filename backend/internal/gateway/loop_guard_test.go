@@ -251,7 +251,7 @@ func TestLoopGuardLeavesOrdinaryRepliesAlone(t *testing.T) {
 	var texts = map[string]string{}
 	for _, f := range []string{
 		"internal/gateway/gateway.go", "internal/gateway/fallback.go", "internal/gateway/anthropic.go",
-		"internal/gui/assets/app.js", "internal/gui/assets/i18n.js", "internal/gui/assets/app.css", "internal/gui/assets/plugins/routing/client.js", "internal/gui/assets/plugins/sessions/client.js", "internal/gui/assets/index.html",
+		"internal/gui/assets/app.js", "internal/gui/assets/i18n.js", "internal/gui/assets/app.css", "internal/gui/assets/plugins/gateway/client.js", "internal/gui/assets/plugins/sessions/client.js", "internal/gui/assets/index.html",
 		"docs/code-standards.md", "LESSONS.md", "docs/subsystems/gateway-routing.md", "docs/subsystems/providers-accounts.md",
 		"go.sum",
 	} {

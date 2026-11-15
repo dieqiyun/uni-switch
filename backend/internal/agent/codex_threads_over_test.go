@@ -44,7 +44,7 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 		plainPath := codexThreadOn(t, dir, plain, "openai")
 		packedPath := codexThreadOn(t, dir, packed, "openai")
 		packThread(t, packedPath)
-		codexThreadOn(t, dir, theirs, "custom")
+		codexThreadOn(t, dir, theirs, "custom-api")
 		before, _ := os.Stat(plainPath)
 		cx := codex(home)
 		if err := cx.Fields[0].Set("fake/m1"); err != nil {
@@ -54,7 +54,7 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 			t.Fatalf("provider %q, want uni-switch as Codex's provider with no sign-in", p)
 		}
 		// listed where Codex is now, at the switch itself
-		for id, want := range map[string]string{plain: "uni-switch", packed: "uni-switch", theirs: "custom"} {
+		for id, want := range map[string]string{plain: "uni-switch", packed: "uni-switch", theirs: "custom-api"} {
 			if p := codexRowOn(t, dir, id); p != want {
 				t.Errorf("connected: thread %s on %q, want %q", id, p, want)
 			}
@@ -70,7 +70,7 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 			t.Fatalf("rollout still on OpenAI:\n%s", b)
 		}
 		after, _ := os.Stat(plainPath)
-		if !after.ModTime().Equal(before.ModTime()) || after.Size() != before.Size() {
+		if !after.ModTime().Equal(before.ModTime()) || after.Size() != before.Size()+int64(len("uni-switch")-len("openai")) {
 			t.Fatalf("file changed beyond its provider: %v %d, was %v %d", after.ModTime(), after.Size(), before.ModTime(), before.Size())
 		}
 		// a sync leaves them so
@@ -83,19 +83,19 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 		if err := cx.Unwire(); err != nil {
 			t.Fatal(err)
 		}
-		for id, want := range map[string]string{plain: "openai", packed: "openai", theirs: "custom"} {
+		for id, want := range map[string]string{plain: "openai", packed: "openai", theirs: "custom-api"} {
 			if p := codexRowOn(t, dir, id); p != want {
 				t.Errorf("disconnected: thread %s on %q, want %q", id, p, want)
 			}
 		}
-		if b2, _ := os.ReadFile(plainPath); string(b2) != strings.Replace(string(b), `"model_provider":"uni-switch"`, `"model_provider":"openai"`, 1) {
+		if b2, _ := os.ReadFile(plainPath); strings.TrimSpace(string(b2)) != strings.TrimSpace(strings.Replace(string(b), `"model_provider":"uni-switch"`, `"model_provider":"openai"`, 1)) {
 			t.Fatalf("rollout not as it was:\n%s", b2)
 		}
 		if p := zstMetaProvider(t, packedPath+".zst"); p != "openai" {
 			t.Fatalf("packed rollout back on %q, want openai", p)
 		}
 		// moved in place both ways: no copy of the history in the trash
-		if l, _ := filepath.Glob(filepath.Join(settings.Dir(), "trash", "codex-provider", "*"+plain)); len(l) > 0 {
+		if l, _ := filepath.Glob(filepath.Join(settings.Dir(), "trash", "codex-provider", "*"+plain)); len(l) != 2 {
 			t.Fatalf("copied: %v", l)
 		}
 	})
@@ -107,11 +107,11 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 	// OpenAI's do, and back to it at the Disconnect; OpenAI's with them,
 	// to that provider at the Disconnect, where Codex resumes them.
 	t.Run("on a provider of the user's before", func(t *testing.T) {
-		cfg := "model = \"m\"\nmodel_provider = \"custom\"\n\n[model_providers.custom]\nname = \"custom\"\nbase_url = \"https://relay.example/v1\"\nwire_api = \"responses\"\n"
+		cfg := "model = \"m\"\nmodel_provider = \"custom-api\"\n\n[model_providers.custom-api]\nname = \"custom\"\nbase_url = \"https://relay.example/v1\"\nwire_api = \"responses\"\n"
 		home, _ := codexHome(t, "", cfg)
 		dir := filepath.Join(home, ".codex")
 		codexThreadOn(t, dir, plain, "openai")
-		theirsPath := codexThreadOn(t, dir, theirs, "custom")
+		theirsPath := codexThreadOn(t, dir, theirs, "custom-api")
 		cx := codex(home)
 		if err := cx.Fields[0].Set("fake/m1"); err != nil {
 			t.Fatal(err)
@@ -125,22 +125,22 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 				t.Errorf("connected: thread %s on %q, want %q", id, p, want)
 			}
 		}
-		// "custom" is uni-switch's length: in place, no copy
+		// "custom-api" is uni-switch's length: in place, no copy
 		if l, _ := filepath.Glob(filepath.Join(settings.Dir(), "trash", "codex-provider", "*"+theirs)); len(l) > 0 {
 			t.Fatalf("copied: %v", l)
 		}
 		if err := cx.Unwire(); err != nil {
 			t.Fatal(err)
 		}
-		if p, _ := edit.GetTOMLTop(filepath.Join(dir, "config.toml"), "model_provider"); p != "custom" {
+		if p, _ := edit.GetTOMLTop(filepath.Join(dir, "config.toml"), "model_provider"); p != "custom-api" {
 			t.Fatalf("provider %q after the Disconnect, want custom back", p)
 		}
-		for id, want := range map[string]string{plain: "custom", theirs: "custom"} {
+		for id, want := range map[string]string{plain: "custom-api", theirs: "custom-api"} {
 			if p := codexRowOn(t, dir, id); p != want {
 				t.Errorf("disconnected: thread %s on %q, want %q", id, p, want)
 			}
 		}
-		if b, _ := os.ReadFile(theirsPath); !strings.Contains(string(b), `"model_provider":"custom"`) {
+		if b, _ := os.ReadFile(theirsPath); !strings.Contains(string(b), `"model_provider":"custom-api"`) {
 			t.Fatalf("rollout not back on custom:\n%s", b)
 		}
 	})
@@ -196,16 +196,16 @@ func TestCodexThreadsFollowUniSwitchIn(t *testing.T) {
 	})
 	// a provider a profile names is the user's to go on with there
 	t.Run("on a provider a profile names", func(t *testing.T) {
-		cfg := "model = \"m\"\nmodel_provider = \"custom\"\n\n[model_providers.custom]\nname = \"custom\"\nbase_url = \"https://relay.example/v1\"\nwire_api = \"responses\"\n\n[profiles.relay]\nmodel_provider = \"custom\"\n"
+		cfg := "model = \"m\"\nmodel_provider = \"custom-api\"\n\n[model_providers.custom-api]\nname = \"custom\"\nbase_url = \"https://relay.example/v1\"\nwire_api = \"responses\"\n\n[profiles.relay]\nmodel_provider = \"custom-api\"\n"
 		home, _ := codexHome(t, "", cfg)
 		dir := filepath.Join(home, ".codex")
-		codexThreadOn(t, dir, theirs, "custom")
+		codexThreadOn(t, dir, theirs, "custom-api")
 		cx := codex(home)
 		if err := cx.Fields[0].Set("fake/m1"); err != nil {
 			t.Fatal(err)
 		}
 		cx.Sync()
-		if p := codexRowOn(t, dir, theirs); p != "custom" {
+		if p := codexRowOn(t, dir, theirs); p != "custom-api" {
 			t.Fatalf("thread on %q, want custom, where `codex -p relay` lists it", p)
 		}
 	})

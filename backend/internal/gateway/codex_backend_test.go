@@ -606,7 +606,7 @@ func TestCodexModelList(t *testing.T) {
 	}
 	// Other sign-ins found on the machine (Cursor's, say) may follow. The
 	// ETag is the backend's with uni-switch's list in it.
-	tag := codexcat.Tag(provider.CodexListed())
+	tag := provider.CodexListTag()
 	if rec.Code != 200 || len(slugs) < 2 || slugs[0] != "gpt-5.5" || fake == nil || fake["base_instructions"] == "" ||
 		rec.Header().Get("ETag") != `"v1+uni-switch-`+tag+`"` || auth != "Bearer chatgpt-token" {
 		t.Errorf("%d %v %q %q", rec.Code, slugs, rec.Header().Get("ETag"), auth)
@@ -761,7 +761,7 @@ func TestCodexModelsEtagTagged(t *testing.T) {
 	req := httptest.NewRequest("POST", CodexPath+"/responses", strings.NewReader(`{"model":"gpt-5.5","stream":true,"input":[]}`))
 	req.Header.Set("Authorization", "Bearer chatgpt-token")
 	New().Handler().ServeHTTP(rec, req)
-	tag := codexcat.Tag(provider.CodexListed())
+	tag := provider.CodexListTag()
 	if got := rec.Header().Get("X-Models-Etag"); got != `W/"v1+uni-switch-`+tag+`"` || !codexcat.Tagged(got, tag) {
 		t.Errorf("%d X-Models-Etag %q", rec.Code, got)
 	}

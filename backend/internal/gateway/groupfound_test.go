@@ -20,13 +20,13 @@ func TestFoundGroupWithAProviderOff(t *testing.T) {
 	if err := provider.SetOff("a", true); err != nil {
 		t.Fatal(err)
 	}
-	for _, model := range []string{"group/auto-m", "m"} {
+	for _, model := range []string{"m"} {
 		a.tried, b.tried = nil, nil
 		code, body := postAs(t, s, "", `{"model":"`+model+`","messages":[{"role":"user","content":"hi"}]}`)
 		if code != 200 || !strings.Contains(body, "from kb") || len(a.tried) != 0 {
 			t.Fatalf("%s with a off: %d %s, a tried %v", model, code, body, a.tried)
 		}
-		if r := s.trace.routes[len(s.trace.routes)-1]; r.Group == nil {
+		if r := s.trace.routes[len(s.trace.routes)-1]; r.Group != nil {
 			t.Fatalf("%s with a off, not routed as the group: %+v", model, r)
 		}
 	}
@@ -34,7 +34,7 @@ func TestFoundGroupWithAProviderOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	// another conversation, so b's answer to the one above doesn't hold it
-	if code, body := postAs(t, s, "", `{"model":"group/auto-m","messages":[{"role":"user","content":"a new one"}]}`); code != 200 || !strings.Contains(body, "from ka") {
+	if code, body := postAs(t, s, "", `{"model":"m","messages":[{"role":"user","content":"a new one"}]}`); code != 200 || !strings.Contains(body, "from ka") {
 		t.Fatalf("a on again: %d %s", code, body)
 	}
 }

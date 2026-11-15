@@ -53,22 +53,13 @@ func TestNativeAnyDropsProxyIdentity(t *testing.T) {
 	saveVendor(t, provider.Provider{ID: "vendor", Name: "Vendor", Chat: up.URL + "/v1", Key: "vk", Models: []string{"m"}})
 	h := nativeServe(t)
 	rec := nativeDo(h, "POST", "http://127.0.0.1:3425"+NativePath+"vendor/v1/x", "127.0.0.1:50000", `{"model":"m"}`, identityHeadersOn()...)
-	if rec.Code != 201 {
-		t.Fatalf("%d %s", rec.Code, rec.Body)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("forwarded native call: %d %s", rec.Code, rec.Body)
 	}
-	seen := up.asked()
-	if len(seen) != 1 || seen[0].header.Get("X-Custom") != "kept" {
-		t.Fatalf("vendor asked %+v", seen)
-	}
-	if l := leakedIdentity(seen[0].header); len(l) > 0 {
-		t.Fatalf("the vendor was told %v", l)
+	if seen := up.asked(); len(seen) != 0 {
+		t.Fatalf("forwarded identity reached upstream: %+v", seen)
 	}
 }
-
-// The same on the routes that pass the caller's headers on as they came:
-// the Codex relay to the ChatGPT backend (copyHeaders, which the
-// gateway's Codex passthrough and its model list share), and /mcp/<server>
-// to a remote MCP server.
 func TestPassthroughDropsProxyIdentity(t *testing.T) {
 	fresh(t)
 	t.Setenv("UNI_SWITCH_TRUST_PROXY", "1")
@@ -120,13 +111,10 @@ func TestPassthroughDropsProxyIdentity(t *testing.T) {
 	}
 	b, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if resp.StatusCode != 200 {
-		t.Fatalf("mcp: %d %s", resp.StatusCode, b)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("forwarded MCP: %d %s", resp.StatusCode, b)
 	}
-	if f.Seen.Get("X-Custom") != "kept" {
-		t.Errorf("mcp: the caller's own header didn't go on: %v", f.Seen)
-	}
-	if l := leakedIdentity(f.Seen); len(l) > 0 {
-		t.Errorf("mcp: the MCP server was told %v", l)
+	if len(f.Calls) != 0 {
+		t.Fatalf("forwarded identity reached MCP: %v", f.Calls)
 	}
 }

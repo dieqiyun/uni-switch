@@ -815,6 +815,14 @@ func TestVertexThinkingRange(t *testing.T) {
 func TestVertexUpstreamName(t *testing.T) {
 	v := &vertexUp{}
 	s := vertexServe(t, v, vertexLevels)
+	p, err := provider.Find("google-vertex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Models = []string{"gemini-3.8-flash"}
+	if err := provider.Save(*p); err != nil {
+		t.Fatal(err)
+	}
 	if err := provider.SetUpstreamName("google-vertex/gemini-3.8-flash", "gemini-3.8-flash-001"); err != nil {
 		t.Fatal(err)
 	}

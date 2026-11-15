@@ -3,6 +3,7 @@ package update
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -77,7 +78,11 @@ func TestPackagedByDpkg(t *testing.T) {
 	root := t.TempDir()
 	info := filepath.Join(root, "var/lib/dpkg/info")
 	writeFile(t, filepath.Join(info, "coreutils.list"), "/.\n/bin\n/bin/ls\n")
-	writeFile(t, filepath.Join(info, "uni-switch:amd64.list"), "/.\n/usr\n/usr/bin\n/usr/bin/uni-switch\n")
+	list := "uni-switch:amd64.list"
+	if runtime.GOOS == "windows" {
+		list = "uni-switch.list" // Windows cannot create a POSIX multiarch filename.
+	}
+	writeFile(t, filepath.Join(info, list), "/.\n/usr\n/usr/bin\n/usr/bin/uni-switch\n")
 	p := packagedIn(root, "linux", "/usr/bin/uni-switch")
 	if p == nil || p.Manager != "dpkg" || p.Package != "uni-switch" || p.Name() != "apt" || p.Command() != "sudo apt install --only-upgrade uni-switch" {
 		t.Fatalf("%+v", p)

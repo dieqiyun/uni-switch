@@ -172,11 +172,14 @@ func TestHubRootsOfACodexThread(t *testing.T) {
 	fresh(t)
 	codex := t.TempDir()
 	t.Setenv("CODEX_HOME", codex)
+	workspace, repo := filepath.Join(t.TempDir(), "proj"), filepath.Join(t.TempDir(), "repo")
+	workspaceJSON, _ := json.Marshal(workspace)
+	repoJSON, _ := json.Marshal(repo)
 	const id = "019a1111-2222-7333-8444-555566667777"
 	day := filepath.Join(codex, "sessions", "2026", "10", "30")
 	os.MkdirAll(day, 0o755)
 	os.WriteFile(filepath.Join(day, "rollout-2026-10-30T09-00-00-"+id+".jsonl"),
-		[]byte(`{"timestamp":"2026-10-30T09:00:00Z","type":"session_meta","payload":{"id":"`+id+`","cwd":"/work/proj"}}`+"\n"), 0o644)
+		[]byte(`{"timestamp":"2026-10-30T09:00:00Z","type":"session_meta","payload":{"id":"`+id+`","cwd":`+string(workspaceJSON)+`}}`+"\n"), 0o644)
 	f, got := rootsHub(t)
 	f.tools["codex"] = f.tools["claude"]
 	srv := httptest.NewServer(localGuard(New().Handler()))
@@ -187,29 +190,26 @@ func TestHubRootsOfACodexThread(t *testing.T) {
 	ask := nextEvent(t, ev, "roots/list")
 	hubPostTo(t, srv.URL+HubMCPPath+"codex", `{"jsonrpc":"2.0","id":`+string(ask.ID)+`,"result":{"roots":[]}}`, bothAccept, "codex-mcp-client/0.165.0")
 	nextEvent(t, ev, "the call's result")
-	if c := <-got; strings.Join(c.Roots, " ") != "file:///work/proj" || c.Client != "codex-mcp-client/0.165.0" {
+	if c := <-got; strings.Join(c.Roots, " ") != fileURI(workspace) || c.Client != "codex-mcp-client/0.165.0" {
 		t.Fatalf("called for %+v, want the thread's folder", c)
 	}
 
 	// in a git repository Codex names it in the turn's metadata, which is
 	// read before any rollout (a thread this computer has none of here)
-	inRepo := `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"uni-switch-image__generate_image","arguments":{},"_meta":{"threadId":"019a0000-0000-7000-8000-000000000000","x-codex-turn-metadata":{"workspaces":{"/work/repo":{"has_changes":false},"relative":{}}}}}}`
+	inRepo := `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"uni-switch-image__generate_image","arguments":{},"_meta":{"threadId":"019a0000-0000-7000-8000-000000000000","x-codex-turn-metadata":{"workspaces":{` + string(repoJSON) + `:{"has_changes":false},"relative":{}}}}}}`
 	ev = hubEvents(t, hubPostTo(t, srv.URL+HubMCPPath+"codex", inRepo, bothAccept, "codex-mcp-client/0.165.0"))
 	ask = nextEvent(t, ev, "roots/list")
 	hubPostTo(t, srv.URL+HubMCPPath+"codex", `{"jsonrpc":"2.0","id":`+string(ask.ID)+`,"result":{"roots":[]}}`, bothAccept, "codex-mcp-client/0.165.0")
 	nextEvent(t, ev, "the call's result")
-	if c := <-got; strings.Join(c.Roots, " ") != "file:///work/repo" {
+	if c := <-got; strings.Join(c.Roots, " ") != fileURI(repo) {
 		t.Fatalf("called for %+v, want the turn's workspace", c)
 	}
 
 	_, secrets := newCaller(t, "Laptop")
 	h := localGuard(New().Handler())
-	m := readMCP(t, hubPost(h, "codex", "192.0.2.7:4000", call, "Authorization", "Bearer "+secrets[0], "Accept", "application/json"))
-	if m.Result.IsError {
-		t.Fatalf("remote call: %+v", m)
-	}
-	if c := <-got; len(c.Roots) != 0 {
-		t.Fatalf("a call from another computer was given %v", c.Roots)
+	w := hubPost(h, "codex", "192.0.2.7:4000", call, "Authorization", "Bearer "+secrets[0], "Accept", "application/json")
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("remote call: %d %s", w.Code, w.Body)
 	}
 }
 

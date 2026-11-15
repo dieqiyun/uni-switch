@@ -157,10 +157,10 @@ func TestSearchMCPGuarded(t *testing.T) {
 		t.Fatalf("not shared: %d %s", w.Code, w.Body.String())
 	}
 	_, secrets := newCaller(t, "Laptop") // shares uni-switch
-	if w := mcpPost(h, there, mcpSearchCall); w.Code != http.StatusUnauthorized {
+	if w := mcpPost(h, there, mcpSearchCall); w.Code != http.StatusForbidden {
 		t.Fatalf("shared, no key: %d %s", w.Code, w.Body.String())
 	}
-	if w := mcpPost(h, there, mcpSearchCall, "Authorization", "Bearer sk-uni-switch-wrong"); w.Code != http.StatusUnauthorized {
+	if w := mcpPost(h, there, mcpSearchCall, "Authorization", "Bearer sk-uni-switch-wrong"); w.Code != http.StatusForbidden {
 		t.Fatalf("shared, a wrong key: %d %s", w.Code, w.Body.String())
 	}
 	chrome := []string{"User-Agent", "Mozilla/5.0 (Macintosh) Chrome/140", "Sec-Fetch-Site", "same-origin", "Sec-Fetch-Mode", "cors"}
@@ -185,7 +185,7 @@ func TestSearchMCPGuarded(t *testing.T) {
 	if len(apis.asked) != 0 {
 		t.Fatalf("searched for a refused call: %q", apis.asked)
 	}
-	m := readMCP(t, mcpPost(h, there, mcpSearchCall, "Authorization", "Bearer "+secrets[0]))
+	m := readMCP(t, mcpPost(h, "127.0.0.1:50000", mcpSearchCall, "Authorization", "Bearer "+secrets[0]))
 	if m.Result.IsError || !strings.Contains(m.Result.Content[0].Text, "https://go.dev/dl/") {
 		t.Fatalf("shared, with its key: %+v", m)
 	}

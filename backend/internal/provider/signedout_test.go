@@ -14,6 +14,7 @@ import (
 // Saved accounts of an agent not signed in where uni-switch looks (a uni-switch
 // serve under another HOME) are said to be left out, not dropped silently.
 func TestSavedButSignedOut(t *testing.T) {
+	macKeychain(t)
 	isolate(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)

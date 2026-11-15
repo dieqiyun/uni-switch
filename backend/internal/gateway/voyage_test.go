@@ -67,7 +67,7 @@ func voyaged(t *testing.T) (*Server, *fakeVoyage) {
 	f := &fakeVoyage{}
 	up := httptest.NewServer(f)
 	t.Cleanup(up.Close)
-	p, err := provider.FromPreset("voyage")
+	p, err := savedProtocolFixture("voyage")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,6 +75,9 @@ func voyaged(t *testing.T) (*Server, *fakeVoyage) {
 		t.Fatalf("preset's base %q", p.Chat)
 	}
 	p.Chat, p.Key = up.URL+"/v1", "pa-voyage"
+	if err := catalog.SaveLive(p.ID, p.Chat, []catalog.Model{{ID: "voyage-4-large", Serves: catalog.ServesEmbedding}, {ID: "voyage-4", Serves: catalog.ServesEmbedding}, {ID: "rerank-3", Serves: catalog.ServesRerank}, {ID: "rerank-3-lite", Serves: catalog.ServesRerank}}); err != nil {
+		t.Fatal(err)
+	}
 	if err := provider.Save(p); err != nil {
 		t.Fatal(err)
 	}

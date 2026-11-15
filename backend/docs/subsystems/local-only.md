@@ -76,3 +76,10 @@ forwarded calls, listener validation and local behavior. These checks do not
 constitute Linux/macOS/WSL native runtime acceptance or a complete protocol suite.
 
 Gateway status, local address, key management and manual connection examples are presented in Settings > Gateway. Port and bare-model-ID configuration are inside its Advanced configuration fold. Browser access and CORS remain under Network.
+
+Named local keys are checked on every request and WebSocket turn. A revoked,
+disabled or unknown managed key is refused with 401, including on loopback;
+omitting a key still follows the ordinary local trust model. MCP tools use the
+key identity for browser-session isolation on loopback too. A key held to
+models/accounts/budgets cannot obtain a local program or an unscoped image tool
+through the hub. Explicit MCP tool scopes continue to apply independently.

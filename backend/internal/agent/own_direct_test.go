@@ -37,7 +37,7 @@ func TestOwnModelsSayTheyGoDirect(t *testing.T) {
 	writeFile(t, filepath.Join(piDir, "settings.json"), `{"defaultProvider": "uni-switch", "defaultModel": "deepseek/deepseek-v4.1-flash"}`)
 	writeFile(t, filepath.Join(home, ".local", "share", "opencode", "auth.json"), auth)
 	cfg := filepath.Join(home, ".config")
-	writeFile(t, filepath.Join(cfg, "crush", "crush.json"), `{"providers": {"opencode-go": {"api_key": "test-key"}}}`)
+	writeFile(t, crush(home, cfg).Path, `{"providers": {"opencode-go": {"api_key": "test-key", "base_url":"https://opencode.ai/go/v1", "models":[{"id":"glm-5.1","name":"GLM-5.1"}]}}}`)
 	writeFile(t, filepath.Join(home, ".omp", "agent", "models.yml"), "providers:\n  opencode-go:\n    models:\n      - id: glm-5.1\n        name: GLM-5.1\n")
 
 	for _, a := range []*Agent{pi(home), opencode(home, cfg), crush(home, cfg), omp(home)} {

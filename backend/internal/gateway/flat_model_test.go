@@ -79,8 +79,8 @@ func TestFlatModelIDsReachTheirProvider(t *testing.T) {
 			t.Fatalf("%s: %d %s", provider.FlatID(e.ID), w.Code, w.Body.String())
 		}
 	}
-	if groups == 0 {
-		t.Fatal("no group for gpt-6.1-sol, served by two providers")
+	if groups != 0 {
+		t.Fatal("created a retired routing group")
 	}
 	// a flat id no model has is none
 	if w := messages(secrets[1], "nowhere~gpt-6.1-sol"); w.Code != 404 {

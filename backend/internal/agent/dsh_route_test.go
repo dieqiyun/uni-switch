@@ -875,32 +875,24 @@ func TestDshPickSaysOldSessionsKeepTheirModel(t *testing.T) {
 // found none. The start moves onto the id the route lists, in each
 // profile, the desktop app's too, and in the home layer; the effort stays.
 func TestDshStartOnAFoundGroupsOldIdMovesOntoItsId(t *testing.T) {
-	_, dir, web := dshRouteHome(t)
+	home, dir, web := dshRouteHome(t)
 	dshKeyFixture(dir)
-	// deepseek and spare both serve pro: uni-switch finds the group
-	if err := provider.Save(provider.Provider{ID: "spare", Name: "Spare", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"pro"}}); err != nil {
+	if got := provider.PublicRef("group/auto-pro"); got != "group/auto-pro" {
+		t.Fatalf("retired group was migrated: %s", got)
+	}
+	if _, _, ok := provider.Resolve("group/auto-pro"); ok {
+		t.Fatal("retired group resolves")
+	}
+	a := dsh(home)
+	if err := a.Field("model").Set("uni-switch/deepseek/pro"); err != nil {
 		t.Fatal(err)
 	}
-	if got := provider.PublicRef("group/auto-pro"); got != "auto/pro" {
-		t.Fatalf("the found group is listed as %q", got)
-	}
-	desktop := filepath.Join(dir, "profiles", "desktop", "cordis.patch.yml")
-	os.MkdirAll(filepath.Dir(desktop), 0o755)
-	start := "- id: agent-default-model\n  config:\n    provider: uni-switch\n    model: \"group/auto-pro\"\n    reasoningEffort: \"high\"\n"
-	for _, f := range []string{web, desktop} {
-		os.WriteFile(f, []byte("# Your patch layer for this dsh profile.\n"+dshRouteFixture("auto/pro")+start), 0o644)
-	}
-	home := dshHomePatch(dir)
-	os.WriteFile(home, []byte(dshRouteFixture("auto/pro")+start), 0o644)
 	dshWiredOnce()
-	for _, f := range []string{web, desktop, home} {
-		b, _ := os.ReadFile(f)
-		s := string(b)
-		if !strings.Contains(s, "- id: auto/pro") {
-			t.Fatalf("%s: the route has not the group:\n%s", f, s)
-		}
-		if strings.Contains(s, "group/auto-pro") || !strings.Contains(s, "    provider: uni-switch\n    model: \"auto/pro\"\n    reasoningEffort: \"high\"\n") {
-			t.Fatalf("%s: the start is not on the id its route lists:\n%s", f, s)
-		}
+	b, err := os.ReadFile(web)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `model: "deepseek/pro"`) || strings.Contains(string(b), "auto/pro") {
+		t.Fatalf("explicit model selection: %s", b)
 	}
 }

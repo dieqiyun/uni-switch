@@ -50,65 +50,36 @@ func sessionsHome(t *testing.T) {
 // top models and folders; a model or a folder picked narrows them.
 func TestSessionsPage(t *testing.T) {
 	sessionsHome(t)
-	m := press(t, model{w: 120, h: 40, srange: 1}, "4", "A", "s")
-	if m.page != pageSessions || sessRanges[m.srange].days != 0 || !m.sstat {
-		t.Fatalf("page %d, range %d", m.page, m.srange)
+	m := press(t, model{w: 120, h: 40, srange: 1}, "4", "A")
+	if m.page != pageSessions || len(m.sessShown()) == 0 {
+		t.Fatal("sessions not listed")
 	}
-	v := m.View()
-	for _, want := range []string{"5 sessions", " all ", "all models", "all folders", "11.9K tokens", "cache read 25.2K (67% hit)", "active 7m on 2 days",
-		"█", "Sep 20", "tokens · a day", "models", "gpt-6-astra", "claude-opus-5-5", "folders", "/work/app", "/work/it's", "M model", "f folder"} {
-		if !strings.Contains(v, want) {
-			t.Errorf("missing %q in\n%s", want, v)
+	for _, key := range []string{"s", "c", "tab"} {
+		m = press(t, m, key)
+	}
+	for _, forbidden := range []string{"tokens", "cache read", "cache write", "cost ·", "usage", "stats", "$"} {
+		if strings.Contains(m.View(), forbidden) {
+			t.Errorf("removed report %q in %s", forbidden, m.View())
 		}
 	}
-
-	// pick a model: the totals are its, and active time isn't kept by model
 	m = press(t, m, "M")
-	if m.mode != modePick {
-		t.Fatal("no picker")
-	}
 	m = typeIn(m, "opus")
 	m = press(t, m, "enter")
-	if m.smodel != "claude-opus-5-5" || m.mode != modeList {
-		t.Fatalf("model %q, mode %d", m.smodel, m.mode)
-	}
-	v = m.View()
-	for _, want := range []string{"claude-opus-5-5 · all folders", "active — not kept by model", "folders", "/work/app"} {
-		if !strings.Contains(v, want) {
-			t.Errorf("opus: missing %q in\n%s", want, v)
-		}
-	}
-	if strings.Contains(v, "gpt-6-astra") {
-		t.Errorf("opus: Codex's model still counted\n%s", v)
-	}
-	// x clears the filters, c charts cost
-	m = press(t, m, "x", "c")
-	if m.smodel != "" || !strings.Contains(m.View(), "cost · a day") {
-		t.Errorf("x, c:\n%s", m.View())
-	}
-	// today has nothing in the fixtures, and no chart of one day
-	m = press(t, m, "t")
-	if v := m.View(); !strings.Contains(v, "nothing in this range") || strings.Contains(v, "a day") {
-		t.Errorf("today:\n%s", v)
+	if m.smodel != "claude-opus-5-5" {
+		t.Fatalf("model filter: %s", m.smodel)
 	}
 }
 
-// The page opens on the sessions themselves, the latest first, narrowed
-// by the range, model and folder as the stats are; ↑↓ pick one, whose
-// resume command is shown.
 func TestSessionsList(t *testing.T) {
 	sessionsHome(t)
 	m := press(t, model{w: 160, h: 40, srange: 1}, "4", "A")
-	if m.sstat {
-		t.Fatal("opened on the stats")
-	}
 	v := m.View()
 	t.Log("\n" + v)
 	shown := m.sessShown()
 	if len(shown) == 0 {
 		t.Fatalf("no sessions:\n%s", v)
 	}
-	for _, want := range []string{"sessions · stats", "▸ ", "↑↓ session", "↵ resume", "s stats", "↵ runs " + shown[0].Resume} {
+	for _, want := range []string{"▸ ", "↑↓ session", "↵ resume", "↵ runs " + shown[0].Resume} {
 		if !strings.Contains(v, want) {
 			t.Errorf("missing %q in\n%s", want, v)
 		}
@@ -133,13 +104,7 @@ func TestSessionsList(t *testing.T) {
 	if v := m.View(); !strings.Contains(v, "nothing in this range") {
 		t.Errorf("today:\n%s", v)
 	}
-	// s goes to the stats and back
-	if m = press(t, m, "s"); !m.sstat || !strings.Contains(m.View(), "sessions · stats") {
-		t.Errorf("s:\n%s", m.View())
-	}
-	if m = press(t, m, "s"); m.sstat {
-		t.Error("s again stayed on the stats")
-	}
+
 }
 
 // Only the sessions active since the range began are listed.
@@ -204,38 +169,6 @@ func TestSessListWindow(t *testing.T) {
 
 // The chart is a column a day with room for gaps, a week a column when
 // the days don't fit, eighths of a block for what is between.
-func TestSessChart(t *testing.T) {
-	day := func(date string, n int) sessions.DayTotal {
-		d := sessions.DayTotal{Date: date}
-		d.Input = n
-		return d
-	}
-	days := []sessions.DayTotal{day("2026-09-26", 800), day("2026-09-27", 0), day("2026-09-28", 100)}
-	ls := sessChart(days, false, 80, 2)
-	if len(ls) != 3 {
-		t.Fatalf("%d lines: %q", len(ls), ls)
-	}
-	if ls[0] != "█      800" || ls[1] != "█   ▂  tokens · a day" || ls[2] != "Sep 26" {
-		t.Errorf("%q", ls)
-	}
-	var many []sessions.DayTotal
-	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.Local)
-	for i := range 200 {
-		many = append(many, day(start.AddDate(0, 0, i).Format(time.DateOnly), 1000))
-	}
-	ls = sessChart(many, false, 60, 4)
-	if !strings.Contains(ls[len(ls)-2], "a week") || len([]rune(strings.Fields(ls[3])[0])) != 29 {
-		t.Errorf("weeks: %q", ls)
-	}
-	if sessChart(days[:1], false, 80, 6) != nil {
-		t.Error("a chart of one day")
-	}
-}
-
-// The page's list is the whole set, not sessions.Limit: the head says how
-// many sessions there are, and the list has to be as long as that. It read
-// List(sessions.Limit+1) — 201 — which kept the bug the GUI had, only past a
-// different number (yetone, #1019).
 func TestSessionsListIsNotCutAtTheLimit(t *testing.T) {
 	sessionsHome(t)
 	claude := os.Getenv("CLAUDE_CONFIG_DIR")

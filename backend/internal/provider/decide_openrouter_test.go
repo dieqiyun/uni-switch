@@ -83,7 +83,7 @@ func TestOpenRouterListsDecisionModels(t *testing.T) {
 
 	// an OpenRouter provider saved before its preset had decisions
 	if err := Save(Provider{ID: "openrouter", Name: "OpenRouter", Preset: "openrouter", Key: "k",
-		Chat: "https://openrouter.ai/api/v1", Models: []string{"openai/gpt-5", "typesafe/jev-router"}}); err != nil {
+		Decide: "https://openrouter.ai/api/v1", Chat: "https://openrouter.ai/api/v1", Models: []string{"openai/gpt-5", "typesafe/jev-router"}}); err != nil {
 		t.Fatal(err)
 	}
 	p, err := Find("openrouter")

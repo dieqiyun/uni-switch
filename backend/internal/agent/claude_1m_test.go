@@ -20,11 +20,11 @@ func TestClaude1MMarked(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "v", Name: "V", Chat: "https://example.test/v1", Key: "k",
 		Models: []string{"small", "big"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("v", "https://example.test/v1", []catalog.Model{
+	if err := saveWindowCatalog("v", "https://example.test/v1", []catalog.Model{
 		{ID: "small", Context: 200000}, {ID: "big", Context: 1000000},
 	}); err != nil {
 		t.Fatal(err)

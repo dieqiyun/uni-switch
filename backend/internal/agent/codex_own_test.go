@@ -49,7 +49,7 @@ func TestCodexOwnModelsFollowPicks(t *testing.T) {
 	}
 	// the ticks are read once while nothing changed, not by building every
 	// provider again on each look (each poll of the Agents page)
-	if n := leastAllocs(20, func() { codexPicks() }); n > 20 {
+	if n := leastAllocs(20, func() { codexPicks() }) - stampAllocs(); n > 20 {
 		t.Fatalf("a look at Codex's ticks made %v allocations, want at most 20", n)
 	}
 	if err := provider.Save(provider.Provider{ID: "codex", Models: []string{"gpt-b"}}); err != nil {

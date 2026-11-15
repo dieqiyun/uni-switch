@@ -119,7 +119,7 @@ func TestZhipuBalance(t *testing.T) {
 	for _, coding := range []Provider{
 		{ID: "glm", Chat: "https://open.bigmodel.cn/api/coding/paas/v4", Anthropic: "https://open.bigmodel.cn/api/anthropic", Key: "k"},
 		{ID: "glm", Anthropic: "https://api.z.ai/api/coding/paas/v4", Key: "k"},
-		zhipu.atKeyPlan("coding"),
+		{ID: "glm", Chat: "https://open.bigmodel.cn/api/coding/paas/v4", Key: "k"},
 	} {
 		if _, ok, err := Balance(context.Background(), coding); ok || err != nil {
 			t.Errorf("coding %s: %v %v", coding.Chat+coding.Anthropic, ok, err)
@@ -178,7 +178,7 @@ func TestZhipuAndSiliconFlowBalanceCards(t *testing.T) {
 	fakeVendors(t, srv)
 
 	if err := Save(Provider{ID: "zhipu", Name: "Zhipu GLM", Preset: "zhipu", Chat: "https://open.bigmodel.cn/api/paas/v4", Anthropic: "https://open.bigmodel.cn/api/anthropic",
-		Key: "payg.key", KeyName: "payg", Keys: []KeyAccount{{Name: "plan", Key: "plan.key", Plan: "coding"}}}); err != nil {
+		Key: "payg.key", KeyName: "payg"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := Save(Provider{ID: "siliconflow", Name: "SiliconFlow", Preset: "siliconflow", Chat: "https://api.siliconflow.cn/v1", Key: "sk-sf"}); err != nil {
@@ -192,7 +192,7 @@ func TestZhipuAndSiliconFlowBalanceCards(t *testing.T) {
 			sf = &q
 		}
 	}
-	if got, want := strings.Join(lines, ","), "zhipu|payg|¥12.50,siliconflow||"; got != want {
+	if got, want := strings.Join(lines, ","), "zhipu||¥12.50,siliconflow||"; got != want {
 		t.Errorf("cards:\n%s\nwant\n%s", got, want)
 	}
 	if sf == nil || sf.SeeAt != "https://cloud.siliconflow.cn" || !strings.HasPrefix(sf.Error, "SiliconFlow retired its balance query") {

@@ -48,12 +48,12 @@ func TestKiloModels(t *testing.T) {
 		w.Write([]byte(kiloList))
 	}))
 	defer srv.Close()
-	p, err := FromPreset("kilo")
+	p, err := legacyVendor("kilo")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !p.Ready() {
-		t.Fatal("a Kilo provider with no key isn't ready")
+	if p.Ready() {
+		t.Fatal("a retired preset made an unconfigured remote provider ready")
 	}
 	p.ID, p.Chat = "kilo-test", srv.URL+"/api/openrouter"
 	ids := func(ms []catalog.Model) (all, free []string) {
@@ -104,7 +104,7 @@ func TestKiloModels(t *testing.T) {
 	}
 
 	// another provider's ":free" model isn't Kilo's to price
-	o, _ := FromPreset("together")
+	o, _ := legacyVendor("together")
 	if o.kiloFreeModel("qwen/qwen3.8-27b:free") {
 		t.Fatal("kiloFreeModel on another provider")
 	}
@@ -133,7 +133,7 @@ func TestKiloModelsRefuseAPageOfTheList(t *testing.T) {
 		w.Write([]byte(kiloList))
 	}))
 	defer srv.Close()
-	p, err := FromPreset("kilo")
+	p, err := legacyVendor("kilo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestKiloModelsFollowThePagesOfTheList(t *testing.T) {
 		w.Write([]byte(b.String()))
 	}))
 	defer srv.Close()
-	p, err := FromPreset("kilo")
+	p, err := legacyVendor("kilo")
 	if err != nil {
 		t.Fatal(err)
 	}

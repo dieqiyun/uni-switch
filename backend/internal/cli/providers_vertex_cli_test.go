@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -44,28 +45,15 @@ func lineWith(out, s string) string {
 func TestProviderAddVertexPairs(t *testing.T) {
 	groupsHome(t)
 	vertexNotAsked(t)
-	// no project: the pair that gives it is named
-	for _, args := range [][]string{{"provider", "add", "google-vertex"}, {"provider", "add", "google-vertex", "location=us"}} {
-		err := providerCmd(args)
-		if err == nil || !strings.Contains(err.Error(), "needs the id of your Google Cloud project") ||
-			!strings.Contains(err.Error(), "uni-switch provider add google-vertex project=") {
-			t.Fatalf("%v: %v", args[2:], err)
-		}
+	if err := providerCmd([]string{"provider", "add", "google-vertex"}); err == nil {
+		t.Fatal("retired preset was added")
 	}
-	if _, err := provider.Find("google-vertex"); err == nil {
-		t.Fatal("added without a project")
-	}
-
-	out, err := printed(t, func() error {
-		return providerCmd([]string{"provider", "add", "google-vertex", "project=my-project", "location=us",
-			"impersonate=vertex@my-project.iam.gserviceaccount.com"})
-	})
-	if err != nil {
+	if err := provider.Save(provider.Provider{ID: "google-vertex", Name: "Google Vertex AI", Preset: provider.VertexPreset, Vertex: &provider.Vertex{Project: "my-project", Location: "us", Impersonate: "vertex@my-project.iam.gserviceaccount.com"}}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "added Google Vertex AI") {
-		t.Fatalf("add said %q", out)
-	}
+	var out string
+	var err error
+
 	want := provider.Vertex{Project: "my-project", Location: "us", Impersonate: "vertex@my-project.iam.gserviceaccount.com"}
 	if v := mustFind(t, "google-vertex").Vertex; v == nil || *v != want {
 		t.Fatalf("added %+v, want %+v", v, want)
@@ -141,9 +129,10 @@ func TestProviderAddVertexPairs(t *testing.T) {
 
 	// a key: neither as add's second word nor through provider key
 	err = providerCmd([]string{"provider", "add", "google-vertex", "my-project"})
-	if err == nil || !strings.Contains(err.Error(), "not an API key") || !strings.Contains(err.Error(), "project=") {
-		t.Fatalf("add with a key: %v", err)
+	if err == nil {
+		t.Fatal("retired preset accepted a key")
 	}
+
 	if _, err := provider.Find("google-vertex-2"); err == nil {
 		t.Fatal("added a second Vertex AI with a key")
 	}
@@ -169,7 +158,7 @@ func TestProvidersShowVertexCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if row := lineWith(out, "google-vertex"); !strings.Contains(row, "uni-switch provider add google-vertex project=") || strings.Contains(row, "<key>") {
+	if row := lineWith(out, "google-vertex"); row != "" {
 		t.Fatalf("presets: %q", row)
 	}
 	key := filepath.Join(t.TempDir(), "vertex-sa.json")
@@ -298,9 +287,7 @@ func TestProviderTestVertex(t *testing.T) {
 	if err := os.WriteFile(creds, []byte(`{"type":"authorized_user","client_id":"test.apps.googleusercontent.com","client_secret":"test-secret","refresh_token":"1//test-refresh"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := printed(t, func() error {
-		return providerCmd([]string{"provider", "add", "google-vertex", "project=my-project", "credentials=" + creds})
-	}); err != nil {
+	if err := provider.Save(provider.Provider{ID: "google-vertex", Name: "Google Vertex AI", Preset: provider.VertexPreset, Models: []string{"gemini-3.8-flash"}, Vertex: &provider.Vertex{Project: "my-project", Credentials: creds}}); err != nil {
 		t.Fatal(err)
 	}
 	out, err := printed(t, func() error { return providerCmd([]string{"provider", "test", "google-vertex"}) })
@@ -310,6 +297,7 @@ func TestProviderTestVertex(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	want := []string{"/token ", "/v1/projects/my-project/locations/global/publishers/google/models/gemini-3.8-flash:generateContent Bearer ya29.vertex-test"}
+	asked = slices.DeleteFunc(asked, func(c string) bool { return strings.Contains(c, "/models ") })
 	if strings.Join(asked, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("asked\n%s\nwant\n%s", strings.Join(asked, "\n"), strings.Join(want, "\n"))
 	}

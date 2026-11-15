@@ -37,24 +37,14 @@ func reseatHome(t *testing.T) string {
 // and an agent whose group is gone is left on it.
 func TestSameModelTakesTheOneMMarkOffAGroupRef(t *testing.T) {
 	reseatHome(t)
-	for _, p := range []provider.Provider{
-		{ID: "other", Name: "Other", Chat: "https://other.example/v1", Key: "k", Models: []string{"gpt-5"}},
-	} {
-		if err := provider.Save(p); err != nil {
-			t.Fatal(err)
+	opts := []Option{{Value: "uni-switch/ds/gpt-5", Ref: "ds/gpt-5"}}
+	if got := sameModel(opts, "cop/gpt-5"); got.Ref != "ds/gpt-5" {
+		t.Errorf("direct model with 1M mark: %+v", got)
+	}
+	for _, legacy := range []string{"group/auto-gpt-5", "group/auto-gpt-5[1m]"} {
+		if got := sameModel(opts, legacy); got.Ref != "" {
+			t.Errorf("retired group %s inferred a model: %+v", legacy, got)
 		}
-	}
-	opts := []Option{{Value: "uni-switch/group/auto-gpt-5", Ref: "group/auto-gpt-5"}, {Value: "other/gpt-5", Ref: "other/gpt-5"}}
-	if got := sameModel(opts, "group/auto-gpt-5[1m]"); got.Ref != "other/gpt-5" {
-		t.Errorf("[1m] on the group: %+v", got)
-	}
-	if got := sameModel(opts, "group/auto-gpt-5"); got.Ref != "other/gpt-5" {
-		t.Errorf("the bare group: %+v", got)
-	}
-	// a group that is nobody else's still gives nothing (nothing to move to)
-	none := []Option{{Value: "uni-switch/group/mine", Ref: "group/mine"}, {Value: "other/gpt-5", Ref: "other/gpt-5"}}
-	if got := sameModel(none, "group/mine[1m]"); got.Ref != "" {
-		t.Errorf("a group of the user's own: %+v", got)
 	}
 }
 
@@ -223,30 +213,22 @@ func TestReseatUnmovable(t *testing.T) {
 func TestReseatKeepsAFoundGroupWithAProviderOff(t *testing.T) {
 	reseatHome(t)
 	c, h := mustFind(t, "claude"), mustFind(t, "hermes")
-	mustApplyAs(t, c, "model", "group/auto-gpt-5", "auto/gpt-5")
-	mustApply(t, c, "haiku", "cop/only-here")
-	mustApplyAs(t, h, "model", "uni-switch/group/auto-gpt-5", "uni-switch/auto/gpt-5")
+	mustApply(t, c, "model", "cop/gpt-5")
+	mustApply(t, h, "model", "uni-switch/cop/gpt-5")
 	moves, err := Reseat(func() error { return provider.SetOff("cop", true) })
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := c.Field("model").Get(); got != "auto/gpt-5" {
-		t.Errorf("claude model with cop off: %q", got)
+	if c.Field("model").Get() != "ds/gpt-5" || h.Field("model").Get() != "uni-switch/ds/gpt-5" || len(moves) != 2 {
+		t.Fatalf("ordinary provider fallback: %+v, Claude %s Hermes %s", moves, c.Field("model").Get(), h.Field("model").Get())
 	}
-	if got := h.Field("model").Get(); got != "uni-switch/auto/gpt-5" {
-		t.Errorf("hermes with cop off: %q", got)
+	if _, _, ok := provider.Resolve("group/auto-gpt-5"); ok {
+		t.Fatal("retired group resolved")
 	}
-	if len(moves) != 1 || moves[0].Field != "haiku" || moves[0].From != "cop/only-here" {
-		t.Errorf("moves with cop off: %+v", moves)
-	}
-	if _, _, ok := provider.Resolve("group/auto-gpt-5"); !ok {
-		t.Error("group/auto-gpt-5 gone with cop off")
-	}
-	// on again, nobody is moved, and the group has cop in it again
 	if moves, err = Reseat(func() error { return provider.SetOff("cop", false) }); err != nil || len(moves) != 0 {
 		t.Fatalf("on again: %+v %v", moves, err)
 	}
-	if got := c.Field("model").Get(); got != "auto/gpt-5" {
-		t.Errorf("claude model on again: %q", got)
+	if c.Field("model").Get() != "ds/gpt-5" {
+		t.Fatal("re-enabled provider moved the user's current selection")
 	}
 }

@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 
@@ -31,16 +30,11 @@ func TestProviderListTellsTencentAccessKey(t *testing.T) {
 
 	at := func(region string) provider.Provider {
 		t.Helper()
-		p, err := provider.FromPreset("tencent-cloud")
-		if err != nil {
-			t.Fatal(err)
+		base := "https://tokenhub.tencentmaas.com/plan"
+		if region == "enterprise-intl" {
+			base = "https://tokenhub-intl.tencentmaas.com/plan"
 		}
-		pr := provider.Preset("tencent-cloud")
-		for _, r := range pr.Regions {
-			if r.ID == region {
-				p.Chat, p.Responses, p.Anthropic = r.Chat, r.Responses, r.Anthropic
-			}
-		}
+		p := provider.Provider{ID: "tencent-cloud", Name: "Tencent saved plan", Preset: "tencent-cloud", Chat: base + "/v3", Anthropic: base + "/anthropic"}
 		return p
 	}
 	team := at("enterprise-intl")
@@ -109,27 +103,9 @@ func TestProviderListTellsTencentAccessKey(t *testing.T) {
 	if a := ps["my-keyed"]; a == nil || a.Vendor != "tencent" || a.ID != "AKID-own" || !a.SecretSet {
 		t.Errorf("custom with an access key saved: %+v", a)
 	}
-	seen := 0
 	for _, pr := range got.Presets {
-		switch pr.ID {
-		case "tencent-cloud":
-			seen++
-			if !pr.AccessKey || pr.AccessKeyVendor != "tencent" || !slices.Equal(pr.AccessKeyRegions, []string{"plan", "enterprise-intl"}) {
-				t.Errorf("tencent-cloud preset: %+v", pr)
-			}
-		case "volcengine":
-			seen++
-			if !pr.AccessKey || pr.AccessKeyVendor != "volcengine" || pr.AccessKeyRegions != nil {
-				t.Errorf("volcengine preset: %+v", pr)
-			}
-		case "deepseek":
-			seen++
-			if pr.AccessKey || pr.AccessKeyVendor != "" {
-				t.Errorf("deepseek preset: %+v", pr)
-			}
+		if pr.ID == "tencent-cloud" || pr.ID == "volcengine" || pr.ID == "deepseek" {
+			t.Errorf("retired preset advertised: %s", pr.ID)
 		}
-	}
-	if seen != 3 {
-		t.Errorf("presets seen: %d", seen)
 	}
 }

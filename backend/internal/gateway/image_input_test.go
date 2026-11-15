@@ -265,10 +265,10 @@ func TestGroupWithUnknownImageCapabilityReachesUpstream(t *testing.T) {
 	}
 	s := New()
 	for _, tc := range []struct{ path, body string }{
-		{"/v1/chat/completions", `{"model":"group/auto-claude-sonnet-4-5","messages":[{"role":"user","content":[{"type":"text","text":"read"},{"type":"image_url","image_url":{"url":"data:image/png;base64,aGVsbG8="}}]}]}`},
-		{"/v1/responses", `{"model":"group/auto-claude-sonnet-4-5","input":[{"role":"user","content":[{"type":"input_text","text":"read"},{"type":"input_image","image_url":"data:image/png;base64,aGVsbG8="}]}]}`},
-		{"/v1/messages", `{"model":"group/auto-claude-sonnet-4-5","max_tokens":16,"messages":[{"role":"user","content":[{"type":"text","text":"read"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"aGVsbG8="}}]}]}`},
-		{"/messages", `{"model":"group/auto-claude-sonnet-4-5","max_tokens":16,"messages":[{"role":"user","content":[{"type":"text","text":"read"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"aGVsbG8="}}]}]}`},
+		{"/v1/chat/completions", `{"model":"unknown/claude-sonnet-4-5","messages":[{"role":"user","content":[{"type":"text","text":"read"},{"type":"image_url","image_url":{"url":"data:image/png;base64,aGVsbG8="}}]}]}`},
+		{"/v1/responses", `{"model":"unknown/claude-sonnet-4-5","input":[{"role":"user","content":[{"type":"input_text","text":"read"},{"type":"input_image","image_url":"data:image/png;base64,aGVsbG8="}]}]}`},
+		{"/v1/messages", `{"model":"unknown/claude-sonnet-4-5","max_tokens":16,"messages":[{"role":"user","content":[{"type":"text","text":"read"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"aGVsbG8="}}]}]}`},
+		{"/messages", `{"model":"unknown/claude-sonnet-4-5","max_tokens":16,"messages":[{"role":"user","content":[{"type":"text","text":"read"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"aGVsbG8="}}]}]}`},
 	} {
 		rec := httptest.NewRecorder()
 		s.Handler().ServeHTTP(rec, httptest.NewRequest("POST", tc.path, strings.NewReader(tc.body)))
@@ -285,14 +285,14 @@ func TestGroupWithUnknownImageCapabilityReachesUpstream(t *testing.T) {
 		}
 	}
 	for _, e := range provider.Catalog() {
-		if e.ID == "auto/claude-sonnet-4-5" {
-			if !e.Images || e.ImageInput == nil || !*e.ImageInput {
+		if e.ID == "unknown/claude-sonnet-4-5" {
+			if !e.Images || e.ImageInput != nil {
 				t.Fatalf("group image capability: %+v", e)
 			}
 			return
 		}
 	}
-	t.Fatal("auto group missing")
+	t.Fatal("the provider model is missing")
 }
 
 func TestFailedKeyFetchKeepsUnknownImageCapabilityAtGateway(t *testing.T) {

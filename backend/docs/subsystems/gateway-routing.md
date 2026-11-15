@@ -2628,3 +2628,16 @@ go test -tags nogui ./internal/provider -run 'TestGroup|TestCodexCreditsSwitch|T
 
 The gateway's `TestMain` gives the package a home of its own, so these tests
 never read real providers or accounts.
+
+## Integrated ordinary provider fallback
+
+A bare chat/video model ID tries enabled providers listing that model in the
+Providers order, preserving each provider's explicit endpoint. Chat candidate
+construction includes both saved selections and live model lists. Qualified
+provider requests retain their explicit fallbacks; a qualified API key group
+stays on its chosen key. No automatic routing group is created.
+
+Large replayable HTTP/2 uploads retry once through the upload transport when
+an h2 connection closes before headers are received while the request context
+is still active, as well as on a lost-ping error. Small requests, canceled
+contexts and unrelated transport errors do not take that retry path.

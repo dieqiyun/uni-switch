@@ -96,7 +96,7 @@ func TestWSLCallerServedWithSharingOff(t *testing.T) {
 		"another network":   {"192.168.1.20:5000", win, bearer(key)},
 		"another address":   {distro, "192.168.1.5:3425", bearer(key)},
 	} {
-		if code, body := call(c.from, c.at, c.set); code != http.StatusForbidden || !strings.Contains(body, "isn't shared") {
+		if code, body := call(c.from, c.at, c.set); code != http.StatusForbidden || !strings.Contains(body, "this computer only") {
 			t.Errorf("%s: %d %s, want refused as another machine's", name, code, body)
 		}
 	}

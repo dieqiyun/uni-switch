@@ -127,7 +127,7 @@ func TestMCPProxyStaysHere(t *testing.T) {
 	r.RemoteAddr = "192.168.1.9:5000"
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	if w.Code != http.StatusUnauthorized || len(f.Calls) != 0 {
+	if w.Code != http.StatusForbidden || len(f.Calls) != 0 {
 		t.Fatalf("another machine got %d, calls %v", w.Code, f.Calls)
 	}
 }

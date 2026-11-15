@@ -327,6 +327,7 @@ func SpecOf(ref string) (Spec, bool) {
 	key := e.ID
 	sp := Spec{Entry: e}
 	sp.Context.Value = tokenWord(e.Context)
+	sp.Context.From = "default"
 	switch {
 	case p.Contexts[model] > 0:
 		sp.Context.From = "model"

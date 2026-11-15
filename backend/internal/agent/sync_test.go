@@ -20,8 +20,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// syncHome is a sandbox home with a models.dev catalog that knows glm-4.6's
-// window and a provider serving it.
+// syncHome is a sandbox with an explicitly configured 204800-token model.
+// Adapter tests exercise carrying a user's window; the unconfigured default
+// is covered independently by provider's default-context tests.
 func syncHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
@@ -56,7 +57,7 @@ func syncHome(t *testing.T) string {
 	os.WriteFile(catalog.CachePath(), []byte(`{"zai":{"models":{"glm-4.6":{"id":"glm-4.6","name":"GLM-4.6","limit":{"context":204800}}}}}`), 0o644)
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"glm-4.6"}}); err != nil {
+	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"glm-4.6"}, Contexts: map[string]int{"glm-4.6": 204800}}); err != nil {
 		t.Fatal(err)
 	}
 	return home
@@ -153,6 +154,13 @@ func TestMaxTokensWithinContextWindow(t *testing.T) {
 		t.Helper()
 		os.WriteFile(catalog.CachePath(), []byte(`{"zai":{"models":{"glm-4.6":{"id":"glm-4.6","name":"GLM-4.6","limit":{`+limit+`}}}}}`), 0o644)
 		catalog.Reset()
+		p, _ := provider.Find("relay")
+		if window == 0 {
+			window = provider.DefaultContextWindow
+		}
+		if err := provider.SetContext(*p, "glm-4.6", window); err != nil {
+			t.Fatal(err)
+		}
 		pi, _ := json.Marshal(uniSwitchProviderJSON("pi"))
 		cline, _ := json.Marshal(clineModels(""))
 		omp, _ := yaml.Marshal(ompProvider())
@@ -183,20 +191,16 @@ func TestMaxTokensWithinContextWindow(t *testing.T) {
 		wbModels, _ := os.ReadFile(wb)
 		n, capped := strconv.Itoa(want), strconv.Itoa(min(want, zcodeMaxOutput))
 		told := n
-		if !strings.Contains(limit, "context") {
-			told = strconv.Itoa(min(want, atomcodeContext))
-		}
+
 		// dsh reserves maxTokens out of its window before compacting, so a
 		// known window holds it to what leaves dsh half of it, or a quarter
 		// where that is more (dshMaxTokens, #2823, #3298).
 		dshTold := n
-		if strings.Contains(limit, "context") {
+		if window > 0 {
 			dshTold = strconv.Itoa(min(want, max(window/4, window/2-65536)))
 		}
 		snowTold := n
-		if !strings.Contains(limit, "context") {
-			snowTold = strconv.Itoa(min(want, snowContext))
-		}
+
 		wants := map[string][2]string{
 			"pi":          {string(pi), `"maxTokens":` + n},
 			"cline":       {string(cline), `"maxTokens":` + n},
@@ -222,7 +226,7 @@ func TestMaxTokensWithinContextWindow(t *testing.T) {
 		}
 	}
 	check(`"context":128000,"output":384000`, 128000, 128000)
-	check(`"output":384000`, 384000, 0)
+	check(`"output":384000`, 256000, 256000)
 	check(`"context":204800,"output":131072`, 131072, 204800)
 	check(`"context":64000,"output":384000`, 64000, 64000)
 }

@@ -72,13 +72,11 @@ func TestOIDCTokenTradedForKey(t *testing.T) {
 	if w := keysCall(h, "POST", OIDCKeysPath, fromThere, "", ""); w.Code != http.StatusUnauthorized {
 		t.Fatal("no token:", w.Code, w.Body.String())
 	}
-	// refused tokens count against the failed authentications
-	var last int
+	// Local invalid tokens are refused without remote-auth throttling.
 	for range authFailBurst + 1 {
-		last = keysCall(h, "POST", OIDCKeysPath, fromThere, "not.a.jwt", "").Code
-	}
-	if last != http.StatusTooManyRequests {
-		t.Fatal("refused tokens weren't counted:", last)
+		if w := keysCall(h, "POST", OIDCKeysPath, fromHere, "not.a.jwt", ""); w.Code != http.StatusUnauthorized {
+			t.Fatal("invalid local token:", w.Code, w.Body.String())
+		}
 	}
 	resetAuthThrottle()
 	// the issuer turned off: the rule issues nothing
@@ -92,7 +90,7 @@ func TestOIDCTokenTradedForKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the exemption is this route alone: a token on a model route is a wrong key
-	if w := keysCall(h, "POST", "/v1/chat/completions", fromThere, token(rule.Audience, nil), chatReq); w.Code != http.StatusUnauthorized {
+	if w := keysCall(h, "POST", "/v1/chat/completions", "192.0.2.7:5000", token(rule.Audience, nil), chatReq); w.Code != http.StatusForbidden {
 		t.Fatal("a token on a model route:", w.Code, w.Body.String())
 	}
 	// this computer may trade one too
@@ -103,7 +101,7 @@ func TestOIDCTokenTradedForKey(t *testing.T) {
 	if err := settings.Save(s); err != nil {
 		t.Fatal(err)
 	}
-	if w := keysCall(h, "POST", OIDCKeysPath, fromThere, token(rule.Audience, nil), ""); w.Code != http.StatusForbidden {
+	if w := keysCall(h, "POST", OIDCKeysPath, "192.0.2.7:5000", token(rule.Audience, nil), ""); w.Code != http.StatusForbidden {
 		t.Fatal("not shared:", w.Code, w.Body.String())
 	}
 }

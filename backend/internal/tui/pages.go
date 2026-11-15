@@ -32,12 +32,12 @@ type page int
 const (
 	pageAgents page = iota
 	pageProviders
-	pageUsage
+	pageAccounts
 	pageSessions
 	pageLibrary
 )
 
-var pageNames = []string{"agents", "providers", "usage", "sessions", "library"}
+var pageNames = []string{"agents", "providers", "accounts", "sessions", "library"}
 
 // ask is a line to type: a key, a family, a group's name.
 type ask struct {
@@ -807,10 +807,6 @@ func (m model) viewProviders() string {
 
 // ---- usage ------------------------------------------------------------------
 
-var periods = []usage.Period{usage.Today, usage.Week, usage.Month, usage.All}
-
-var periodNames = map[usage.Period]string{usage.Today: "today", usage.Week: "7 days", usage.Month: "30 days", usage.All: "all time"}
-
 // quotaMsg is what is left of every subscription, plan bought with a key
 // and key balance, as the app's Usage page shows them. reading is that a
 // read of the accounts' usage was still under way, so qs may be the stale
@@ -821,7 +817,7 @@ type quotaMsg struct {
 	gen     int
 }
 
-// The Usage page reads as the app's does (loadQuotas in app.js): opening
+// The Accounts page reads as the app's does (loadQuotas in app.js): opening
 // it is asking (an asked read, Claude Code's /usage run) unless the last
 // ask was within quotasOpenGap, and an answer given while a read is under
 // way is asked for again every quotasAgain, quotasTries times at most,
@@ -877,7 +873,7 @@ func (m *model) gotQuotas(msg quotaMsg) tea.Cmd {
 		return nil // a load since stands in for it
 	}
 	m.quotas = msg.qs
-	if !msg.reading || m.page != pageUsage || m.qtries >= quotasTries {
+	if !msg.reading || m.page != pageAccounts || m.qtries >= quotasTries {
 		return nil
 	}
 	m.qtries++
@@ -1124,8 +1120,7 @@ func checkinCell(q provider.SubscriptionQuota, now time.Time) string {
 	return sBad.Render("签到 failed") + sMuted.Render(" · c tries again")
 }
 
-func (m model) updateUsage(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	i := slices.Index(periods, m.period)
+func (m model) updateAccounts(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "u":
 		// the choice is Settings' QuotaLeft, which the app and the menu bar
@@ -1141,22 +1136,7 @@ func (m model) updateUsage(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// WorkBuddy's daily check-in, as the app's "Check in now"
 		m.flash, m.flashOK = "checking in…", true
 		return m, checkinCmd
-	case "l", "right":
-		m.period = periods[(i+1)%len(periods)]
-	case "h", "left":
-		m.period = periods[(i+len(periods)-1)%len(periods)]
-	case "t":
-		m.period = usage.Today
-	case "w":
-		m.period = usage.Week
-	case "m":
-		m.period = usage.Month
-	case "A":
-		m.period = usage.All
-	default:
-		return m, nil
 	}
-	m.sum, m.direct = usage.Summaries(m.period)
 	return m, nil
 }
 
@@ -1227,123 +1207,15 @@ func credits(t usage.Totals) string {
 
 var bars = []rune(" ▁▂▃▄▅▆▇█")
 
-func (m model) viewUsage() string {
-	s := m.sum
+func (m model) viewAccounts() string {
 	var b strings.Builder
-	b.WriteString(m.header())
-	b.WriteString("\n\n")
-	var tabs []string
-	for _, p := range periods {
-		if p == s.Period {
-			tabs = append(tabs, sPill.Render(periodNames[p]))
-		} else {
-			tabs = append(tabs, sMuted.Render(" "+periodNames[p]+" "))
-		}
-	}
-	b.WriteString(pad + "  " + strings.Join(tabs, " ") + "\n\n")
-	ql := quotaLines(m.quotas, m.qasked, m.qleft, m.w-len(pad)-2, time.Now())
-	for _, l := range ql {
+	b.WriteString(m.header() + "\n\n")
+	for _, l := range quotaLines(m.quotas, m.qasked, m.qleft, m.w-len(pad)-2, time.Now()) {
 		b.WriteString(pad + "  " + l + "\n")
-	}
-	if len(ql) > 0 {
-		b.WriteString("\n")
-	}
-	d := m.direct
-	if s.Calls == 0 && d.Calls == 0 {
-		b.WriteString(pad + "  " + sMuted.Render("no calls in this time · route an agent through uni-switch and its usage shows up here"))
-		return b.String()
-	}
-	names := map[string]string{}
-	for _, a := range agent.All() {
-		names[a.ID] = a.Name
-	}
-	room := max(2, (m.h-16-len(ql))/2)
-	if s.Calls > 0 && d.Calls > 0 {
-		room = max(2, room/2)
-	}
-	if s.Calls == 0 {
-		b.WriteString(pad + "  " + sMuted.Render("no calls through uni-switch in this time") + "\n\n")
-	} else {
-		m.usageBlock(&b, s, room, names)
-	}
-	// the calls the agents made on their own, as the app's Requests tab
-	// counts them beside the gateway's (Kumo31 on Discord)
-	if d.Calls > 0 {
-		b.WriteString(pad + "  " + sFaint.Render("not through uni-switch · the agents' own requests, read from their session files") + "\n")
-		m.usageBlock(&b, d, room, names)
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
 
-// usageBlock is one summary's totals, timeline and agents' and models'
-// tables, the gateway's or the agents' own calls.
-func (m model) usageBlock(b *strings.Builder, s usage.Summary, room int, names map[string]string) {
-	line := sName.Render(fmtTokens(s.Tokens())+" tokens") + sMuted.Render(fmt.Sprintf(" · %d call%s · ", s.Calls, plural(s.Calls))) + sOK.Render(fmtCost(s.Totals))
-	if s.Unpriced > 0 { // calls with no known price, not in the cost (#1856)
-		line += sMuted.Render(fmt.Sprintf(" (%d call%s unpriced)", s.Unpriced, plural(s.Unpriced)))
-	}
-	line += sMuted.Render(credits(s.Totals))
-	if s.Errors > 0 {
-		line += sMuted.Render(" · ") + sBad.Render(fmt.Sprintf("%d error%s", s.Errors, plural(s.Errors)))
-	}
-	if s.Retried > 0 { // answered after a try that failed first, not an error
-		line += sMuted.Render(fmt.Sprintf(" · %d answered on a retry", s.Retried))
-	}
-	b.WriteString(pad + "  " + line + "\n")
-	b.WriteString(pad + "  " + sMuted.Render("in "+fmtTokens(s.Input)+"  out "+fmtTokens(s.Output)+"  cache read "+fmtTokens(s.CacheRead)+"  cache write "+fmtTokens(s.CacheWrite)+"  reasoning "+fmtTokens(s.Reasoning)) + "\n\n")
-
-	// the timeline, one bar a bucket
-	top := 0
-	for _, p := range s.Series {
-		top = max(top, p.Tokens())
-	}
-	if top > 0 && len(s.Series) > 0 {
-		var sb strings.Builder
-		for _, p := range s.Series {
-			i := 0
-			if p.Tokens() > 0 {
-				i = max(1, p.Tokens()*(len(bars)-1)/top)
-			}
-			sb.WriteRune(bars[i])
-		}
-		first, last := s.Series[0].Label, s.Series[len(s.Series)-1].Label
-		b.WriteString(pad + "  " + sCursor.Render(sb.String()) + "  " + sFaint.Render(first+" – "+last) + "\n\n")
-	}
-
-	table := func(head string, gs []usage.Group, name func(usage.Group) string) {
-		b.WriteString(pad + "  " + sFaint.Render(head) + "\n")
-		w := 0
-		for _, g := range gs {
-			w = max(w, lipgloss.Width(name(g)))
-		}
-		for i, g := range gs {
-			if i == room {
-				b.WriteString(pad + "  " + sFaint.Render(fmt.Sprintf("and %d more · uni-switch usage", len(gs)-room)) + "\n")
-				break
-			}
-			share := fmt.Sprintf("%3.0f%%", 100*float64(g.Tokens())/float64(max(1, s.Tokens())))
-			b.WriteString(pad + "  " + sText.Render(padRight(name(g), w)) + "  " + sMuted.Render(share) + "  " + sText.Render(padRight(fmtTokens(g.Tokens()), 7)) + "  " + sFaint.Render(padRight(fmt.Sprintf("%d call%s", g.Calls, plural(g.Calls)), 10)) + "  " + sOK.Render(fmtCost(g.Totals)) + sMuted.Render(credits(g.Totals)) + "\n")
-		}
-		b.WriteString("\n")
-	}
-	table("agents", s.Agents, func(g usage.Group) string {
-		if n := names[g.ID]; n != "" {
-			return n
-		}
-		return g.ID
-	})
-	table("models", s.Models, func(g usage.Group) string {
-		if g.Provider == usage.UnknownProvider {
-			return g.Model // a session file's call whose provider isn't known
-		}
-		return g.ID
-	})
-}
-
-// quotaLines is the accounts' allowances, a line each as the app's cards
-// are: the subscriptions' and plans' windows as small meters — how much is
-// used, or left, with the vendor's own count before it where it gives one
-// — and the keys' balances; nil when there is nothing to tell.
 func quotaLines(qs []provider.SubscriptionQuota, asked, left bool, width int, now time.Time) []string {
 	if qs == nil {
 		if !asked {

@@ -24,7 +24,8 @@ func desktopWindowSandbox(t *testing.T) (home, path string) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 	if err := provider.Save(provider.Provider{ID: "v", Name: "V", Chat: "http://127.0.0.1:1/v1", Key: "k",
-		Models: []string{"gpt", "grok", "glm", "plain", "claude-opus-4-6"}}); err != nil {
+		Models:   []string{"gpt", "grok", "glm", "plain", "claude-opus-4-6"},
+		Contexts: map[string]int{"gpt": 272000, "grok": 256000, "glm": 1000000, "claude-opus-4-6": 128000}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := catalog.SaveLive("v", "http://127.0.0.1:1/v1", []catalog.Model{
@@ -88,7 +89,7 @@ func TestClaudeDesktopContextWindow(t *testing.T) {
 	// Claude Code on uni-switch on a model of no known window: nothing to
 	// tell it until Desktop is on uni-switch
 	set("model", "v/plain")
-	if window() != "" {
+	if window() != "256000" {
 		t.Fatalf("plain, Desktop off: %q", window())
 	}
 	desktop("uni-switch")
@@ -104,7 +105,7 @@ func TestClaudeDesktopContextWindow(t *testing.T) {
 	if v, _ := edit.GetJSON(path, "env."+claudeCompactEnv); v != "" {
 		t.Fatalf("%s %q would take precedence over every model's own", claudeCompactEnv, v)
 	}
-	if budget("v/grok") != "256000" || budget("v/gpt") != "" || budget("v/glm") != "" {
+	if budget("v/grok") != "256000" || budget("v/gpt") != "" || budget("v/glm") != "1000000" {
 		t.Fatalf("grok %q gpt %q glm %q: %s", budget("v/grok"), budget("v/gpt"), budget("v/glm"), readFile(path))
 	}
 	// Full window: each its own whole
@@ -129,7 +130,7 @@ func TestClaudeDesktopContextWindow(t *testing.T) {
 		t.Fatalf("main gpt beside Desktop's: %q %q", window(), budget("v/grok"))
 	}
 	// a model added later reaches it with the rest of the catalog
-	if err := provider.Save(provider.Provider{ID: "w", Name: "W", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"small.v2"}}); err != nil {
+	if err := provider.Save(provider.Provider{ID: "w", Name: "W", Chat: "http://127.0.0.1:1/v1", Key: "k", Models: []string{"small.v2"}, Contexts: map[string]int{"small.v2": 128000}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := catalog.SaveLive("w", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "small.v2", Context: 128000}}); err != nil {

@@ -54,26 +54,29 @@ func TestHubKeepsThisComputersOwnServersHere(t *testing.T) {
 	}
 	full := []string{"Authorization", "Bearer " + secrets[0]}
 	narrow := []string{"Authorization", "Bearer " + secrets[1]}
-	if got, want := listed(here), []string{"docs", "home-uni-switch", "uni-switch-browser", "uni-switch-image", "shell"}; !slices.Equal(got, want) {
+	if got, want := listed(here), []string{"docs", "home-uni-switch", "shell", "uni-switch-browser", "uni-switch-image"}; !slices.Equal(got, want) {
 		t.Errorf("this computer is given %v, want %v", got, want)
 	}
-	if got, want := listed(there, full...), []string{"docs", "shell"}; !slices.Equal(got, want) {
+	if got, want := listed(here, full...), []string{"docs", "home-uni-switch", "shell", "uni-switch-browser", "uni-switch-image"}; !slices.Equal(got, want) {
 		t.Errorf("a full key from there is given %v, want %v", got, want)
 	}
-	if got, want := listed(there, narrow...), []string{"docs"}; !slices.Equal(got, want) {
+	if got, want := listed(here, narrow...), []string{"docs"}; !slices.Equal(got, want) {
 		t.Errorf("a held key from there is given %v, want %v", got, want)
 	}
-	if got, want := listed(here, append([]string{"X-Forwarded-For", "203.0.113.9"}, full...)...), []string{"docs", "shell"}; !slices.Equal(got, want) {
-		t.Errorf("through a proxy here, a full key is given %v, want %v", got, want)
+	for _, hdr := range [][]string{full, narrow, append([]string{"X-Forwarded-For", "203.0.113.9"}, full...)} {
+		w := hubPostAt(h, HubMCPAll, there, toolsList, hdr...)
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("remote caller: %d %s", w.Code, w.Body)
+		}
 	}
+
 	for _, c := range []struct {
 		name string
 		auth []string
 	}{
-		{"uni-switch-browser", full}, {"uni-switch-image", full}, {"home-uni-switch", full},
 		{"uni-switch-browser", narrow}, {"shell", narrow},
 	} {
-		m := readMCP(t, hubPostAt(h, HubMCPAll, there, toolsCall(c.name+hubSep+"do", `{"action":"tabs"}`), c.auth...))
+		m := readMCP(t, hubPostAt(h, HubMCPAll, here, toolsCall(c.name+hubSep+"do", `{"action":"tabs"}`), c.auth...))
 		if m.Error == nil && !m.Result.IsError {
 			t.Errorf("%s ran for %s from there: %+v", c.name, c.auth[1][:12], m)
 		}
@@ -81,11 +84,11 @@ func TestHubKeepsThisComputersOwnServersHere(t *testing.T) {
 	if got := f.ran(); len(got) != 0 {
 		t.Fatalf("ran for a caller not given them: %q", got)
 	}
-	m := readMCP(t, hubPostAt(h, HubMCPAll, there, toolsCall("docs"+hubSep+"do", `{}`), narrow...))
+	m := readMCP(t, hubPostAt(h, HubMCPAll, here, toolsCall("docs"+hubSep+"do", `{}`), narrow...))
 	if m.Error != nil || m.Result.IsError {
 		t.Fatalf("docs for the held key: %+v", m)
 	}
-	m = readMCP(t, hubPostAt(h, HubMCPAll, there, toolsCall("shell"+hubSep+"do", `{}`), full...))
+	m = readMCP(t, hubPostAt(h, HubMCPAll, here, toolsCall("shell"+hubSep+"do", `{}`), full...))
 	if m.Error != nil || m.Result.IsError {
 		t.Fatalf("shell for the full key: %+v", m)
 	}
@@ -116,9 +119,12 @@ func TestHubGivesAKeyItsBrowser(t *testing.T) {
 		t.Fatal(err)
 	}
 	const there = "192.0.2.7:4000"
+	if w := hubPostAt(h, HubMCPAll, there, toolsList, "Authorization", "Bearer "+secrets[0]); w.Code != http.StatusForbidden {
+		t.Fatalf("remote: %d", w.Code)
+	}
 	call := toolsCall("uni-switch-browser"+hubSep+"do", `{}`)
 	for i, auth := range [][]string{{"Authorization", "Bearer " + secrets[0], "Mcp-Session-Id", "abc"}, {"Authorization", "Bearer " + secrets[1]}} {
-		m := readMCP(t, hubPostAt(h, HubMCPAll, there, call, auth...))
+		m := readMCP(t, hubPostAt(h, HubMCPAll, here, call, auth...))
 		if m.Error != nil || m.Result.IsError {
 			t.Fatalf("key %d from there: %+v", i, m)
 		}

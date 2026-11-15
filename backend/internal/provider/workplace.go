@@ -156,7 +156,7 @@ func gitHead(path string) (bool, error) {
 	}
 	if fi.Mode()&fs.ModeSymlink != 0 {
 		to, err := os.Readlink(path)
-		return strings.HasPrefix(to, "refs/"), err
+		return strings.HasPrefix(filepath.ToSlash(to), "refs/"), err
 	}
 	if !fi.Mode().IsRegular() {
 		return false, nil

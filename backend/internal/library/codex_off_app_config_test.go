@@ -1,7 +1,9 @@
 package library
 
 import (
+	"github.com/pelletier/go-toml/v2"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -87,11 +89,28 @@ func TestCodexOffKeepsAppsOwnConfig(t *testing.T) {
 				t.Fatal(err)
 			}
 			off := read(t, path)
-			for _, l := range strings.Split(codexAppOwnConfig, "\n") {
-				if l = strings.TrimSpace(l); l != "" && !strings.Contains(off, l) {
-					t.Errorf("lost %q", l)
+			var wantDoc, gotDoc map[string]any
+			if err := toml.Unmarshal([]byte(codexAppOwnConfig), &wantDoc); err != nil {
+				t.Fatal(err)
+			}
+			if err := toml.Unmarshal([]byte(off), &gotDoc); err != nil {
+				t.Fatal(err)
+			}
+			for k, v := range wantDoc {
+				if k == "mcp_servers" {
+					gotServers, _ := gotDoc[k].(map[string]any)
+					for name, server := range v.(map[string]any) {
+						if !reflect.DeepEqual(server, gotServers[name]) {
+							t.Errorf("lost MCP server %s: want %#v, got %#v", name, server, gotServers[name])
+						}
+					}
+					continue
+				}
+				if !reflect.DeepEqual(v, gotDoc[k]) {
+					t.Errorf("lost configuration %s: want %#v, got %#v", k, v, gotDoc[k])
 				}
 			}
+
 			if t.Failed() {
 				t.Logf("on uni-switch:\n%s\n\noff:\n%s", on, off)
 			}

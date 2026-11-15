@@ -49,7 +49,7 @@ func TestAsideOfflineDisconnectRestoresWithoutDaemon(t *testing.T) {
 	if proc.FindTool(a.Bin) != "" {
 		t.Fatal("fixture must have no Aside executable")
 	}
-	missing := &Agent{ID: "dsh", Name: "Native fixture", Bin: "uni-switch-test-missing-native", Dir: a.Dir, Path: a.Path, Native: a.Native}
+	missing := &Agent{ID: "hermes", Name: "Native fixture", Bin: "uni-switch-test-missing-native", Dir: a.Dir, Path: a.Path, Native: a.Native}
 	if !missing.CLIMissing() {
 		t.Fatal("native fixture must report missing CLI")
 	}

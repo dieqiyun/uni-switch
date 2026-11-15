@@ -127,7 +127,7 @@ func TestImageMCPModelHeldToTheKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := localGuard(s.Handler())
-	const there = "192.0.2.7:4000"
+	const there = "127.0.0.1:5000"
 	auth := []string{"Authorization", "Bearer " + secrets[0]}
 	if enum, _ := mcpModelProp(t, h, there, GenerateImageTool, auth...); len(enum) != 1 || enum[0] != Drawer() {
 		t.Fatalf("the key's enum %v", enum)

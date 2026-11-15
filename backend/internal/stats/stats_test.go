@@ -96,7 +96,7 @@ func TestProviderLabel(t *testing.T) {
 		p    provider.Provider
 		want string
 	}{
-		{provider.Provider{ID: "my-deepseek", Name: "My DeepSeek", Preset: "deepseek", Chat: "https://api.deepseek.com/v1"}, "deepseek"},
+		{provider.Provider{ID: "my-deepseek", Name: "My DeepSeek", Preset: "deepseek", Chat: "https://api.deepseek.com/v1"}, "custom"},
 		{provider.Provider{ID: "secret-relay", Name: "Secret Relay", Chat: "https://relay.example/v1"}, "custom"},
 		{provider.Provider{ID: "odd", Name: "Odd", Preset: "no-such-preset"}, "custom"},
 		{provider.Provider{ID: "codex", Account: &provider.Account{Agent: "codex", User: "someone@example.com"}}, "codex"},
@@ -147,11 +147,11 @@ func TestModelLabelKeepsTheUsersOwnModelIDs(t *testing.T) {
 		}
 	}
 	for ref, want := range map[string]string{
-		"my-deepseek/deepseek-v4": "deepseek/deepseek-v4",
+		"my-deepseek/deepseek-v4": "custom",
 		// known only under another spelling (catalog.SameModel): the
 		// user's own spelling isn't sent
-		"my-deepseek/DeepSeek_V4-260101":        "deepseek/other",
-		"my-openai/ft:gpt-4o:acme-corp::abc123": "openai/other",
+		"my-deepseek/DeepSeek_V4-260101":        "custom",
+		"my-openai/ft:gpt-4o:acme-corp::abc123": "custom",
 		"my-ollama/acme-internal-llm":           "ollama/other",
 	} {
 		if got := modelLabel(ref); got != want {

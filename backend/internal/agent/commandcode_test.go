@@ -16,7 +16,7 @@ func TestCommandCode(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Join(home, ".commandcode")
@@ -84,10 +84,10 @@ func TestCommandCodeModelLimits(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("deepseek", "https://api.deepseek.com/v1", []catalog.Model{
+	if err := saveWindowCatalog("deepseek", "https://api.deepseek.com/v1", []catalog.Model{
 		{ID: "pro", Context: 1048576, Output: 393216, Reasoning: true},
 		{ID: "flash", Context: 1000000},
 	}); err != nil {

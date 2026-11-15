@@ -25,7 +25,7 @@ import (
 func TestClineTickSendsNoProviderOptions(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	cline, err := provider.FromPreset("clinepass")
+	cline, err := savedProtocolFixture("clinepass")
 	if err != nil {
 		t.Fatal(err)
 	}

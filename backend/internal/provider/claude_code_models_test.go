@@ -99,7 +99,7 @@ func TestClaudeAccountListsGatedModels(t *testing.T) {
 	if err != nil || !slices.Contains(modelIDs(fetched), "claude-mythos-5-1") {
 		t.Fatalf("fetch: %v %v", modelIDs(fetched), err)
 	}
-	if e, ok := EntryOf("claude/claude-mythos-5-1"); !ok || e.Context != 1_000_000 {
+	if e, ok := EntryOf("claude/claude-mythos-5-1"); !ok || e.Context != DefaultContextWindow {
 		t.Errorf("entry: %+v %v", e, ok)
 	}
 
@@ -171,7 +171,7 @@ func TestAnthropicKeyGatedModelDescribed(t *testing.T) {
 	if !ok {
 		t.Fatal("Mythos 5.1 not listed")
 	}
-	if e.Context != 1_000_000 || e.Output != 128_000 || e.Default != "Claude Mythos 5.1" && e.Name != "Claude Mythos 5.1" || len(e.Efforts) == 0 {
+	if e.Context != DefaultContextWindow || e.Output != 128_000 || e.Default != "Claude Mythos 5.1" && e.Name != "Claude Mythos 5.1" || len(e.Efforts) == 0 {
 		t.Errorf("entry = id %s name %q default %q context %d output %d efforts %v", e.ID, e.Name, e.Default, e.Context, e.Output, e.Efforts)
 	}
 }

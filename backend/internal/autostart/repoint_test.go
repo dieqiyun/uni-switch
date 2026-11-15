@@ -14,7 +14,7 @@ func TestRepointed(t *testing.T) {
 		ok      bool
 	}{
 		{`"` + from + `" tray`, `"` + to + `" tray`, true},
-		{`"C:\USERS\U\DOWNLOADS\UNI_SWITCH-WINDOWS-AMD64.EXE" tray`, `"` + to + `" tray`, true},
+		{`"C:\USERS\U\DOWNLOADS\UNI-SWITCH-WINDOWS-AMD64.EXE" tray`, `"` + to + `" tray`, true},
 		{`"` + from + `"`, `"` + to + `"`, true},
 		{from + ` tray --x`, `"` + to + `" tray --x`, true},
 		{`"C:\Tools\uni-switch.exe" tray`, "", false},

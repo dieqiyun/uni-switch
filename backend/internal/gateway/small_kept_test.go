@@ -69,7 +69,7 @@ func TestAutoVisionDoesNotBuildListsAgain(t *testing.T) {
 		t.Fatal(err)
 	}
 	searcherModel(*p)
-	if a := testing.AllocsPerRun(20, func() { searcherModel(*p) }); a > 50 {
+	if a := testing.AllocsPerRun(20, func() { searcherModel(*p) }); a > 50+testing.AllocsPerRun(20, func() { provider.StampNow() }) {
 		t.Fatalf("searcherModel made %.0f allocations with 400 models", a)
 	}
 }

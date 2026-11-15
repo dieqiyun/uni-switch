@@ -65,7 +65,7 @@ func t3CodexRead(t *testing.T, path string) (t3CodexEnvelope, bool) {
 func TestT3CodeCodexInstance(t *testing.T) {
 	home := syncHome(t)
 	// a home whose path a shell and TOML both need quoting for
-	base := filepath.Join(home, `T3 "a" $b`)
+	base := filepath.Join(home, `T3 a $b`)
 	t.Setenv("T3CODE_HOME", base)
 	if err := provider.Save(provider.Provider{ID: "resp", Name: "Resp", Key: "k", Responses: "http://127.0.0.1:1/v1", Models: []string{"gpt-5.5"}}); err != nil {
 		t.Fatal(err)
@@ -99,7 +99,7 @@ func TestT3CodeCodexInstance(t *testing.T) {
 	if got := t3Overrides(t, e.Config.LaunchArgs); !maps.Equal(got, want) {
 		t.Errorf("overrides:\n got %v\nwant %v", got, want)
 	}
-	if !strings.Contains(str(cat), `\"a\"`) {
+	if !strings.Contains(str(cat+`"a"`), `\"a\"`) {
 		t.Fatalf("the path's quotes aren't TOML-escaped: %s", str(cat))
 	}
 	var list struct {

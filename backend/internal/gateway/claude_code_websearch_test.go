@@ -128,7 +128,7 @@ func TestClaudeCodeWebSearchKeepsMetadata(t *testing.T) {
 		up := &bedrock{}
 		srv := httptest.NewServer(up)
 		t.Cleanup(srv.Close)
-		p, err := provider.FromPreset("bedrock")
+		p, err := savedProtocolFixture("bedrock")
 		if err != nil {
 			t.Fatal(err)
 		}

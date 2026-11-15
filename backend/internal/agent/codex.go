@@ -287,7 +287,7 @@ func codexIn(at place) *Agent {
 		if c == "" {
 			return false
 		}
-		if c == catalogRef || c == at.native(catalogPath) {
+		if c == catalogRef || c == at.native(catalogPath) || at.spell == nil && filepath.IsAbs(c) && filepath.Clean(c) == filepath.Clean(catalogPath) {
 			return true
 		}
 		return at.spell == nil && !filepath.IsAbs(c) && filepath.Clean(filepath.Join(dir, c)) == filepath.Clean(catalogPath)

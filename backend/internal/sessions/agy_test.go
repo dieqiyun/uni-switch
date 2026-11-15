@@ -51,7 +51,7 @@ func TestAgySessions(t *testing.T) {
 		t.Fatalf("want 3 agy sessions, got %d", n)
 	}
 	two := find(t, ss, "agy", agyTwoTurns)
-	if two.Title != "Hello from the fake." || two.Cwd != "/work/proj" {
+	if two.Title != "Hello from the fake." || two.Cwd != filepath.FromSlash("/work/proj") {
 		t.Fatalf("two turns: title %q cwd %q", two.Title, two.Cwd)
 	}
 	if !two.Start.Equal(at("2026-10-25T09:46:59Z")) || !two.Last.Equal(at("2026-10-25T09:48:56Z")) {
@@ -60,7 +60,7 @@ func TestAgySessions(t *testing.T) {
 	if m := model(two, "agy"); m.Tokens != (Tokens{Input: 1404, Output: 18, CacheRead: 600}) {
 		t.Fatalf("two turns' tokens: %+v", two.Models)
 	}
-	if want := agyResume("/work/proj", "agy --conversation "+agyTwoTurns); two.Resume != want {
+	if want := agyResume(filepath.FromSlash("/work/proj"), "agy --conversation "+agyTwoTurns); two.Resume != want {
 		t.Fatalf("resume %q, want %q", two.Resume, want)
 	}
 	if !two.Transcript {
@@ -80,7 +80,7 @@ func TestAgySessions(t *testing.T) {
 		return "GEMINI_API_KEY=k GOOGLE_GEMINI_BASE_URL=http://127.0.0.1:1 agy --model 'uni-switch/x'"
 	}
 	r := find(t, List(0), "agy", agyRead)
-	if want := agyResume("/work/proj2", "GEMINI_API_KEY=k GOOGLE_GEMINI_BASE_URL=http://127.0.0.1:1 agy --model 'uni-switch/x' --conversation "+agyRead); r.Resume != want {
+	if want := agyResume(filepath.FromSlash("/work/proj2"), "GEMINI_API_KEY=k GOOGLE_GEMINI_BASE_URL=http://127.0.0.1:1 agy --model 'uni-switch/x' --conversation "+agyRead); r.Resume != want {
 		t.Fatalf("wired resume %q, want %q", r.Resume, want)
 	}
 }
@@ -233,10 +233,10 @@ func TestAgyRowOnly(t *testing.T) {
 		t.Fatalf("want 4 agy sessions, got %d", n)
 	}
 	s := find(t, ss, "agy", id)
-	if s.Title != "Older talk" || s.Cwd != "/work/old" || !s.Last.Equal(at("2026-10-12T04:41:53.5Z")) || !s.Tokens.zero() {
+	if s.Title != "Older talk" || s.Cwd != filepath.FromSlash("/work/old") || !s.Last.Equal(at("2026-10-12T04:41:53.5Z")) || !s.Tokens.zero() {
 		t.Fatalf("row only: %+v", s)
 	}
-	if want := agyResume("/work/old", "agy --conversation "+id); s.Resume != want {
+	if want := agyResume(filepath.FromSlash("/work/old"), "agy --conversation "+id); s.Resume != want {
 		t.Fatalf("resume %q", s.Resume)
 	}
 	if s.Transcript {

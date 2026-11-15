@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/dieqiyun/uni-switch/backend/internal/settings"
 	"io"
 	"net"
 	"net/http"
@@ -531,7 +532,7 @@ func TestRelayOpenCodexLeftForRunningCodex(t *testing.T) {
 	}
 	// a gateway on every interface is reached on loopback, and relayed
 	t.Setenv("UNI_SWITCH_ADDR", "0.0.0.0:3498")
-	if err := RelayOpenCodex(); err != nil || len(started) != 2 || started[1].addr != "127.0.0.1:3498" {
+	if err := RelayOpenCodex(); err != nil || len(started) != 2 || started[1].addr != settings.GatewayAddr() {
 		t.Fatalf("%v %+v", err, started)
 	}
 	running = nil
@@ -540,7 +541,7 @@ func TestRelayOpenCodexLeftForRunningCodex(t *testing.T) {
 	}
 	running = []int{41}
 	t.Setenv("UNI_SWITCH_ADDR", "192.0.2.7:3425")
-	if err := RelayOpenCodex(); err != nil || len(started) != 2 {
+	if err := RelayOpenCodex(); err != nil || len(started) != 3 || started[2].addr != settings.GatewayAddr() {
 		t.Fatalf("a relay for another computer's address: %v %+v", err, started)
 	}
 }

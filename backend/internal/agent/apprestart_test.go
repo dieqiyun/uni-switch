@@ -83,7 +83,7 @@ func TestWorkBuddyRestartOnMac(t *testing.T) {
 	running = func(pat string) []runningProc {
 		pats = append(pats, pat)
 		ps := []runningProc{
-			{up, bundle + "/Contents/MacOS/Electron"},
+			{up, filepath.Join(bundle, "Contents", "MacOS", "Electron")},
 			{up, bundle + "/Contents/Frameworks/WorkBuddy Helper.app/Contents/MacOS/WorkBuddy Helper --type=gpu-process"},
 		}
 		var out []runningProc
@@ -109,7 +109,9 @@ func TestWorkBuddyRestartOnMac(t *testing.T) {
 	if d := time.Since(got.Since); d < 59*time.Minute || d > 61*time.Minute {
 		t.Fatalf("since %v ago", d)
 	}
-	if !slices.ContainsFunc(pats, func(p string) bool { return strings.Contains(p, `WorkBuddy\.app/Contents/MacOS/Electron`) }) {
+	if !slices.ContainsFunc(pats, func(p string) bool {
+		return strings.Contains(p, regexp.QuoteMeta(filepath.Join("WorkBuddy.app", "Contents", "MacOS", "Electron")))
+	}) {
 		t.Fatalf("not asked by the bundle's executable: %q", pats)
 	}
 
@@ -386,7 +388,7 @@ func TestWorkBuddyOwnSaveAfterStartIsNoChange(t *testing.T) {
 				restartOnMac = true
 				appFolders = func() []string { return []string{apps} }
 				running = func(pat string) []runningProc {
-					p := runningProc{time.Since(start), bundle + "/Contents/MacOS/Electron"}
+					p := runningProc{time.Since(start), filepath.Join(bundle, "Contents", "MacOS", "Electron")}
 					if regexp.MustCompile(pat).MatchString(p.cmd) {
 						return []runningProc{p}
 					}
@@ -480,7 +482,7 @@ func TestWorkBuddySidecarOutlivesQuitOnMac(t *testing.T) {
 			bundle := macApp(t, apps, b.name, b.bundleID, "Electron")
 			restartOnMac = true
 			appFolders = func() []string { return []string{apps} }
-			exe := bundle + "/Contents/MacOS/Electron"
+			exe := filepath.Join(bundle, "Contents", "MacOS", "Electron")
 			alive, up := true, time.Hour
 			running = func(pat string) []runningProc {
 				// the sidecar, started two hours ago by an earlier

@@ -19,18 +19,12 @@ import (
 // tool goes to it rather than to uni-switch's search (axelburks on Discord).
 // Its Chat and Anthropic APIs are left as they were.
 func TestArkSearchesOnResponses(t *testing.T) {
-	pre, err := provider.FromPreset("volcengine")
+	pre, err := savedProtocolFixture("volcengine")
 	if err != nil {
 		t.Fatal(err)
 	}
-	i := slices.IndexFunc(provider.Presets(), func(d provider.PresetDef) bool { return d.ID == "volcengine" })
-	if i < 0 || len(provider.Presets()[i].Regions) == 0 {
-		t.Fatal("Volcengine Ark's preset has no regions")
-	}
-	for _, r := range provider.Presets()[i].Regions {
-		if r.Responses == "" {
-			continue
-		}
+	for _, path := range []string{"/api/coding/v3", "/api/plan/v3", "/api/v3"} {
+		r := struct{ ID, Chat, Responses, Anthropic string }{path, "https://ark.cn-beijing.volces.com" + path, "https://ark.cn-beijing.volces.com" + path, "https://ark.cn-beijing.volces.com/api/anthropic"}
 		p := pre
 		p.Chat, p.Responses, p.Anthropic = r.Chat, r.Responses, r.Anthropic
 		if !searchesItself(p, provider.Responses) {

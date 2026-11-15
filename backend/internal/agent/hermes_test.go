@@ -18,6 +18,8 @@ import (
 
 func TestHermes(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -136,6 +138,8 @@ func TestHermes(t *testing.T) {
 // bot had uni-switch).
 func TestHermesProfiles(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -223,6 +227,8 @@ func TestHermesProfiles(t *testing.T) {
 // provider too
 func TestHermesProfilesOfCustomRoot(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
@@ -259,6 +265,8 @@ func TestHermesProfilesOfCustomRoot(t *testing.T) {
 // whose variables uni-switch can't read, it is ~/.hermes.
 func TestHermesFolder(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	local := filepath.Join(home, "AppData", "Local")
 	t.Setenv("LOCALAPPDATA", local)
 	t.Setenv("HERMES_HOME", "")
@@ -288,6 +296,8 @@ func TestHermesFolder(t *testing.T) {
 // mode and model list stay uni-switch's.
 func TestHermesKeepsTheUsersSettings(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -371,6 +381,8 @@ func TestHermesKeepsTheUsersSettings(t *testing.T) {
 // still is drift.
 func TestHermesWithAGatewayKeyOfTheUsers(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -428,6 +440,8 @@ func TestHermesWithAGatewayKeyOfTheUsers(t *testing.T) {
 // is drift, and a sync puts uni-switch's key into the .env, the reference kept.
 func TestHermesWithAKeyInItsEnvFile(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -536,6 +550,8 @@ func TestHermesWithAKeyInItsEnvFile(t *testing.T) {
 // value, and one the gateway doesn't take doesn't.
 func TestKeyHoldsTakesAGatewayKey(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
@@ -571,6 +587,8 @@ func TestKeyHoldsTakesAGatewayKey(t *testing.T) {
 // the old model).
 func TestHermesProfilesFollowUniSwitchModel(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -656,6 +674,8 @@ func TestHermesProfilesFollowUniSwitchModel(t *testing.T) {
 // and a bot an older uni-switch left with no model gets uni-switch's.
 func TestHermesOffAndOnKeepsEveryBotsModel(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -742,6 +762,8 @@ func TestHermesOffAndOnKeepsEveryBotsModel(t *testing.T) {
 // take).
 func TestHermesBotsFollowTheModelHermesPicked(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -780,6 +802,8 @@ func TestHermesBotsFollowTheModelHermesPicked(t *testing.T) {
 // Hermes's, and a HERMES_HOME naming a profile, leave it as before.
 func TestHermesStickyProfile(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")
@@ -850,6 +874,8 @@ func TestHermesStickyProfile(t *testing.T) {
 // it has. With the root's profile only, there is no such picker.
 func TestHermesProfileModels(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HERMES_HOME", "")

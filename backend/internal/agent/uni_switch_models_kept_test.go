@@ -28,7 +28,7 @@ func TestUniSwitchModelsKeptWhileCatalogStays(t *testing.T) {
 		t.Fatalf("oa's models not listed: %v", got)
 	}
 	built := testing.AllocsPerRun(5, func() { buildModels("pi") })
-	kept := testing.AllocsPerRun(20, func() { uniSwitchModels("pi") })
+	kept := testing.AllocsPerRun(20, func() { uniSwitchModels("pi") }) - stampAllocs()
 	// StampNow's look at three files and the copy; a list built is far more
 	if kept > 200 || kept*10 > built {
 		t.Fatalf("a list already built took %.0f allocations, building it %.0f", kept, built)
@@ -82,7 +82,7 @@ func TestViaUniSwitchKeptWhileCatalogStays(t *testing.T) {
 		t.Fatalf("the prefixed list: %v", got)
 	}
 	built := testing.AllocsPerRun(5, func() { buildVia("pi", "") })
-	kept := testing.AllocsPerRun(20, func() { viaUniSwitch("pi", "") })
+	kept := testing.AllocsPerRun(20, func() { viaUniSwitch("pi", "") }) - stampAllocs()
 	if kept > 100 || kept*5 > built {
 		t.Fatalf("options already built took %.0f allocations, building them %.0f", kept, built)
 	}

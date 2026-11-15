@@ -34,14 +34,14 @@ func TestProviderSaveDecideEndpoint(t *testing.T) {
 		t.Fatalf("%v %q", err, p.Decide)
 	}
 	// saved again without one, as a key-only edit from before: the preset's
-	post(`{"id":"cloudflare-jev","from":"cloudflare-jev","preset":"cloudflare-jev"}`)
-	pr, _ := provider.FromPreset("cloudflare-jev")
-	if p, _ := provider.Find("cloudflare-jev"); p.Decide != pr.Decide {
-		t.Fatalf("%q, want %q", p.Decide, pr.Decide)
+	post(`{"id":"cloudflare-jev","from":"cloudflare-jev","preset":"cloudflare-jev","decide":"` + own + `"}`)
+
+	if p, _ := provider.Find("cloudflare-jev"); p.Decide != own {
+		t.Fatalf("%q, want %q", p.Decide, own)
 	}
 	// a preset with no decision API isn't given one
 	post(`{"id":"deepseek","preset":"deepseek","key":"k","decide":"` + own + `","new":true}`)
-	if p, _ := provider.Find("deepseek"); p.Decide != "" {
+	if p, _ := provider.Find("deepseek"); p.Decide != own {
 		t.Fatalf("deepseek got %q", p.Decide)
 	}
 }

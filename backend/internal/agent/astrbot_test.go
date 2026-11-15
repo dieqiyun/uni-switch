@@ -85,11 +85,11 @@ func astrbotHome(t *testing.T, body string) (home, path string) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 	t.Setenv("ASTRBOT_ROOT", "")
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2", "k2-vision"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144},
 		{ID: "k2-vision", Images: true},
 	}); err != nil {
@@ -241,7 +241,7 @@ func TestAstrBot(t *testing.T) {
 		!reflect.DeepEqual(k2["modalities"], k2mods) || !reflect.DeepEqual(k2["custom_extra_body"], map[string]any{}) {
 		t.Fatalf("k2: %v", k2)
 	}
-	if !reflect.DeepEqual(vision["modalities"], []any{"text", "image", "tool_use"}) || vision["max_context_tokens"] != float64(0) {
+	if !reflect.DeepEqual(vision["modalities"], []any{"text", "image", "tool_use"}) || vision["max_context_tokens"] != float64(256000) {
 		t.Fatalf("k2-vision: %v", vision)
 	}
 	// the user's own entries are as they were, byte for byte, in front of
@@ -297,12 +297,12 @@ func TestAstrBotSyncKeepsTheirs(t *testing.T) {
 	})
 	// a model uni-switch lists no more leaves AstrBot's list; one it lists
 	// now comes in
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144}, {ID: "k2-vision", Images: true}, {ID: "k3"},
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2", "k2-vision", "k3"}}); err != nil {
 		t.Fatal(err)
 	}

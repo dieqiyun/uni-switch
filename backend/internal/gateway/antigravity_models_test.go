@@ -17,10 +17,10 @@ import (
 // fields, the models the key may use, each with its window and name.
 func TestAntigravityCatalog(t *testing.T) {
 	setup(t, provider.Anthropic, &fake{})
-	if err := provider.Save(provider.Provider{ID: "ds", Name: "DS", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"big", "plain"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "ds", Name: "DS", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"big", "plain"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("ds", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "big", Context: 1048576, Output: 65536, Images: true, Efforts: []string{"low", "high"}}, {ID: "plain"}}); err != nil {
+	if err := saveWindowCatalog("ds", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "big", Context: 1048576, Output: 65536, Images: true, Efforts: []string{"low", "high"}}, {ID: "plain"}}); err != nil {
 		t.Fatal(err)
 	}
 	get := func(path string) []byte {
@@ -64,7 +64,7 @@ func TestAntigravityCatalog(t *testing.T) {
 	// a window uni-switch doesn't know is left to the app's default
 	if p := by["ds/plain"]; p == nil {
 		t.Fatalf("ds/plain not listed: %s", body)
-	} else if _, ok := p["maxTokens"]; ok {
+	} else if p["maxTokens"] != float64(256000) {
 		t.Errorf("ds/plain given a window: %v", p)
 	}
 	// the same models as the plain list asked with the key

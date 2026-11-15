@@ -55,7 +55,7 @@ func TestDecideModelsKnowWindowAndImages(t *testing.T) {
 	check("openrouter", p.Available(), want)
 
 	// presets, before any list: Workers AI's Jev and Clefs, Bailian's
-	cf, err := FromPreset("cloudflare-jev")
+	cf, err := legacyVendor("cloudflare-jev")
 	if err != nil {
 		t.Fatal(err)
 	}

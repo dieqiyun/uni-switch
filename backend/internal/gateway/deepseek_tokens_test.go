@@ -23,7 +23,7 @@ func TestDeepSeekChatGetsMaxTokens(t *testing.T) {
 	)}
 	up := httptest.NewServer(f)
 	defer up.Close()
-	p, err := provider.FromPreset("deepseek")
+	p, err := savedProtocolFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}

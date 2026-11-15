@@ -93,7 +93,7 @@ func TestPagePortMarkIsNeverLocal(t *testing.T) {
 	k.Header.Set("Authorization", "Bearer "+secret)
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, k)
-	if !reached || sawLocal || sawHeader {
+	if reached || w.Code != http.StatusForbidden {
 		t.Fatalf("marked, with a key: %d, handler reached %v, saw local %v, the header %v", w.Code, reached, sawLocal, sawHeader)
 	}
 }

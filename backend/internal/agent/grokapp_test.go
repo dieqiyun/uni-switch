@@ -53,11 +53,11 @@ func grokAppHome(t *testing.T, body string) (home, path string) {
 	was := provider.Described
 	provider.Described = func() bool { return false }
 	t.Cleanup(func() { provider.Described = was })
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2", "k2-vision"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144, Efforts: []string{"none", "low", "medium", "high"}},
 		{ID: "k2-vision", Images: true},
 	}); err != nil {
@@ -227,7 +227,7 @@ func TestGrokApp(t *testing.T) {
 		s["app_efforts"] != "[]" {
 		t.Fatalf("k2-vision's channel: %v", s)
 	}
-	if _, ok := s["context_window"]; ok {
+	if s["context_window"] != "256000" {
 		t.Fatalf("k2-vision has no context window of its own: %v", s)
 	}
 	if err := a.Disconnect(); err != nil {

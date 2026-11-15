@@ -17,16 +17,16 @@ import (
 // by any other client, the list is as it was.
 func TestCursorLocalModels(t *testing.T) {
 	setup(t, provider.Anthropic, &fake{})
-	if err := provider.Save(provider.Provider{ID: "ds", Name: "DS", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"flash", "claude-sonnet-4-6"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "ds", Name: "DS", Key: "k", Chat: "http://127.0.0.1:1/v1", Models: []string{"flash", "claude-sonnet-4-6"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("ds", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "flash", Context: 128000, Output: 8192}, {ID: "claude-sonnet-4-6"}}); err != nil {
+	if err := saveWindowCatalog("ds", "http://127.0.0.1:1/v1", []catalog.Model{{ID: "flash", Context: 128000, Output: 8192}, {ID: "claude-sonnet-4-6"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := provider.Save(provider.Provider{ID: "or", Name: "OR", Key: "k", Chat: "http://127.0.0.1:2/v1", Anthropic: "http://127.0.0.1:2", Models: []string{"claude-opus-4-7"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "or", Name: "OR", Key: "k", Chat: "http://127.0.0.1:2/v1", Anthropic: "http://127.0.0.1:2", Models: []string{"claude-opus-4-7"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("or", "http://127.0.0.1:2/v1", []catalog.Model{{ID: "claude-opus-4-7", Efforts: []string{"low", "medium", "high"}}}); err != nil {
+	if err := saveWindowCatalog("or", "http://127.0.0.1:2/v1", []catalog.Model{{ID: "claude-opus-4-7", Efforts: []string{"low", "medium", "high"}}}); err != nil {
 		t.Fatal(err)
 	}
 	list := func(key string, ua ...string) map[string]map[string]any {

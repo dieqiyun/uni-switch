@@ -17,7 +17,7 @@ import (
 func claudeOpusThenSonnet(t *testing.T, a *Agent, home string) string {
 	t.Helper()
 	if err := provider.Save(provider.Provider{ID: "anth", Name: "Anthropic", Chat: "https://api.anthropic.com/v1", Key: "k",
-		Models: []string{"claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"}}); err != nil {
+		Models: []string{"claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"}, Contexts: map[string]int{"claude-opus-5-5": 1000000, "claude-sonnet-5-5": 1000000, "claude-haiku-4-5": 200000}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := catalog.SaveLive("anth", "https://api.anthropic.com/v1", []catalog.Model{

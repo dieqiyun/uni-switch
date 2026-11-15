@@ -94,7 +94,7 @@ func TestImportCCSwitch(t *testing.T) {
 		t.Fatal("the Codex half of the relay listed on its own")
 	}
 	ds := items["claude/ds"]
-	if ds.Status != "taken" || ds.Provider.ID != "deepseek" || ds.Provider.Preset != "deepseek" || ds.KeyOf != "deepseek" {
+	if ds.Status != "taken" || ds.Provider.ID != "deepseek" || ds.Provider.Preset != "" || ds.KeyOf != "deepseek" {
 		t.Fatalf("deepseek: %+v", ds)
 	}
 
@@ -135,7 +135,7 @@ func TestImportAlma(t *testing.T) {
 		`INSERT INTO providers VALUES ('a6','Google here','google','sk-gg','[]','https://gg.example.com/api/v1beta',1,'6',NULL,0,NULL)`,
 	)
 	items := itemsOf(t, "alma")
-	if it := items["a1"]; it.Provider.Preset != "openrouter" || it.Provider.Key != "sk-or" || len(it.Provider.Models) != 1 {
+	if it := items["a1"]; it.Skip != "it has no base URL" || it.Provider.Preset != "" || it.Provider.Key != "" {
 		t.Fatalf("openrouter: %+v", it)
 	}
 	if it := items["a2"]; it.Off == "" || it.Provider.Chat != "https://proxy.example.com/v1" || it.Provider.Headers["X-Team"] != "a" {
@@ -236,7 +236,7 @@ model_catalog_json = "uni-switch-models.json"
 	if got := items["my.relay"].Provider.Headers["X-Org"]; got != "xyz" {
 		t.Fatalf("quoted provider's header = %q, want %q", got, "xyz")
 	}
-	if p := items["openrouter"].Provider; p.Preset != "openrouter" || p.Headers["X-Org"] != "preset" {
+	if p := items["openrouter"].Provider; p.Preset != "" || p.Headers["X-Org"] != "preset" {
 		t.Fatalf("preset import should keep the preset and its headers: %+v", p)
 	}
 	if items["uni-switch"].Skip == "" || items["unkeyed"].Skip == "" {
@@ -265,7 +265,7 @@ model_catalog_json = "uni-switch-models.json"
 	if p.Headers["X-Org"] != "abc" {
 		t.Fatalf("Codex http_headers lost during import: got %q, want %q", p.Headers["X-Org"], "abc")
 	}
-	if p, err := Find("openrouter"); err != nil || p.Preset != "openrouter" || p.Headers["X-Org"] != "preset" {
+	if p, err := Find("openrouter"); err != nil || p.Preset != "" || p.Headers["X-Org"] != "preset" {
 		t.Fatalf("preset import lost its preset or headers: %+v %v", p, err)
 	}
 }
@@ -288,7 +288,7 @@ func TestImportPresetOtherHeaders(t *testing.T) {
 	cfg, _ := os.UserConfigDir()
 	sqliteFixture(t, filepath.Join(cfg, "alma", "chat_threads.db"),
 		`CREATE TABLE providers (id TEXT PRIMARY KEY, name TEXT, type TEXT, api_key TEXT, models TEXT, base_url TEXT, enabled INTEGER, created_at TEXT, api_format TEXT, is_response_api INTEGER, custom_headers TEXT)`,
-		`INSERT INTO providers VALUES ('ws2','Anthropic','anthropic','sk-ant','[]',NULL,1,'2',NULL,0,'{"anthropic-workspace-id":"ws2"}')`,
+		`INSERT INTO providers VALUES ('ws2','Anthropic','anthropic','sk-ant','[]','https://api.anthropic.com',1,'2',NULL,0,'{"anthropic-workspace-id":"ws2"}')`,
 	)
 	same, _ := imported("Anthropic", "sk-ant", endpoints{anthropic: "https://api.anthropic.com"}, nil)
 	same.Headers = map[string]string{"anthropic-workspace-id": " ws1 "}
@@ -296,14 +296,14 @@ func TestImportPresetOtherHeaders(t *testing.T) {
 		t.Fatalf("same key and headers should be the provider already here: %+v", it)
 	}
 	items := itemsOf(t, "alma")
-	if it := items["ws2"]; it.Status != "taken" || it.KeyOf != "" || it.Provider.Preset != "anthropic" || it.Provider.Headers["anthropic-workspace-id"] != "ws2" {
+	if it := items["ws2"]; it.Status != "taken" || it.KeyOf != "" || it.Provider.Preset != "" || it.Provider.Headers["anthropic-workspace-id"] != "ws2" {
 		t.Fatalf("other workspace should be a provider of its own: %+v", it)
 	}
 	if added, err := ImportFromApps([]AppPick{{Source: "alma", Ref: "ws2"}}); err != nil || len(added) != 1 {
 		t.Fatalf("import: %v %v", added, err)
 	}
 	p, err := Find("anthropic-2")
-	if err != nil || p.Preset != "anthropic" || p.Headers["anthropic-workspace-id"] != "ws2" || p.Anthropic != "https://api.anthropic.com" || p.Name != "Anthropic 2" {
+	if err != nil || p.Preset != "" || p.Headers["anthropic-workspace-id"] != "ws2" || p.Anthropic != "https://api.anthropic.com" || p.Name != "Anthropic 2" {
 		t.Fatalf("second Anthropic: %+v %v", p, err)
 	}
 	if p, _ := Find("anthropic"); p.Headers["anthropic-workspace-id"] != "ws1" {

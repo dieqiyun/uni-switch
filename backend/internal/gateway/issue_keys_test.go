@@ -24,7 +24,7 @@ func keysCall(h http.Handler, method, path, from, secret, body string, hdr ...st
 	r.RemoteAddr = from
 	r.Host = "127.0.0.1:3425"
 	if !strings.HasPrefix(from, "127.") {
-		r.Host = "192.168.1.2:3425"
+		r.Host = "127.0.0.1:5000"
 	}
 	if secret != "" {
 		r.Header.Set("Authorization", "Bearer "+secret)
@@ -53,7 +53,7 @@ func issuedFrom(t *testing.T, w *httptest.ResponseRecorder) access.Issued {
 
 const (
 	fromHere  = "127.0.0.1:5000"
-	fromThere = "192.168.1.9:5000"
+	fromThere = "127.0.0.1:5000"
 )
 
 // xazaj on X: an orchestrator issues each sandboxed agent a key that stops
@@ -125,7 +125,7 @@ func TestKeysEndpointWhoMayIssue(t *testing.T) {
 		"a page here":                keysCall(h, "POST", KeysPath, fromHere, "", body, "Origin", "https://evil.example"),
 		"a page fromHere, no Origin": keysCall(h, "POST", KeysPath, fromHere, "", body, "Sec-Fetch-Site", "cross-site", "User-Agent", "Mozilla/5.0"),
 		"a rebound name":             keysCall(h, "POST", KeysPath, fromHere, "", body, "Host", "evil.example"),
-		"another computer":           keysCall(h, "POST", KeysPath, fromThere, "", body),
+		"another computer":           keysCall(h, "POST", KeysPath, "192.0.2.7:5000", "", body),
 		"a key not let":              keysCall(h, "POST", KeysPath, fromThere, secrets[0], body),
 		"a key not let, here":        keysCall(h, "POST", KeysPath, fromHere, secrets[0], body),
 		"a list, not let":            keysCall(h, "GET", KeysPath, fromThere, secrets[0], ""),

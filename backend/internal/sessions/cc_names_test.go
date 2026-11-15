@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
 // TestCCListingKeepsItsNames: each Sessions poll made every Claude Code
@@ -34,6 +35,20 @@ func TestCCListingKeepsItsNames(t *testing.T) {
 	write("-Users-someone-work-a-project-p1/00000500-aaaa/subagents/agent-1.jsonl")
 	write("-Users-someone-work-a-project-p1/00000500-aaaa/subagents/workflows/run-1/agent-2.jsonl")
 	write("-Users-someone-work-a-project-p1/00000500-aaaa/subagents/workflows/run-1/note.jsonl")
+	// Settle directory mtimes: this budget measures retained names, not the
+	// deliberately uncached racyDirectory refresh of a just-written folder.
+	aged := time.Now().Add(-5 * time.Second)
+	if err := filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return os.Chtimes(p, aged, aged)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	ccListed.Clear()
 	t.Cleanup(func() { ccListed.Clear() })
 	fresh := func() []file {

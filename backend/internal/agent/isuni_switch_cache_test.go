@@ -25,7 +25,7 @@ func TestIsUniSwitchKeptWhileCatalogStays(t *testing.T) {
 	allocs := testing.AllocsPerRun(20, func() {
 		isUniSwitch("oa/gpt-5.5")
 		isUniSwitch("nb/x")
-	})
+	}) - 2*stampAllocs()
 	// StampNow's look at three files; a catalog built was thousands
 	if allocs > 200 {
 		t.Fatalf("%.0f allocations for two answers already given", allocs)

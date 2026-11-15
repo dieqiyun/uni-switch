@@ -290,7 +290,7 @@ func TestHowInstalledWindowsShim(t *testing.T) {
 	npm := file(t, filepath.Join(dir, "npm.cmd"), "")
 	shim := file(t, filepath.Join(dir, "claude.cmd"), "@ECHO off\r\n\"%dp0%\\node_modules\\@anthropic-ai\\claude-code\\cli.js\" %*\r\n")
 	u := howInstalled(cliSpecs["claude"], shim)
-	if u == nil || !reflect.DeepEqual(u.cmd, []string{npm, "install", "-g", "--prefix", dir, "@anthropic-ai/claude-code@latest"}) {
+	if u == nil || !reflect.DeepEqual(u.cmd, []string{npm, "install", "-g", "--prefix", dir, "--allow-scripts=@anthropic-ai/claude-code", "@anthropic-ai/claude-code@latest"}) {
 		t.Fatalf("windows shim: %+v", u)
 	}
 	// the native claude.exe in ~/.local/bin updates itself

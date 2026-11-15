@@ -98,7 +98,7 @@ func TestPageNamesItsFilesByContent(t *testing.T) {
 		t.Errorf("/: Content-Type %q", ct)
 	}
 	body := page.Body.String()
-	for _, f := range []string{"app.js", "plugins.js", "plugins/routing/client.js", "plugins/routing/routing.css", "plugins/sessions/client.js", "plugins/sessions/sessions.css", "plugins/library/client.js", "plugins/library/library.css", "context.js", "i18n.js", "compat.js", "app.css", "context.css"} {
+	for _, f := range []string{"app.js", "kernel.js", "plugins/gateway/client.js", "plugins/sessions/client.js", "plugins/sessions/sessions.css", "plugins/library/client.js", "plugins/library/library.css", "context.js", "i18n.js", "compat.js", "app.css", "context.css"} {
 		b, err := fs.ReadFile(staticFS(), f)
 		if err != nil {
 			t.Fatal(err)

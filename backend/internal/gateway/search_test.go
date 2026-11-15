@@ -431,7 +431,7 @@ func TestSearchToldAsAnthropics(t *testing.T) {
 // offering web search stays on /v1/responses rather than going to Chat
 // without the tool.
 func TestDeepSeekSearchesOnResponses(t *testing.T) {
-	p, err := provider.FromPreset("deepseek")
+	p, err := savedProtocolFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestZhipuSearchesOnResponses(t *testing.T) {
 		"zai":   "https://api.z.ai/api/v1",
 	}
 	for id, responses := range presets {
-		p, err := provider.FromPreset(id)
+		p, err := savedProtocolFixture(id)
 		if err != nil {
 			t.Fatal(err)
 		}

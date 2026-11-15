@@ -29,7 +29,7 @@ func TestDecideGateways(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	for id, want := range map[string][2]string{"typesafe": {ViaSystemOne, "jev-latest"}, "vercel-jev": {ViaVercel, "typesafe-ai/jev"}, "cloudflare-jev": {ViaCloudflare, "typesafe/jev"}} {
-		p, err := FromPreset(id)
+		p, err := legacyVendor(id)
 		if err != nil || !p.Decides() || p.DecideVia() != want[0] || p.Jev() != want[1] || p.decideModels()[0].ID != want[1] {
 			t.Errorf("%s: %+v %v", id, p, err)
 		}
@@ -479,7 +479,7 @@ func TestCloudflareClef(t *testing.T) {
 	t.Setenv("USERPROFILE", h)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(h, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(h, ".cache"))
-	p, err := FromPreset("cloudflare-jev")
+	p, err := legacyVendor("cloudflare-jev")
 	if err != nil {
 		t.Fatal(err)
 	}

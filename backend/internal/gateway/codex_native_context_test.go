@@ -73,7 +73,7 @@ func TestCodexNativeModelsTakeSetWindows(t *testing.T) {
 	if got["gpt-6.1-sol"]["base_instructions"] != "sol prompt" || got["gpt-6.1-sol"]["effective_context_window_percent"] != float64(95) {
 		t.Errorf("the backend's entry changed: %v", got["gpt-6.1-sol"])
 	}
-	if c, x := window(got["gpt-6-astra"]); c != 272000 || x != 872000 {
+	if c, x := window(got["gpt-6-astra"]); c != 256000 || x != 872000 {
 		t.Errorf("gpt-6-astra %d/%d, want the backend's 272000/872000", c, x)
 	}
 	if c, x := window(got["gpt-5.5"]); c != 400000 || x != 400000 {
@@ -99,7 +99,7 @@ func TestCodexNativeModelsTakeSetWindows(t *testing.T) {
 	if reset == set {
 		t.Errorf("ETag %q unchanged after the window was taken away", reset)
 	}
-	if c, _ := window(got["gpt-6.1-sol"]); c != 272000 {
+	if c, _ := window(got["gpt-6.1-sol"]); c != 256000 {
 		t.Errorf("gpt-6.1-sol %d after the reset, want 272000", c)
 	}
 
@@ -111,11 +111,11 @@ func TestCodexNativeModelsTakeSetWindows(t *testing.T) {
 	down = true
 	forgetCodexLists(t) // its list, kept codexListFor, gone too
 	got, _ = list()
-	if c, x := window(got["gpt-6.1-sol"]); c != 272000 || x != 872000 {
+	if c, x := window(got["gpt-6.1-sol"]); c != 256000 || x != 872000 {
 		t.Errorf("cached gpt-6.1-sol %d/%d, want 272000/872000", c, x)
 	}
 	// the live list has no max for it: the cache's own stays
-	if c, x := window(got["gpt-5.5"]); c != 272000 || x != 400000 {
+	if c, x := window(got["gpt-5.5"]); c != 256000 || x != 400000 {
 		t.Errorf("cached gpt-5.5 %d/%d, want 272000/400000", c, x)
 	}
 }

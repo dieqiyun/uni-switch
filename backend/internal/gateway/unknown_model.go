@@ -17,8 +17,7 @@ func unknownModel(asked, what string) string {
 	if near := provider.Closest(asked, 3); len(near) > 0 {
 		msg += "; did you mean " + strings.Join(near, ", ") + "?"
 	}
-	msg += " Name a model as provider/model (as /v1/models lists it), a routing group's id or name, or a bare model id" +
-		" (one served by several providers goes to the group uni-switch found for it, else to the first of them in the Providers order)"
+	msg += " Name a model as provider/model (as /v1/models lists it), or a bare model id (providers are tried in the Providers order)"
 	if ids := provider.IDs(); len(ids) > 0 {
 		msg += "; it has " + strings.Join(ids, ", ")
 	} else {

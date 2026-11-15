@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -61,7 +63,7 @@ func fakeWSLCheck(t *testing.T, up ...string) *wslCheck {
 		c.Err = nil
 		c.Path, c.Args = self, []string{self, "-test.run=^TestFakeMCPServer$"}
 		if mode != "" {
-			c.Path, c.Args = "/usr/bin/env", append([]string{"/usr/bin/env", fakeMode + "=" + mode}, c.Args...)
+			c.Args = append(c.Args, "-fake-mcp-mode="+mode)
 		}
 		return c
 	}
@@ -145,6 +147,20 @@ func TestCheckWindowsServerHere(t *testing.T) {
 func TestCheckMixedServerEachSide(t *testing.T) {
 	w := fakeWSLCheck(t, "Ubuntu")
 	s := fakeStdio(t, "ok", nil)
+	name := "fake-mcp"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	shim := filepath.Join(t.TempDir(), name)
+	bin, err := os.ReadFile(s.Command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(shim, bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", filepath.Dir(shim)+string(os.PathListSeparator)+os.Getenv("PATH"))
+	s.Command = "fake-mcp"
 	s.Agents = []string{"claude", "codex@wsl:Ubuntu"}
 	h := CheckServer(context.Background(), s)
 	if h.State != "ok" || h.Tools != 3 || !slices.Equal(h.Checked, []string{"", "Ubuntu"}) {

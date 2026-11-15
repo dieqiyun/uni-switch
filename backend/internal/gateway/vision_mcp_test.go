@@ -147,30 +147,26 @@ func TestVisionMCPGuarded(t *testing.T) {
 		t.Fatalf("not shared: %d %s", w.Code, w.Body.String())
 	}
 	_, secrets := newCaller(t, "Laptop")
-	if w := visionPost(h, there, analyzeCall(file, "")); w.Code != http.StatusUnauthorized {
+	if w := visionPost(h, there, analyzeCall(file, "")); w.Code != http.StatusForbidden {
 		t.Fatalf("shared, no key: %d %s", w.Code, w.Body.String())
 	}
 	if w := visionPost(h, "127.0.0.1:50000", analyzeCall(file, ""), "Origin", "http://localhost:5173"); w.Code != http.StatusForbidden {
 		t.Fatalf("a page on this computer: %d %s", w.Code, w.Body.String())
 	}
-	m := readMCP(t, visionPost(h, there, analyzeCall(file, ""), "Authorization", "Bearer "+secrets[0]))
-	if !m.Result.IsError || !strings.Contains(m.Result.Content[0].Text, "only for an agent on the computer uni-switch runs on") {
-		t.Fatalf("another computer's file path: %+v", m)
+	if w := visionPost(h, there, analyzeCall(file, ""), "Authorization", "Bearer "+secrets[0]); w.Code != http.StatusForbidden {
+		t.Fatalf("remote valid key: %d", w.Code)
 	}
-	// through a tunnel to this computer, too
-	if m := readMCP(t, visionPost(h, "127.0.0.1:50000", analyzeCall(file, ""), "Authorization", "Bearer "+secrets[0], "X-Forwarded-For", "203.0.113.9")); !m.Result.IsError {
-		t.Fatalf("a proxied file path: %+v", m)
+	if w := visionPost(h, "127.0.0.1:50000", analyzeCall(file, ""), "Authorization", "Bearer "+secrets[0], "X-Forwarded-For", "203.0.113.9"); w.Code != http.StatusForbidden {
+		t.Fatalf("forwarded request: %d", w.Code)
 	}
 	if n := len(u.sent("eye")); n != 0 {
-		t.Fatalf("the describer was asked %d times", n)
+		t.Fatalf("refused calls reached describer %d times", n)
 	}
-	m = readMCP(t, visionPost(h, there, analyzeCall("data:image/png;base64,aGVsbG8=", ""), "Authorization", "Bearer "+secrets[0]))
+	m := readMCP(t, visionPost(h, "127.0.0.1:50000", analyzeCall("data:image/png;base64,aGVsbG8=", ""), "Authorization", "Bearer "+secrets[0]))
 	if m.Result.IsError || !strings.Contains(m.Result.Content[0].Text, "HELLO") {
-		t.Fatalf("shared, a data URL with its key: %+v", m)
+		t.Fatalf("local keyed data URL: %+v", m)
 	}
 }
-
-// A gateway key past its limit looks at no more images through the server.
 func TestVisionMCPHeldToKeyLimit(t *testing.T) {
 	s, u := eyed(t)
 	budget.Forget()

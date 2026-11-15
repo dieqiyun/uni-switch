@@ -35,7 +35,7 @@ func TestSuffixMode(t *testing.T) {
 	if SuffixMode() != SuffixOn {
 		t.Fatalf("default %q", SuffixMode())
 	}
-	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol · A", "auto/sol=Sol · routing group", "b/sol=Sol · B"}) {
+	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol · A", "b/sol=Sol · B"}) {
 		t.Fatalf("on: %q", got)
 	}
 
@@ -45,7 +45,7 @@ func TestSuffixMode(t *testing.T) {
 	if s := settings.Load(); SuffixMode() != SuffixOwn || s.PlainNames || !s.PlainOwnNames || touched != 1 {
 		t.Fatalf("own: %q %+v, told %d", SuffixMode(), s, touched)
 	}
-	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol", "auto/sol=Sol · routing group", "b/sol=Sol · B"}) {
+	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol", "b/sol=Sol · B"}) {
 		t.Fatalf("own: %q", got)
 	}
 	if err := SetSuffixMode(SuffixOwn); err != nil || touched != 1 {
@@ -60,7 +60,7 @@ func TestSuffixMode(t *testing.T) {
 	}
 	// b's sol and the group found for it would both read "Sol": the group
 	// keeps "· routing group", which tells them apart
-	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol", "auto/sol=Sol · routing group", "b/sol=Sol"}) {
+	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol", "b/sol=Sol"}) {
 		t.Fatalf("off: %q", got)
 	}
 

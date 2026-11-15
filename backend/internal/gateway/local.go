@@ -228,6 +228,10 @@ func identifyCaller(w http.ResponseWriter, r *http.Request) (*http.Request, bool
 			errors.As(err, &refused)
 		}
 	}
+	if !ok && refused == nil {
+		writeError(w, provider.Chat, http.StatusUnauthorized, "the gateway key is invalid, revoked or turned off")
+		return r, false
+	}
 	if !ok && refused != nil {
 		// an expired key, or one its issuer no longer lets in, is told so
 		// on every route, from this computer too: a sandbox's agent on

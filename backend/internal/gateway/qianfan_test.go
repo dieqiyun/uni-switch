@@ -79,7 +79,7 @@ func TestQianfanTokenPlanRoutes(t *testing.T) {
 	up := &qianfan{}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("baidu-qianfan")
+	p, err := savedProtocolFixture("baidu-qianfan")
 	if err != nil {
 		t.Fatal(err)
 	}

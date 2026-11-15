@@ -30,14 +30,14 @@ func TestProviderSaveKeepsCountFree(t *testing.T) {
 		}
 		return w.Body.String()
 	}
-	do("POST", "/api/provider/save", `{"id":"modelscope","name":"ModelScope","preset":"modelscope","key":"ms-k","countFree":true,"new":true}`)
+	do("POST", "/api/provider/save", `{"id":"modelscope","name":"ModelScope","preset":"modelscope","chat":"https://api-inference.modelscope.cn/v1","key":"ms-k","countFree":true,"new":true}`)
 	if p, err := provider.Find("modelscope"); err != nil || !p.CountFree || !p.FreeModel("any-model-of-it") {
 		t.Fatalf("the preset's mark wasn't kept: %+v %v", p, err)
 	}
 	if !strings.Contains(do("GET", "/api/providers", ""), `"countFree":true`) {
 		t.Fatal("/api/providers doesn't give the mark back")
 	}
-	do("POST", "/api/provider/save", `{"id":"modelscope","from":"modelscope","name":"ModelScope","preset":"modelscope","key":"","countFree":false}`)
+	do("POST", "/api/provider/save", `{"id":"modelscope","from":"modelscope","name":"ModelScope","preset":"modelscope","chat":"https://api-inference.modelscope.cn/v1","key":"","countFree":false}`)
 	if p, err := provider.Find("modelscope"); err != nil || p.CountFree {
 		t.Fatalf("turned off, it stayed: %+v %v", p, err)
 	}

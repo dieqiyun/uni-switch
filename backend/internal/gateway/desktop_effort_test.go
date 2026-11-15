@@ -70,7 +70,7 @@ func TestClaudeDesktopEffortIDs(t *testing.T) {
 		{provider.Entry{ID: "copilot/claude-haiku-4.5", Model: "claude-haiku-4.5", Efforts: []string{"none", "high"}}, `^uni-switch-\d{10}\.anthropic\.claude-haiku-4-5$`, false},
 		{provider.Entry{ID: "x/Claude-Sonnet-4.5-20250929", Model: "Claude-Sonnet-4.5-20250929", Efforts: levels}, `^uni-switch-\d{10}\.anthropic\.claude-sonnet-4-5$`, false},
 		{provider.Entry{ID: "x/claude-sonnet-4.5-thinking", Model: "claude-sonnet-4.5-thinking", Efforts: levels}, `^mythos-uni-switch-\d{10}$`, true},
-		{provider.Entry{ID: "group/coding", Model: "claude-opus-5-5", Group: "coding", Efforts: levels}, `^mythos-uni-switch-\d{10}$`, true},
+
 		{provider.Entry{ID: "zai/glm-4.5-air", Model: "glm-4.5-air"}, `^anthropic/uni-switch-\d{10}$`, false},
 		{provider.Entry{ID: "x/claude-opus-4-8", Model: "claude-opus-4-8"}, `^x/claude-opus-4-8$`, false},
 	} {

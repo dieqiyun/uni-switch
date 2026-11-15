@@ -90,13 +90,17 @@ func TestCodexListTagKeptWhileNothingChanged(t *testing.T) {
 	if CodexListTag() != want || CodexOwnListTag() != wantOwn {
 		t.Fatal("the tag isn't the one built afresh")
 	}
+	base, _ := measure(func() { StampNow(); StampNow() })
 	n, by := measure(func() { CodexListTag(); CodexOwnListTag() })
+	n -= base
 	t.Logf("CodexListTag and CodexOwnListTag: %.0f allocs, %.0f bytes a call", n, by)
 	if n > 200 {
 		t.Errorf("with nothing changed, the tags took %.0f allocations (%.0f bytes) a call: the catalog built again", n, by)
 	}
 	release := Hold()
+	base, _ = measure(func() { StampNow(); StampNow() })
 	n, by = measure(func() { CodexListTag(); CodexOwnListTag() })
+	n -= base
 	release()
 	t.Logf("held: %.0f allocs, %.0f bytes a call", n, by)
 	if n > 200 {

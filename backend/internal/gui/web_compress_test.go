@@ -43,7 +43,7 @@ func TestWebCompresses(t *testing.T) {
 	}
 	// what Chrome and Safari send over plain http
 	const browser = "gzip, deflate"
-	for _, f := range []string{"i18n.js", "app.js", "plugins/routing/client.js", "app.css", "index.html"} {
+	for _, f := range []string{"i18n.js", "app.js", "plugins/sessions/client.js", "app.css", "index.html"} {
 		want, err := fs.ReadFile(staticFS(), f)
 		if err != nil {
 			t.Fatal(err)
@@ -119,7 +119,7 @@ func TestVersionedFilesKept(t *testing.T) {
 		return rec
 	}
 	page := get("/").Body.String()
-	for _, f := range []string{"app.js", "plugins/routing/client.js", "i18n.js", "app.css"} {
+	for _, f := range []string{"app.js", "plugins/sessions/client.js", "i18n.js", "app.css"} {
 		b, err := fs.ReadFile(staticFS(), f)
 		if err != nil {
 			t.Fatal(err)

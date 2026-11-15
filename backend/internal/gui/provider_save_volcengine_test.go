@@ -33,7 +33,7 @@ func TestProviderSaveKeepsVolcengineSecret(t *testing.T) {
 		}
 	}
 
-	v, err := provider.FromPreset("volcengine")
+	v, err := savedEditorFixture("volcengine")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestProviderSaveKeepsVolcengineSecret(t *testing.T) {
 	if a := ps["volcengine"]; a == nil || a.ID != "AK-2" || !a.SecretSet {
 		t.Errorf("provider json: %+v", a)
 	}
-	if !pre["volcengine"] || pre["deepseek"] {
+	if pre["volcengine"] || pre["deepseek"] {
 		t.Errorf("presets: %v", pre)
 	}
 

@@ -107,24 +107,14 @@ func TestImportOpenCodeAuth(t *testing.T) {
 	if s := openCodeSource(t); s.Path != path {
 		t.Fatalf("read %s, want %s", s.Path, path)
 	}
-	goKey := items["opencode-go"]
-	if p := goKey.Provider; goKey.Skip != "" || goKey.Status != "new" || p.Preset != "opencode-go" || p.ID != "opencode-go" || p.Key != "sk-go-9a8b7c" ||
-		p.Chat != Preset("opencode-go").Chat || p.Anthropic != Preset("opencode-go").Anthropic || p.Name != "OpenCode Go" || goKey.From != "auth.json" {
-		t.Fatalf("OpenCode Go: %+v", goKey)
-	}
-	zen := items["opencode"]
-	if p := zen.Provider; zen.Skip != "" || p.Preset != "opencode-zen" || p.ID != "opencode-zen" || p.Key != "sk-zen-1f2e3d" || p.Chat != Preset("opencode-zen").Chat || p.Name != "OpenCode Zen" {
-		t.Fatalf("OpenCode Zen: %+v", zen)
-	}
-	if ds := items["deepseek"]; ds.Skip != "" || ds.Provider.Preset != "deepseek" || ds.Provider.Key != "sk-ds-oc" {
-		t.Fatalf("DeepSeek: %+v", ds)
-	}
-	if it := items["my-relay"]; it.Skip != "it has no base URL" || it.Provider.Key != "" {
-		t.Fatalf("a provider with no preset: %+v", it)
+	for _, ref := range []string{"opencode-go", "opencode", "deepseek", "my-relay"} {
+		it := items[ref]
+		if it.Skip != "it has no base URL" || it.Provider.Key != "" || it.Provider.Chat != "" || it.Provider.Anthropic != "" {
+			t.Fatalf("key-only import %s invented an endpoint: %+v", ref, it)
+		}
 	}
 	for _, ref := range []string{"anthropic", "github-copilot", "https://opencode.example.com"} {
-		it := items[ref]
-		if it.Skip != "it is a sign-in, not a key; add the subscription in uni-switch" || it.Provider.Key != "" || it.Provider.Chat != "" || it.Provider.Anthropic != "" {
+		if it := items[ref]; it.Skip != "it is a sign-in, not a key; add the subscription in uni-switch" {
 			t.Fatalf("sign-in %s: %+v", ref, it)
 		}
 	}
@@ -139,20 +129,8 @@ func TestImportOpenCodeAuth(t *testing.T) {
 	}
 
 	added, err := ImportFromApps([]AppPick{{Source: "opencode", Ref: "opencode-go"}, {Source: "opencode", Ref: "opencode"}, {Source: "opencode", Ref: "anthropic"}})
-	if err != nil || len(added) != 2 {
-		t.Fatalf("import: %v %v", added, err)
-	}
-	if p, err := Find("opencode-go"); err != nil || p.Key != "sk-go-9a8b7c" || p.Preset != "opencode-go" {
-		t.Fatalf("OpenCode Go saved: %+v %v", p, err)
-	}
-	if p, err := Find("opencode-zen"); err != nil || p.Key != "sk-zen-1f2e3d" || p.Preset != "opencode-zen" {
-		t.Fatalf("OpenCode Zen saved: %+v %v", p, err)
-	}
-	if _, err := Find("anthropic"); err == nil {
-		t.Fatal("a sign-in came in as a provider")
-	}
-	if it := itemsOf(t, "opencode")["opencode-go"]; it.Status != "same" {
-		t.Fatalf("after import: %+v", it)
+	if err != nil || len(added) != 0 {
+		t.Fatalf("key-only imports: %v %v", added, err)
 	}
 	if b, err := os.ReadFile(path); err != nil || string(b) != openCodeAuth {
 		t.Fatalf("auth.json changed: %v", err)
@@ -171,7 +149,7 @@ func TestImportOpenCodeAuthWithoutXDG(t *testing.T) {
 	if s := openCodeSource(t); s.Path != path || !s.Found || s.Error != "" {
 		t.Fatalf("source: %+v", s)
 	}
-	if it := itemsOf(t, "opencode")["opencode-go"]; it.Provider.Key != "sk-go-9a8b7c" {
+	if it := itemsOf(t, "opencode")["opencode-go"]; it.Skip != "it has no base URL" || it.Provider.Key != "" {
 		t.Fatalf("OpenCode Go: %+v", it)
 	}
 }
@@ -249,16 +227,8 @@ func TestImportOpenCodeVendorPresets(t *testing.T) {
 	}
 	for _, id := range slices.Sorted(maps.Keys(want)) {
 		it := items[id]
-		if it.Skip != "" {
-			t.Errorf("%s: skipped: %s", id, it.Skip)
-			continue
-		}
-		pr := Preset(want[id])
-		if pr == nil {
-			t.Fatalf("preset %s: none", want[id])
-		}
-		if it.Provider.Preset != pr.ID || it.Provider.Name != pr.Name || it.Provider.Chat != pr.Chat || it.Provider.Key != "sk-oc-"+id {
-			t.Errorf("%s: got %+v, want the %s preset", id, it.Provider, pr.ID)
+		if it.Skip != "it has no base URL" || it.Provider.Key != "" || it.Provider.Preset != "" {
+			t.Errorf("%s invented a preset: %+v", id, it)
 		}
 	}
 }

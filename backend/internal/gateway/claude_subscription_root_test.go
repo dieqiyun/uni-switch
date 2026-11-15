@@ -124,7 +124,11 @@ func TestClaudeAsRootEnv(t *testing.T) {
 		{[]string{"PATH=/bin", "IS_SANDBOX=1"}, []string{"PATH=/bin", "IS_SANDBOX=1"}},
 		{[]string{"PATH=/bin", "CLAUDE_CODE_BUBBLEWRAP=1"}, []string{"PATH=/bin", "CLAUDE_CODE_BUBBLEWRAP=1"}},
 	} {
-		if got := local.asRoot(slices.Clone(c.env)); !slices.Equal(got, c.want) {
+		want := c.want
+		if runtime.GOOS == "windows" {
+			want = c.env
+		}
+		if got := local.asRoot(slices.Clone(c.env)); !slices.Equal(got, want) {
 			t.Errorf("root %q: %q, want %q", c.env, got, c.want)
 		}
 	}

@@ -484,8 +484,10 @@ func TestResponsesSocketGuards(t *testing.T) {
 		t.Fatalf("a refused socket reached the provider")
 	}
 
-	// a key: served, until it is turned off
-	c, _, err := dialSock(t, ts, "/v1/responses", remote(secrets[0]))
+	refused("a remote caller with a valid key", remote(secrets[0]))
+	localKey := func(secret string) http.Header { return http.Header{"Authorization": {"Bearer " + secret}} }
+	// a local key: served, until it is turned off
+	c, _, err := dialSock(t, ts, "/v1/responses", localKey(secrets[0]))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -509,7 +511,7 @@ func TestResponsesSocketGuards(t *testing.T) {
 
 	// a limit counts each turn: 350 tokens a turn, 700 allowed
 	setLimit(t, keys[1].ID, &access.Limit{Period: "day", Tokens: 700})
-	c, _, err = dialSock(t, ts, "/v1/responses", remote(secrets[1]))
+	c, _, err = dialSock(t, ts, "/v1/responses", localKey(secrets[1]))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -621,7 +623,7 @@ func TestCodexSocketServed(t *testing.T) {
 	if last(got).Get("type").String() != "response.completed" {
 		t.Fatalf("%v", got)
 	}
-	tag := codexcat.Tag(provider.CodexListed())
+	tag := provider.CodexListTag()
 	var meta, etag, limits bool
 	for _, f := range got {
 		switch f.Get("type").String() {

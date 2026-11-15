@@ -1440,8 +1440,10 @@ func (s *Server) listModels(w http.ResponseWriter, r *http.Request) {
 					rows = append(rows, shown[b.Of])
 				}
 			}
+			labels := provider.Labels(rows)
 			for i, e := range rows {
 				m := modelObject(e)
+				m["uni_switch_label"] = labels[i]
 				toolsTold(m, e)
 				if id, ok := ids[i]; ok {
 					m["id"] = id
@@ -2359,7 +2361,11 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 	{
 		// a routing group among the fallbacks is routed as a request to it
 		// would be, its pause rules too (pausedOut's)
-		cands, pl = s.plan(p, model, from)
+		var others []provider.Provider
+		if asked == model {
+			others = provider.All()
+		}
+		cands, pl = s.planProviders(p, model, from, others)
 		if handedOnOf(r) != nil {
 			// Codex's own sign-in, asked as often as it is asked: only
 			// the fallbacks are left (codexFallBack)

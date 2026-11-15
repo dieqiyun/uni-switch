@@ -24,3 +24,14 @@ test('sessions generate no usage or money cells in lists or details',()=>{
  assert.match(js,/sessions\/delete/);
  assert.match(read('backend/internal/gui/account_allowances.go'),/GET \/api\/accounts\/quotas/);
 });
+
+
+test('terminal sessions and account page omit usage reports while keeping allowances',()=>{
+ const sessions=read('backend/internal/tui/sessions.go');
+ assert.doesNotMatch(sessions,/StatsFor|summaryCost|sessUse|sessAllUse|sessChart|InputTokens|CacheRead/);
+ assert.doesNotMatch(read('backend/internal/tui/pages.go'),/pageUsage|SummaryOptions|Timeline|summaryTable/);
+ assert.doesNotMatch(read('backend/internal/tui/tui.go'),/pageUsage/);
+ assert.match(read('backend/internal/tui/pages.go'),/pageAccounts/);
+ assert.match(sessions,/resume/);
+ assert.match(read('backend/internal/tui/pages.go'),/Quota|quota|allowance/);
+});

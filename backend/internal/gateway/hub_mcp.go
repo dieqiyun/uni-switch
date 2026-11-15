@@ -186,10 +186,12 @@ func HubVisitorOf(ctx context.Context) HubVisitor {
 
 // hubVisitor is who r is from (HubVisitor).
 func hubVisitor(r *http.Request) HubVisitor {
-	away := !local(r) || fromBrowser(r)
-	v := HubVisitor{Away: away, Held: away && nativeHeld(access.Caller(r.Context()))}
-	if !local(r) && !fromBrowser(r) {
-		v.Key = access.Caller(r.Context()).KeyID
+	who := access.Caller(r.Context())
+	held := nativeHeld(who)
+	away := !local(r) || fromBrowser(r) || held
+	v := HubVisitor{Away: away, Held: held}
+	if !fromBrowser(r) {
+		v.Key = who.KeyID
 	}
 	return v
 }
@@ -668,7 +670,7 @@ func hubToolNamed(ctx context.Context, ts []hubTool, agent, name string) (hubToo
 // reads them, its workspaces and client (HubCaller).
 func (s *Server) hubCall(r *http.Request, agent string, t hubTool, args json.RawMessage, meta hubCallMeta) any {
 	c := HubCaller{Session: hubSession(r, agent, meta)}
-	if v := hubVisitor(r); v.Away && v.Key != "" {
+	if v := hubVisitor(r); v.Key != "" {
 		// its browser is its key's, whatever session it names (browser.go)
 		c.Session = keyedSession(v.Key, c.Session)
 	}

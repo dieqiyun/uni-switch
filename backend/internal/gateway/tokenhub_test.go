@@ -89,13 +89,11 @@ func TestTencentTokenHubRoutes(t *testing.T) {
 			up := &tokenhub{}
 			srv := httptest.NewServer(up)
 			t.Cleanup(srv.Close)
-			p, err := provider.FromPreset(c.preset)
+			p, err := savedProtocolFixture(c.preset)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if id != "tencent-cloud" {
-				p.ID, p.Preset = id, c.preset
-			}
+			p.ID, p.Preset = id, c.preset
 			// the preset's paths kept, its host swapped for the fake's
 			host := strings.TrimSuffix(p.Chat, "/v1")
 			if p.Responses != host+"/v1" || p.Anthropic != host {

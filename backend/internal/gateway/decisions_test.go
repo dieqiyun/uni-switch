@@ -80,7 +80,7 @@ func decidingProviders(t *testing.T) (*decider, *decider) {
 	other := &decider{}
 	au := httptest.NewServer(other)
 	t.Cleanup(au.Close)
-	az, err := provider.FromPreset(provider.AzurePreset)
+	az, err := savedProtocolFixture(provider.AzurePreset)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestDecisionsHeldByKeysAndRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	setLimit(t, keys[1].ID, &access.Limit{Period: "day", Tokens: 100, Models: []string{"openai/*"}})
-	h := New().Handler()
+	h := localGuard(New().Handler())
 	if w := keyCall(h, secrets[0], "/v1/decisions", decisionAsked("openai/gpt-6-luna")); w.Code != http.StatusForbidden {
 		t.Fatalf("a key held to other models: %d %s", w.Code, w.Body.String())
 	}

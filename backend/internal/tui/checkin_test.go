@@ -89,7 +89,7 @@ func stubQoder(t *testing.T, rs []provider.WorkBuddyCheckin) *int {
 // or why not (akic404 on Discord: the TUI had no way to check in).
 func TestTUIChecksWorkBuddyIn(t *testing.T) {
 	home(t)
-	usagePage := model{w: 200, h: 40, page: pageUsage}
+	usagePage := model{w: 200, h: 40, page: pageAccounts}
 
 	// nothing signed in: said so, nothing asked
 	calls := stubCheckin(t, nil)
@@ -126,7 +126,7 @@ func TestTUIChecksWorkBuddyIn(t *testing.T) {
 // Trae CN's (#694); with only Trae CN signed in, it is checked in alone.
 func TestTUIChecksTraeIn(t *testing.T) {
 	home(t)
-	usagePage := model{w: 200, h: 40, page: pageUsage}
+	usagePage := model{w: 200, h: 40, page: pageAccounts}
 
 	wb := stubCheckin(t, []provider.WorkBuddyCheckin{{User: "旅行者", Outcome: provider.CheckinDone, Credit: 100, Streak: 4}})
 	tr := stubTrae(t, []provider.WorkBuddyCheckin{{User: "hu", By: "trae", Outcome: provider.CheckinClaimed, Credit: 100, Asked: true}})
@@ -193,7 +193,7 @@ func TestCheckinOnTheUsageLine(t *testing.T) {
 // captcha is said as such, not as a failure.
 func TestTUIChecksPluginsIn(t *testing.T) {
 	home(t)
-	usagePage := model{w: 200, h: 40, page: pageUsage}
+	usagePage := model{w: 200, h: 40, page: pageAccounts}
 	stubCheckin(t, nil)
 	calls := stubPluginCheckin(t, []provider.WorkBuddyCheckin{
 		{User: "a@x", By: "plugin:fakeco", Vendor: "FakeCo", Outcome: provider.CheckinClaimed, Credit: 50, Streak: 3},

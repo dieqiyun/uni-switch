@@ -57,7 +57,7 @@ func TestAnthropicMaxTokensIsTheModels(t *testing.T) {
 	}
 	catalog.Reset()
 	t.Cleanup(catalog.Reset)
-	if err := provider.Save(provider.Provider{ID: "a", Name: "A", Key: "k", Models: []string{"set", known, wide, "mystery-9"}, Anthropic: up.URL + "/v1"}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "a", Name: "A", Key: "k", Models: []string{"set", known, wide, "mystery-9"}, Anthropic: up.URL + "/v1"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := provider.SetModelOutput("a/set", 65536); err != nil {

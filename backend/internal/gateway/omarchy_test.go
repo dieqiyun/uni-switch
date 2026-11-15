@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -19,6 +20,7 @@ func TestOmarchyThemeForTheSite(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("UNI_SWITCH_OMARCHY_THEME", dir)
+	t.Setenv("UNI_SWITCH_SITE_ORIGIN", "http://127.0.0.1:3425")
 	t.Setenv("UNI_SWITCH_OMARCHY_FONT", "iA Writer Mono S")
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
 	was := onOmarchy
@@ -41,13 +43,13 @@ func TestOmarchyThemeForTheSite(t *testing.T) {
 	}
 
 	onOmarchy = false
-	if w := call("GET", "127.0.0.1:5000", "https://github.com/dieqiyun/uni-switch"); w.Code != http.StatusNotFound {
+	if w := call("GET", "127.0.0.1:5000", "http://127.0.0.1:3425"); w.Code != http.StatusNotFound {
 		t.Fatal("not on Omarchy:", w.Code, w.Body)
 	}
 
 	onOmarchy = true
-	w := call("GET", "127.0.0.1:5000", "https://github.com/dieqiyun/uni-switch")
-	if w.Code != 200 || w.Header().Get("Access-Control-Allow-Origin") != "https://github.com/dieqiyun/uni-switch" {
+	w := call("GET", "127.0.0.1:5000", "http://127.0.0.1:3425")
+	if w.Code != 200 || w.Header().Get("Access-Control-Allow-Origin") != "http://127.0.0.1:3425" {
 		t.Fatal("the site, on this machine:", w.Code, w.Header(), w.Body)
 	}
 	var th struct {
@@ -60,7 +62,7 @@ func TestOmarchyThemeForTheSite(t *testing.T) {
 	if th.Mode != "light" || th.Vars["--bg"] != "#eff1f5" || th.Vars["--accent"] != "#1e66f5" || th.Vars["--om-radius"] != "0px" {
 		t.Fatal("theme:", th.Mode, th.Vars)
 	}
-	if f := th.Vars["--font"]; len(f) < 18 || f[:18] != `"iA Writer Mono S"` {
+	if f := th.Vars["--font"]; !strings.HasPrefix(f, `"iA Writer Mono S"`) {
 		t.Fatal("font:", f)
 	}
 
@@ -70,7 +72,7 @@ func TestOmarchyThemeForTheSite(t *testing.T) {
 	if w := call("GET", "192.168.1.9:5000", ""); w.Code == 200 {
 		t.Fatal("another machine got it:", w.Code)
 	}
-	w = call("OPTIONS", "127.0.0.1:5000", "https://github.com/dieqiyun/uni-switch")
+	w = call("OPTIONS", "127.0.0.1:5000", "http://127.0.0.1:3425")
 	if w.Code != http.StatusNoContent || w.Header().Get("Access-Control-Allow-Private-Network") != "true" {
 		t.Fatal("preflight:", w.Code, w.Header())
 	}

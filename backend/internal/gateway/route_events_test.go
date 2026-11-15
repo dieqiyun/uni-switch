@@ -66,14 +66,14 @@ func TestRouteEventsTold(t *testing.T) {
 		path                  string
 		want                  int
 	}{
-		{"read-only key, LAN", lan, "192.168.1.10:3425", display, routeSnapshotPath, 200},
-		{"read-only key, LAN, stream", lan, "192.168.1.10:3425", display, routeEventsPath, 409},
-		{"full key, LAN", lan, "192.168.1.10:3425", full, routeSnapshotPath, 200},
+		{"read-only key, LAN", lan, "192.168.1.10:3425", display, routeSnapshotPath, 403},
+		{"read-only key, LAN, stream", lan, "192.168.1.10:3425", display, routeEventsPath, 403},
+		{"full key, LAN", lan, "192.168.1.10:3425", full, routeSnapshotPath, 403},
 		{"this computer, no key", here, gw, "", routeSnapshotPath, 200},
 		{"this computer, read-only key", here, gw, display, routeEventsPath, 409},
-		{"another machine, no key", lan, "192.168.1.10:3425", "", routeSnapshotPath, 401},
-		{"another machine, no key, stream", lan, "192.168.1.10:3425", "", routeEventsPath, 401},
-		{"another machine, a wrong key", lan, "192.168.1.10:3425", "sk-uni-switch-wrong", routeSnapshotPath, 401},
+		{"another machine, no key", lan, "192.168.1.10:3425", "", routeSnapshotPath, 403},
+		{"another machine, no key, stream", lan, "192.168.1.10:3425", "", routeEventsPath, 403},
+		{"another machine, a wrong key", lan, "192.168.1.10:3425", "sk-uni-switch-wrong", routeSnapshotPath, 403},
 		{"held key, LAN", lan, "192.168.1.10:3425", held, routeSnapshotPath, 403},
 		{"held key, LAN, stream", lan, "192.168.1.10:3425", held, routeEventsPath, 403},
 		{"held key, this computer", here, gw, held, routeSnapshotPath, 403},
@@ -108,7 +108,7 @@ func TestRouteEventsTold(t *testing.T) {
 		{"POST", "/v1/chat/completions"}, {"POST", "/v1/responses"}, {"POST", "/v1/messages"},
 		{"GET", "/v1/models"}, {"GET", "/v1/uni-switch/trace"}, {"POST", "/mcp/uni-switch/web-search"},
 	} {
-		if w := do(tc.method, tc.path, lan, "192.168.1.10:3425", display); w.Code != http.StatusForbidden || !strings.Contains(w.Body.String(), ReadOnlyCode) {
+		if w := do(tc.method, tc.path, here, gw, display); w.Code != http.StatusForbidden || !strings.Contains(w.Body.String(), ReadOnlyCode) {
 			t.Errorf("read-only key: %s %s: %d %.200s", tc.method, tc.path, w.Code, w.Body)
 		}
 	}

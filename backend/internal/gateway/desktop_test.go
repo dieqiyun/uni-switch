@@ -163,7 +163,6 @@ func TestDesktopNumber(t *testing.T) {
 		// its own id, which carries no number
 		{ID: "a/claude-opus-5-5", Model: "claude-opus-5-5"},
 		// a group led by a Claude model keeps its own name (mythos-uni-switch-<n>)
-		{ID: "group/opus", Model: "claude-opus-5-5", Group: "opus", Efforts: []string{"low"}},
 	} {
 		if got := DesktopNumber(e); got != "" {
 			t.Errorf("%s (listed as %s): DesktopNumber = %q, want none", e.ID, claudeLooking(e), got)

@@ -39,7 +39,7 @@ func TestPlainNames(t *testing.T) {
 		return out
 	}
 
-	full := []string{"a/sol=My Sol · A", "auto/sol=Sol · routing group", "b/sol=Sol · B"}
+	full := []string{"a/sol=My Sol · A", "b/sol=Sol · B"}
 	if got := codex(); !slices.Equal(got, full) {
 		t.Fatalf("by default: %q", got)
 	}
@@ -54,11 +54,11 @@ func TestPlainNames(t *testing.T) {
 	// told apart by its "· routing group", and b's model stays plain as
 	// a/sol does (nb5p on Discord: a relay's GPT-6.1 Terra kept
 	// "· MyGateway" beside its group while its GPT-6.1 Sol had none)
-	want := []string{"a/sol=My Sol", "auto/sol=Sol · routing group", "b/sol=Sol"}
+	want := []string{"a/sol=My Sol", "b/sol=Sol"}
 	if got := codex(); !slices.Equal(got, want) {
 		t.Fatalf("plain: %q", got)
 	}
-	if got := other(); !slices.Equal(got, []string{"My Sol", "Sol", "Sol · routing group"}) {
+	if got := other(); !slices.Equal(got, []string{"My Sol", "Sol"}) {
 		t.Fatalf("plain, another agent: %q", got)
 	}
 
@@ -69,10 +69,10 @@ func TestPlainNames(t *testing.T) {
 	if err := settings.Save(s); err != nil {
 		t.Fatal(err)
 	}
-	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol", "auto/sol=Sol"}) {
+	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol"}) {
 		t.Fatalf("plain, b hidden: %q", got)
 	}
-	if got := other(); !slices.Equal(got, []string{"My Sol", "Sol", "Sol · routing group"}) {
+	if got := other(); !slices.Equal(got, []string{"My Sol", "Sol"}) {
 		t.Fatalf("plain, another agent: %q", got)
 	}
 
@@ -80,7 +80,7 @@ func TestPlainNames(t *testing.T) {
 	if err := SetModelName("b/sol", "My Sol"); err != nil {
 		t.Fatal(err)
 	}
-	if got := other(); !slices.Equal(got, []string{"My Sol · A", "My Sol · B", "Sol"}) {
+	if got := other(); !slices.Equal(got, []string{"My Sol · A", "My Sol · B"}) {
 		t.Fatalf("plain, two models named alike: %q", got)
 	}
 	if err := SetModelName("b/sol", ""); err != nil {
@@ -91,7 +91,7 @@ func TestPlainNames(t *testing.T) {
 	if err := SetPlainNames(false); err != nil {
 		t.Fatal(err)
 	}
-	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol · A", "auto/sol=Sol · routing group"}) || touched != 2 {
+	if got := codex(); !slices.Equal(got, []string{"a/sol=My Sol · A"}) || touched != 2 {
 		t.Fatalf("off again: %q, told %d", got, touched)
 	}
 }

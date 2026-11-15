@@ -18,7 +18,7 @@ func TestMorph(t *testing.T) {
 	t.Setenv("MISTER_MORPH_CONFIG", "")
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash"}}); err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Join(home, ".morph")
@@ -50,7 +50,7 @@ func TestMorph(t *testing.T) {
 	llm, raw := read()
 	h, _ := llm["headers"].(map[string]any)
 	if llm["inference_provider"] != "openai_response_compatible" || llm["provider"] != "openai_resp" || llm["model"] != "deepseek/pro" ||
-		llm["endpoint"] != gateway.URL()+"/v1" || llm["api_key"] != gateway.Token || llm["context_window_tokens"] != nil ||
+		llm["endpoint"] != gateway.URL()+"/v1" || llm["api_key"] != gateway.Token || llm["context_window_tokens"] != 256000 ||
 		h["User-Agent"] != morphUA || h["X-Team"] != "core" || llm["reasoning_effort"] != "high" ||
 		!strings.Contains(raw, "# mine") || !strings.Contains(raw, "enabled: true") {
 		t.Fatalf("config:\n%s", raw)
@@ -133,7 +133,7 @@ func TestMorphContextWindow(t *testing.T) {
 	t.Setenv("MISTER_MORPH_CONFIG", "")
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k",
 		Models: []string{"pro", "flash"}, Contexts: map[string]int{"pro": 1000000}}); err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestMorphContextWindow(t *testing.T) {
 	if err := f.Set("uni-switch/deepseek/flash"); err != nil {
 		t.Fatal(err)
 	}
-	if n, raw := window(); n != 0 {
+	if n, raw := window(); n != 256000 {
 		t.Fatalf("flash: %d\n%s", n, raw)
 	}
 }

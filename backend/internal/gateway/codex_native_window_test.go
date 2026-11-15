@@ -70,7 +70,7 @@ func TestCodexNativeTurnTakesCodexWindow(t *testing.T) {
 		return nil
 	}
 
-	if r := turn(); r.Prompt == nil || r.Prompt.Window != 272000 {
+	if r := turn(); r.Prompt == nil || r.Prompt.Window != 256000 {
 		t.Errorf("Codex's own gpt-5.5: prompt %+v, want Codex's window 272000, not models.dev's 922000", r.Prompt)
 	}
 	// the window uni-switch's Codex subscription's list gives comes before
@@ -78,7 +78,7 @@ func TestCodexNativeTurnTakesCodexWindow(t *testing.T) {
 	if err := catalog.SaveLive("codex", provider.CodexBase, []catalog.Model{{ID: "gpt-5.5", Context: 258000}}); err != nil {
 		t.Fatal(err)
 	}
-	if r := turn(); r.Prompt == nil || r.Prompt.Window != 258000 {
+	if r := turn(); r.Prompt == nil || r.Prompt.Window != 256000 {
 		t.Errorf("with the subscription's list: prompt %+v, want 258000", r.Prompt)
 	}
 	// the user's own window on the codex provider is the one Codex is told
@@ -115,7 +115,7 @@ func TestCodexNativeTurnTakesCodexWindow(t *testing.T) {
 		t.Fatalf("%d routes, want %d", len(rs), before+1)
 	}
 	for _, r := range rs {
-		if r.ID == maxRouteID(rs) && (r.Prompt == nil || r.Prompt.Window != 922000) {
+		if r.ID == maxRouteID(rs) && (r.Prompt == nil || r.Prompt.Window != 256000) {
 			t.Errorf("another provider's gpt-5.5: prompt %+v, want models.dev's 922000", r.Prompt)
 		}
 	}

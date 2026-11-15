@@ -29,7 +29,7 @@ func TestSystemOneClefImages(t *testing.T) {
 		io.WriteString(w, `{"result":{"model":"clef","answers":{"cat":{"type":"noul","noul":0.97}}},"success":true,"errors":[],"messages":[]}`)
 	}))
 	defer srv.Close()
-	p, err := provider.FromPreset("cloudflare-jev")
+	p, err := savedProtocolFixture("cloudflare-jev")
 	if err != nil {
 		t.Fatal(err)
 	}

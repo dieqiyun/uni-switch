@@ -107,7 +107,7 @@ func TestBedrockMantleRoutes(t *testing.T) {
 	}
 	srv := httptest.NewServer(up)
 	t.Cleanup(srv.Close)
-	p, err := provider.FromPreset("bedrock-mantle")
+	p, err := savedProtocolFixture("bedrock-mantle")
 	if err != nil {
 		t.Fatal(err)
 	}

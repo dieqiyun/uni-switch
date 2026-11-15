@@ -50,10 +50,10 @@ func TestProviderSystemOne(t *testing.T) {
 	if w := post("save", `{"preset":"bailian-decision","key":"sk-2","new":true}`); w.Code == 200 {
 		t.Fatalf("Bailian saved with no workspace: %s", w.Body)
 	}
-	if w := post("save", `{"preset":"bailian-decision","key":"sk-2","decide":"https://ws-9.cn-beijing.maas.aliyuncs.com/compatible-mode/v1","new":true}`); w.Code != 200 {
+	if w := post("save", `{"id":"bailian-decision","name":"Bailian saved endpoint","preset":"bailian-decision","models":["bailian-decision"],"key":"sk-2","decide":"https://ws-9.cn-beijing.maas.aliyuncs.com/compatible-mode/v1","new":true}`); w.Code != 200 {
 		t.Fatalf("Bailian: %d %s", w.Code, w.Body)
 	}
-	if p, err := provider.Find("bailian-decision"); err != nil || p.Decide != "https://ws-9.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" || p.Jev() != provider.BailianDecision {
+	if p, err := provider.Find("bailian-decision"); err != nil || p.Decide != "https://ws-9.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" || p.Jev() != "bailian-decision" {
 		t.Fatalf("Bailian saved: %+v %v", p, err)
 	}
 }

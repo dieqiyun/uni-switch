@@ -47,18 +47,18 @@ func TestPluginOptionSetting(t *testing.T) {
 			t.Fatalf("pluginOptions = %v, want %v", got, want)
 		}
 	}
-	if c := post("/api/settings/plugin-option", `{"provider":"optco","key":"auto-claim","on":false}`); c != http.StatusOK {
-		t.Fatalf("set: %d", c)
+	if c := post("/api/settings/plugin-option", `{"provider":"optco","key":"auto-claim","on":false}`); c != http.StatusNotFound {
+		t.Fatalf("retired option API: %d", c)
 	}
-	has(map[string]map[string]bool{"other": {"x": true}, "optco": {"beta": true, "auto-claim": false}})
+	has(map[string]map[string]bool{"other": {"x": true}, "optco": {"beta": true}})
 	if c := post("/api/settings", `{"theme":"dark"}`); c != http.StatusOK {
 		t.Fatalf("settings: %d", c)
 	}
-	has(map[string]map[string]bool{"other": {"x": true}, "optco": {"beta": true, "auto-claim": false}})
+	has(map[string]map[string]bool{"other": {"x": true}, "optco": {"beta": true}})
 	for _, bad := range []string{`{"key":"beta","on":true}`, `{"provider":"optco","key":"Bad Key","on":true}`, `{"provider":"optco","key":"","on":true}`} {
 		if c := post("/api/settings/plugin-option", bad); c == http.StatusOK {
 			t.Errorf("%s saved", bad)
 		}
 	}
-	has(map[string]map[string]bool{"other": {"x": true}, "optco": {"beta": true, "auto-claim": false}})
+	has(map[string]map[string]bool{"other": {"x": true}, "optco": {"beta": true}})
 }

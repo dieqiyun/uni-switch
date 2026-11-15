@@ -24,7 +24,7 @@ import (
 // OpenCode Zen's free models are listed: uni-switch asks them as OpenCode does
 // (gateway/zenfree.go), so they answer.
 func TestOpenCodeZenListsFreeModels(t *testing.T) {
-	p, err := FromPreset("opencode-zen")
+	p, err := legacyVendor("opencode-zen")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestOpenCodeZenNeedsNoKey(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
-	p, err := FromPreset("opencode-zen")
+	p, err := legacyVendor("opencode-zen")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestOpenCodeZenNeedsNoKey(t *testing.T) {
 func TestZenAddKeyEmptyIsPublic(t *testing.T) {
 	isolate(t)
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	zen, err := FromPreset("opencode-zen")
+	zen, err := legacyVendor("opencode-zen")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestZenAddKeyEmptyIsPublic(t *testing.T) {
 	if err := AddKey("zen", "", "", ""); err == nil || !strings.Contains(err.Error(), "already has public") {
 		t.Fatalf("public twice: %v", err)
 	}
-	kilo, err := FromPreset("kilo")
+	kilo, err := legacyVendor("kilo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestOpenCodeFreeURL(t *testing.T) {
 			t.Errorf("%s on %s: %s, want %s", c.in, c.proto, got, c.want)
 		}
 	}
-	p, _ := FromPreset("opencode-zen")
+	p, _ := legacyVendor("opencode-zen")
 	if url, _ := tiny(p, Responses, "muse-spark-1.3-contributor-free"); url != "https://opencode.ai/inference/openai/v1/responses" {
 		t.Fatalf("probe %s", url)
 	}
@@ -255,7 +255,7 @@ func zenFake(t *testing.T) func() []string {
 // them: there is no table of free models to fall behind.
 func TestZenPublicListsNewFreeModels(t *testing.T) {
 	zenFake(t)
-	p, _ := FromPreset("opencode-zen")
+	p, _ := legacyVendor("opencode-zen")
 	id, err := Add(p)
 	if err != nil {
 		t.Fatal(err)
@@ -281,7 +281,7 @@ func TestZenPublicListsNewFreeModels(t *testing.T) {
 // model it serves, and an API no free model is on is left out.
 func TestZenPublicTestAsksFreeModels(t *testing.T) {
 	asked := zenFake(t)
-	p, _ := FromPreset("opencode-zen")
+	p, _ := legacyVendor("opencode-zen")
 	id, err := Add(p)
 	if err != nil {
 		t.Fatal(err)

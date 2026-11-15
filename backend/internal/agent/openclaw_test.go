@@ -123,11 +123,11 @@ func openClawHomeWith(t *testing.T, body string) (home, path string) {
 	for _, k := range []string{"OPENCLAW_CONFIG_PATH", "OPENCLAW_STATE_DIR", "OPENCLAW_PROFILE", "OPENCLAW_HOME"} {
 		t.Setenv(k, "")
 	}
-	if err := provider.Save(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
+	if err := saveWindowFixture(provider.Provider{ID: "kimi", Name: "Kimi", Key: "k",
 		Chat: "https://api.moonshot.cn/v1", Models: []string{"k2", "k2.5-vision"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
+	if err := saveWindowCatalog("kimi", "https://api.moonshot.cn/v1", []catalog.Model{
 		{ID: "k2", Context: 262144, Efforts: []string{"low", "medium", "high"}},
 		{ID: "k2.5-vision", Images: true},
 	}); err != nil {
@@ -214,7 +214,7 @@ func TestOpenClaw(t *testing.T) {
 	if k2["name"] != "kimi/k2" || k2["contextWindow"] != float64(262144) || k2["reasoning"] != true {
 		t.Fatalf("k2: %v", k2)
 	}
-	if vision["contextWindow"] != float64(openClawContext) || !reflect.DeepEqual(vision["input"], []any{"text", "image"}) || vision["reasoning"] != false {
+	if vision["contextWindow"] != float64(256000) || !reflect.DeepEqual(vision["input"], []any{"text", "image"}) || vision["reasoning"] != false {
 		t.Fatalf("k2.5-vision: %v", vision)
 	}
 	// as `openclaw models set` does, beside the user's own entry

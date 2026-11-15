@@ -68,7 +68,7 @@ func TestDeepSeekReplyFitsTheWindowLeft(t *testing.T) {
 	d := &deepseekWindow{window: 1000000, prompt: 706784}
 	up := httptest.NewServer(d)
 	defer up.Close()
-	p, err := provider.FromPreset("deepseek")
+	p, err := savedProtocolFixture("deepseek")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestDeepSeekReplyFitsTheWindowLeft(t *testing.T) {
 	// its chat API alone, the fake: no request reaches DeepSeek
 	p.Responses, p.Anthropic = "", ""
 	p.Models = []string{"deepseek-flash"}
-	if err := provider.Save(p); err != nil {
+	if err := saveWindowFixture(p); err != nil {
 		t.Fatal(err)
 	}
 	msgs := `"messages":[{"role":"user","content":"hi"}]`
@@ -173,7 +173,7 @@ func TestAnthropicReplyFitsTheWindowLeft(t *testing.T) {
 		io.WriteString(w, `{"id":"m","type":"message","role":"assistant","content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}`)
 	}))
 	t.Cleanup(up.Close)
-	if err := provider.Save(provider.Provider{ID: "a", Name: "A", Key: "k", Models: []string{"m"}, Anthropic: up.URL + "/v1"}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "a", Name: "A", Key: "k", Models: []string{"m"}, Anthropic: up.URL + "/v1"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := provider.SetModelOutput("a/m", 393216); err != nil {
@@ -185,7 +185,7 @@ func TestAnthropicReplyFitsTheWindowLeft(t *testing.T) {
 		want             string
 	}{
 		{"Claude Code", "/v1/messages", `{"model":"a/m","max_tokens":64000,"messages":[{"role":"user","content":"hi"}]}`, "[64000 30000]"},
-		{"Codex", "/v1/responses", `{"model":"a/m","input":"hi"}`, "[393216 30000]"},
+		{"Codex", "/v1/responses", `{"model":"a/m","input":"hi"}`, "[256000 30000]"},
 	} {
 		mu.Lock()
 		asked = nil

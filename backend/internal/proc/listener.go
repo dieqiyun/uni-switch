@@ -6,7 +6,6 @@ import (
 	"errors"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -65,17 +64,12 @@ func RunsUniSwitch(pid int, path string) bool {
 		return false
 	}
 	bi, err := buildinfo.ReadFile(file)
-	return err == nil && bi.Path == uniSwitchMain
+	return err == nil && (bi.Path == uniSwitchMain || bi.Path == "github.com/dieqiyun/uni-switch/backend/cmd/uni-switch-core")
 }
 
 // uniSwitchMain is uni-switch's main package, as a build of it names itself; a
 // var for the tests, whose own binary is another package's.
-var uniSwitchMain = func() string {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		return info.Path
-	}
-	return ""
-}()
+var uniSwitchMain = "github.com/dieqiyun/uni-switch/backend"
 
 // Isuni-switch says whether the program at path is a uni-switch: uni-switch, its
 // uni-switch-* builds or dial, its name before; with .exe, and Windows' .old

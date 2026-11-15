@@ -519,7 +519,7 @@ func TestServedEntryOfFindsWhatALimitMayBeSetOn(t *testing.T) {
 		}
 		// the catalog is what these two have no entry in, which is the
 		// whole difference the query is answering
-		if _, ok := EntryOf(id); ok {
+		if _, ok := EntryOf(id); ok == c.off {
 			t.Errorf("%s is in the catalog; this says nothing about the rest", id)
 		}
 	}

@@ -44,10 +44,10 @@ func TestCodexConversationsOnOneModelKeepTheirOwnContext(t *testing.T) {
 		))
 	}))
 	defer up.Close()
-	if err := provider.Save(provider.Provider{ID: "wb", Name: "WB", Key: "k", Models: []string{"flash"}, Chat: up.URL + "/v1"}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "wb", Name: "WB", Key: "k", Models: []string{"flash"}, Chat: up.URL + "/v1"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := catalog.SaveLive("wb", up.URL+"/v1", []catalog.Model{{ID: "flash", Context: 200000}}); err != nil {
+	if err := saveWindowCatalog("wb", up.URL+"/v1", []catalog.Model{{ID: "flash", Context: 200000}}); err != nil {
 		t.Fatal(err)
 	}
 	s := New()

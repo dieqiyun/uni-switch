@@ -23,7 +23,7 @@ func TestImportIsReadOnce(t *testing.T) {
 		return rec, in
 	}
 
-	id := stashImport("uni-switch://import?preset=deepseek&key=sk-test")
+	id := stashImport("uni-switch://import?name=deepseek&chat=https://api.deepseek.com/v1&key=sk-test")
 	rec, in := get(id)
 	if rec.Code != 200 || in.Provider.ID != "deepseek" || in.Provider.Key != "sk-test" || in.Error != "" {
 		t.Fatalf("%d %+v", rec.Code, in)

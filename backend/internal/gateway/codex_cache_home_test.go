@@ -50,7 +50,7 @@ func TestCodexCachedListUnderCodexHomeKeepsItsMax(t *testing.T) {
 		} `json:"models"`
 	}
 	json.Unmarshal(rec.Body.Bytes(), &got)
-	want := map[string][2]int{"gpt-6.1-sol": {272000, 872000}, "gpt-6-astra": {272000, 872000}}
+	want := map[string][2]int{"gpt-6.1-sol": {256000, 872000}, "gpt-6-astra": {256000, 272000}}
 	seen := 0
 	for _, m := range got.Models {
 		w, ok := want[m.Slug]

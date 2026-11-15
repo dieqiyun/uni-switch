@@ -94,8 +94,8 @@ func TestModelName(t *testing.T) {
 	if b.Name != "Sol" || b.Default != "" || b.Label() != "Sol · B" {
 		t.Fatalf("%+v %q", b, b.Label())
 	}
-	if g := entry(t, "auto/sol"); g.Name != "Sol" {
-		t.Fatalf("the group took a provider's name: %+v", g)
+	if _, _, ok := Resolve("group/auto-sol"); ok {
+		t.Fatal("a retired automatic group resolves")
 	}
 	if p, m, ok := Resolve("a/sol"); !ok || p.ID != "a" || m != "sol" {
 		t.Fatal("a named model no longer resolves", p.ID, m, ok)
@@ -170,8 +170,8 @@ func TestModelEfforts(t *testing.T) {
 	if got := entry(t, "b/sol").Efforts; !slices.Equal(got, []string{"low", "medium", "high", "max"}) {
 		t.Fatal(got)
 	}
-	if got := entry(t, "auto/sol").Efforts; !slices.Equal(got, []string{"low", "high"}) {
-		t.Fatal(got)
+	if _, _, ok := Resolve("group/auto-sol"); ok {
+		t.Fatal("a retired automatic group resolves")
 	}
 	// the vendor is still asked at any level it has
 	if got := (Provider{ID: "a", Catalog: "a"}).Efforts("sol"); len(got) != 4 {

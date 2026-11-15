@@ -17,7 +17,7 @@ import (
 // files Claude Code attached) is taken out; their lines stay, as the chain
 // of parents runs through them.
 const (
-	carryCwd    = "/Users/yetone/workspace/projects/uni-switch-wt/carry-sb/proj"
+	carryCwd    = "/Users/yetone/workspace/projects/magpie-wt/carry-sb/proj"
 	carryClaude = "5b0c7a1e-3f2d-4c8b-9a6e-1d2c3b4a5f60"
 	carryCodex  = "01a1712c-4d18-79a3-8dad-145c6b40351e"
 )

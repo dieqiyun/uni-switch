@@ -1046,7 +1046,19 @@ func (s *Server) videosCreate(w http.ResponseWriter, r *http.Request) {
 	// routing group's members in its routing's order, as a drawing's
 	// (#2005), else the one
 	tries := []provider.Member{{Provider: p, Model: model}}
-	{
+	// Bare media IDs follow ordinary provider order, just as chat models do.
+	// A provider-qualified or key-group selection keeps its chosen route.
+	if bareRef(f.Model) && !p.KeyGroup() {
+		serves := servesKind(provider.KindVideo)
+		for _, q := range provider.All() {
+			if q.ID == p.ID || !q.On() || !serves(q, model) {
+				continue
+			}
+			if _, disabled := provider.ModelDisabled(q.ID, model); disabled {
+				continue
+			}
+			tries = append(tries, provider.Member{Provider: q, Model: model})
+		}
 	}
 	call.To = provider.Chat
 	// the Routing page lists it as it does a chat, each member asked a
@@ -1072,7 +1084,7 @@ func (s *Server) videosCreate(w http.ResponseWriter, r *http.Request) {
 		// a group's next member is asked as a chat's would be: while this
 		// one can't make videos, its vendor fails, is out of quota or
 		// doesn't serve the model; a refusal of the request is the request's
-		if err == nil || ctx.Err() != nil || i+1 == len(tries) || !v.unfit && !retryable(code, []byte(err.Error())) {
+		if err == nil || ctx.Err() != nil || i+1 == len(tries) || !v.unfit && !keyLacksModel(code, err) && !retryable(code, []byte(err.Error())) {
 			break
 		}
 		skipped = append(skipped, m.Provider.ID+"/"+m.Model+": "+err.Error())

@@ -119,7 +119,7 @@ func fetchRelay(t *testing.T) {
 func TestCodexListedEntry(t *testing.T) {
 	fresh(t)
 	relay, base := newRelay(t)
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Models: []string{"gpt-6.1-terra", "glm-5"}, Responses: base}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Models: []string{"gpt-6.1-terra", "glm-5"}, Responses: base}); err != nil {
 		t.Fatal(err)
 	}
 	fetchRelay(t)
@@ -146,7 +146,10 @@ func TestCodexListedEntry(t *testing.T) {
 
 	t.Run("the relay's entry", func(t *testing.T) {
 		e := codexEntry(t, "relay/gpt-6.1-terra")
-		verbatim(t, e)
+		verbatim(t, e, "context_window")
+		if e["context_window"] != float64(provider.DefaultContextWindow) {
+			t.Errorf("default window: %v", e["context_window"])
+		}
 		if d, _ := e["description"].(string); d != "Frontier agentic coding model. via uni-switch" {
 			t.Errorf("description %q, want the relay's with via uni-switch", d)
 		}
@@ -160,11 +163,11 @@ func TestCodexListedEntry(t *testing.T) {
 	t.Run("a shaped list that can't be read keeps the last", func(t *testing.T) {
 		relay.manifest.Store("")
 		fetchRelay(t)
-		verbatim(t, codexEntry(t, "relay/gpt-6.1-terra"))
+		verbatim(t, codexEntry(t, "relay/gpt-6.1-terra"), "context_window")
 		// nor does one with no model in it (an odd shape)
 		relay.manifest.Store(`{"models":"none"}`)
 		fetchRelay(t)
-		verbatim(t, codexEntry(t, "relay/gpt-6.1-terra"))
+		verbatim(t, codexEntry(t, "relay/gpt-6.1-terra"), "context_window")
 		// one that answers plainly (a relay that ignores client_version)
 		// says it has none in Codex's shape
 		relay.manifest.Store(relay.plain.Load())
@@ -179,7 +182,7 @@ func TestCodexListedEntry(t *testing.T) {
 	t.Run("the user's window and levels win", func(t *testing.T) {
 		p, _ := provider.Find("relay")
 		p.Contexts = map[string]int{"gpt-6.1-terra": 400000}
-		if err := provider.Save(*p); err != nil {
+		if err := saveWindowFixture(*p); err != nil {
 			t.Fatal(err)
 		}
 		if err := provider.SetModelEfforts("relay/gpt-6.1-terra", []string{"low", "high"}); err != nil {
@@ -206,7 +209,7 @@ func TestCodexListedEntryInPlainList(t *testing.T) {
 	fresh(t)
 	relay, base := newRelay(t)
 	relay.plain.Store(`{"models":[` + terraEntry + `]}`)
-	if err := provider.Save(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Models: []string{"gpt-6.1-terra"}, Responses: base}); err != nil {
+	if err := saveWindowFixture(provider.Provider{ID: "relay", Name: "Relay", Key: "k", Models: []string{"gpt-6.1-terra"}, Responses: base}); err != nil {
 		t.Fatal(err)
 	}
 	fetchRelay(t)
@@ -217,7 +220,7 @@ func TestCodexListedEntryInPlainList(t *testing.T) {
 	if e["base_instructions"] != "You are Codex, based on GPT-6.1 Terra. You are running as a coding agent in the Codex CLI on a user's computer." {
 		t.Errorf("instructions %.80v, want the relay's", e["base_instructions"])
 	}
-	if w, _ := e["context_window"].(float64); w != 272000 {
-		t.Errorf("context_window %v, want the relay's 272000", e["context_window"])
+	if w, _ := e["context_window"].(float64); w != float64(provider.DefaultContextWindow) {
+		t.Errorf("context_window %v, want the configured default 256000", e["context_window"])
 	}
 }

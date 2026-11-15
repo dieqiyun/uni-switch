@@ -22,7 +22,6 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/agent"
 	"github.com/dieqiyun/uni-switch/backend/internal/proc"
 	"github.com/dieqiyun/uni-switch/backend/internal/sessions"
-	"github.com/dieqiyun/uni-switch/backend/internal/usage"
 )
 
 // sessRange is a range the page offers: its name and days (0 for all).
@@ -42,7 +41,6 @@ type sessFilterMsg struct {
 }
 
 func (m *model) reloadSessions() {
-	m.sstats = sessions.StatsFor(sessRanges[m.srange].days)
 	// the whole set, as the page's count beside it is taken from: the list
 	// head says how many there are, and the range filter narrows what is
 	// shown of them. sessions.Limit is the window gateway attribution is
@@ -87,7 +85,7 @@ func sessFilter(all []sessions.Session, days int, model, folder string, now time
 
 func (m model) updateSessions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	n := len(sessRanges)
-	if !m.sstat {
+	{
 		shown := m.sessShown()
 		switch msg.String() {
 		case "j", "down":
@@ -104,9 +102,6 @@ func (m model) updateSessions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	switch msg.String() {
-	case "s", "tab":
-		m.sstat = !m.sstat
-		return m, nil
 	case "l", "right":
 		m.srange = (m.srange + 1) % n
 	case "h", "left":
@@ -119,9 +114,6 @@ func (m model) updateSessions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.srange = 2
 	case "A":
 		m.srange = n - 1
-	case "c":
-		m.scost = !m.scost
-		return m, nil
 	case "M":
 		m.openSessPick(false)
 		return m, nil
@@ -165,48 +157,54 @@ func resumeSession(s sessions.Session) tea.Cmd {
 // openSessPick picks a model, or a folder, of those the range has under
 // the other filter.
 func (m *model) openSessPick(folder bool) {
-	r := m.sstats.Sum(m.smodel, m.sfolder)
-	all, shares, crumb := allModels, r.Models, "model"
+	all, crumb := allModels, "model"
 	if folder {
-		all, shares, crumb = allFolders, r.Folders, "folder"
+		all, crumb = allFolders, "folder"
 	}
-	items := []agent.Option{{Value: all}}
-	for _, s := range shares {
-		if s.Name != "" {
-			items = append(items, agent.Option{Value: s.Name, Note: fmtTokens(s.Spent()) + " tokens"})
+	unique := map[string]bool{}
+	filterFolder := m.sfolder
+	if folder {
+		filterFolder = ""
+	}
+	for _, s := range sessFilter(m.slist, sessRanges[m.srange].days, "", filterFolder, time.Now()) {
+		if folder {
+			if m.smodel != "" && !slices.ContainsFunc(s.Models, func(v sessions.Model) bool { return v.Model == m.smodel }) {
+				continue
+			}
+			unique[s.Cwd] = true
+		} else {
+			for _, v := range s.Models {
+				unique[v.Model] = true
+			}
 		}
 	}
-	m.pk = picker{
-		crumbs: []string{"sessions", crumb},
-		input:  newInput("filter"),
-		items:  items,
-		onPick: func(v string) tea.Cmd {
-			if v == all {
-				v = ""
-			}
-			return func() tea.Msg { return sessFilterMsg{folder, v} }
-		},
+	var choices []string
+	for v := range unique {
+		if v != "" {
+			choices = append(choices, v)
+		}
 	}
+	slices.Sort(choices)
+	items := []agent.Option{{Value: all}}
+	for _, v := range choices {
+		items = append(items, agent.Option{Value: v})
+	}
+	m.pk = picker{crumbs: []string{"sessions", crumb}, input: newInput("filter"), items: items, onPick: func(v string) tea.Cmd {
+		if v == all {
+			v = ""
+		}
+		return func() tea.Msg { return sessFilterMsg{folder, v} }
+	}}
 	m.pk.refilter()
 	m.mode = modePick
 	m.back = modeList
 }
 
 func (m model) viewSessions() string {
-	var b strings.Builder
-	b.WriteString(m.header())
-	b.WriteString("\n\n")
-	if m.sstat {
-		b.WriteString(strings.Join(sessLines(m.sstats, m.srange, m.smodel, m.sfolder, m.scost, m.w-len(pad)-2, m.h), "\n"))
-	} else {
-		b.WriteString(strings.Join(sessListLines(m.sessShown(), m.agents, m.srange, m.smodel, m.sfolder, m.ssel, m.w-len(pad)-2, m.h, time.Now()), "\n"))
-	}
-	return strings.TrimRight(b.String(), "\n")
+	return strings.TrimRight(m.header()+"\n\n"+strings.Join(sessListLines(m.sessShown(), m.agents, m.srange, m.smodel, m.sfolder, m.ssel, m.w-len(pad)-2, m.h, time.Now()), "\n"), "\n")
 }
 
-// sessBar is the page's first line: the ranges, the model and the folder
-// picked, and which of the two views this is.
-func sessBar(rng int, model, folder string, stats bool) string {
+func sessBar(rng int, model, folder string) string {
 	var tabs []string
 	for i, r := range sessRanges {
 		if i == rng {
@@ -221,11 +219,8 @@ func sessBar(rng int, model, folder string, stats bool) string {
 		}
 		return sNameOn.Render(v)
 	}
-	view := sNameOn.Render("sessions") + sFaint.Render(" · stats")
-	if stats {
-		view = sFaint.Render("sessions · ") + sNameOn.Render("stats")
-	}
-	return strings.Join(tabs, " ") + "    " + filter(model, allModels) + sFaint.Render(" · ") + filter(tildePath(folder), allFolders) + "    " + view
+	return strings.Join(tabs, " ") + "    " + filter(model, allModels) + sFaint.Render(" · ") + filter(tildePath(folder), allFolders)
+
 }
 
 // sessListLines is the sessions view below the header: the bar, then the
@@ -234,7 +229,7 @@ func sessBar(rng int, model, folder string, stats bool) string {
 func sessListLines(list []sessions.Session, agents []*agent.Agent, rng int, model, folder string, sel, width, height int, now time.Time) []string {
 	var out []string
 	add := func(s string) { out = append(out, pad+"  "+s) }
-	add(sessBar(rng, model, folder, false))
+	add(sessBar(rng, model, folder))
 	add("")
 	if len(list) == 0 {
 		if model != "" || folder != "" {
@@ -248,16 +243,10 @@ func sessListLines(list []sessions.Session, agents []*agent.Agent, rng int, mode
 	for _, a := range agents {
 		names[a.ID] = a.Name
 	}
-	type row struct{ when, who, where, tokens, cost, title string }
+	type row struct{ when, who, where, title string }
 	rows := make([]row, len(list))
-	var wn, ww, wf, wt int
+	var wn, ww, wf int
 	for i, s := range list {
-		c := sFaint.Render("—")
-		if s.Cost > 0 {
-			c = sOK.Render(fmtCost(usage.Totals{Cost: s.Cost, Unpriced: s.Unpriced}))
-		} else if s.Spent() > 0 {
-			c = sFaint.Render("no price")
-		}
 		where := filepath.Base(s.Cwd)
 		if s.Cwd == "" {
 			where = "—"
@@ -266,8 +255,8 @@ func sessListLines(list []sessions.Session, agents []*agent.Agent, rng int, mode
 		if title == "" {
 			title = "(untitled)"
 		}
-		rows[i] = row{sessAgo(s.Last, now), cmp.Or(names[s.Agent], s.Agent), trunc(where, 24), fmtTokens(s.Spent()), c, title}
-		wn, ww, wf, wt = max(wn, len(rows[i].when)), max(ww, lipgloss.Width(rows[i].who)), max(wf, lipgloss.Width(rows[i].where)), max(wt, len(rows[i].tokens))
+		rows[i] = row{sessAgo(s.Last, now), cmp.Or(names[s.Agent], s.Agent), trunc(where, 24), title}
+		wn, ww, wf = max(wn, len(rows[i].when)), max(ww, lipgloss.Width(rows[i].who)), max(wf, lipgloss.Width(rows[i].where))
 	}
 	visible := max(3, height-11) // the header, the bar, the arrows, the command and the footer around them
 	start := 0
@@ -284,7 +273,7 @@ func sessListLines(list []sessions.Session, agents []*agent.Agent, rng int, mode
 		if i == sel {
 			marker, who = sCursor.Render("▸ "), sNameOn.Render(padRight(r.who, ww))
 		}
-		line := marker + sMuted.Render(padRight(r.when, wn)) + "  " + who + "  " + sText.Render(padRight(r.where, wf)) + "  " + sText.Render(padRight(r.tokens, wt)) + "  " + r.cost
+		line := marker + sMuted.Render(padRight(r.when, wn)) + "  " + who + "  " + sText.Render(padRight(r.where, wf))
 		if room := width - lipgloss.Width(line) - 2; room > 8 {
 			line += "  " + sMuted.Render(trunc(r.title, room))
 		}
@@ -314,183 +303,6 @@ func sessAgo(t, now time.Time) string {
 		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
 	}
 	return t.In(time.Local).Format("2006-01-02")
-}
-
-// sessLines is the stats view below the header: the bar, the totals, the
-// chart and the top models and folders, each line indented.
-func sessLines(st sessions.Stats, rng int, model, folder string, byCost bool, width, height int) []string {
-	var out []string
-	add := func(s string) { out = append(out, pad+"  "+s) }
-	add(sessBar(rng, model, folder, true))
-	add("")
-
-	r := st.Sum(model, folder)
-	if r.Spent() == 0 && r.CacheRead == 0 {
-		if model != "" || folder != "" {
-			add(sMuted.Render("no session matches · x clears the filters"))
-		} else {
-			add(sMuted.Render(sessNothing()))
-		}
-		return out
-	}
-	c := sFaint.Render("no price")
-	if r.Cost > 0 {
-		c = sOK.Render(fmtCost(usage.Totals{Cost: r.Cost, Unpriced: len(r.Unpriced)}))
-	}
-	hit := ""
-	// of all the prompts came to: Input leaves out what was read from the
-	// cache and what was written to it
-	if p := r.Input + r.CacheRead + r.CacheWrite; r.CacheRead > 0 && p > 0 {
-		hit = sMuted.Render(fmt.Sprintf(" (%d%% hit)", 100*r.CacheRead/p))
-	}
-	active := sessions.Duration(r.Active)
-	if r.Active >= 0 {
-		active += sMuted.Render(fmt.Sprintf(" on %d day%s", r.DaysUsed, plural(r.DaysUsed)))
-	} else {
-		active += sMuted.Render(" not kept by model")
-	}
-	add(sName.Render(fmtTokens(r.Spent())+" tokens") + sMuted.Render(" · ") + c + sMuted.Render(" · cache read ") + sText.Render(fmtTokens(r.CacheRead)) + hit + sMuted.Render(" · active ") + sText.Render(active))
-	add(sMuted.Render("in " + fmtTokens(r.Input) + "  out " + fmtTokens(r.Output) + "  cache write " + fmtTokens(r.CacheWrite)))
-	add("")
-
-	chart := sessChart(r.Days, byCost, width, 6)
-	for _, l := range chart {
-		add(l)
-	}
-	if len(chart) > 0 {
-		add("")
-	}
-
-	room := max(2, (height-18-len(chart))/2)
-	table := func(head string, ss []sessions.Share, name func(string) string) {
-		if len(ss) == 0 {
-			return
-		}
-		add(sFaint.Render(head))
-		w := 0
-		for _, s := range ss[:min(len(ss), room)] {
-			w = max(w, lipgloss.Width(name(s.Name)))
-		}
-		total := 0
-		for _, s := range ss {
-			total += s.Spent()
-		}
-		for i, s := range ss {
-			if i == room {
-				add(sFaint.Render(fmt.Sprintf("and %d more · f and M pick one", len(ss)-room)))
-				break
-			}
-			sc := sFaint.Render("no price")
-			if s.Cost > 0 {
-				sc = sOK.Render(fmtCost(usage.Totals{Cost: s.Cost}))
-			}
-			add(sText.Render(padRight(name(s.Name), w)) + "  " + sMuted.Render(fmt.Sprintf("%3.0f%%", 100*float64(s.Spent())/float64(max(1, total)))) + "  " + sText.Render(padRight(fmtTokens(s.Spent()), 7)) + "  " + sc)
-		}
-		add("")
-	}
-	if model == "" {
-		table("models", r.Models, func(s string) string { return s })
-	}
-	if folder == "" {
-		table("folders", r.Folders, func(s string) string {
-			if s == "" {
-				return "(no folder)"
-			}
-			return trunc(tildePath(s), 48)
-		})
-	}
-	return out
-}
-
-// sessChart is the days as a bar chart of block characters, height rows
-// tall and at most width wide: a column a day, or a week (or more) when
-// the days don't fit; its peak on the right, its first and last day under
-// it. Nothing for a range of one day.
-func sessChart(days []sessions.DayTotal, byCost bool, width, height int) []string {
-	if len(days) < 2 || height < 1 {
-		return nil
-	}
-	const label = 10 // room for the peak on the right
-	cols := max(8, width-label)
-	step := 1
-	for (len(days)+step-1)/step > cols {
-		step++
-	}
-	if step > 1 && step < 7 && (len(days)+6)/7 <= cols {
-		step = 7
-	}
-	type bucket struct {
-		date  string
-		value float64
-	}
-	var bs []bucket
-	for i := 0; i < len(days); i += step {
-		b := bucket{date: days[i].Date}
-		for _, d := range days[i:min(len(days), i+step)] {
-			if byCost {
-				b.value += d.Cost
-			} else {
-				b.value += float64(d.Spent())
-			}
-		}
-		bs = append(bs, b)
-	}
-	peak := 0.0
-	for _, b := range bs {
-		peak = max(peak, b.value)
-	}
-	if peak == 0 {
-		return nil
-	}
-	// a gap between the columns while there is room for it
-	gap := ""
-	if 2*len(bs) <= cols {
-		gap = " "
-	}
-	fill := []rune(" ▁▂▃▄▅▆▇█")
-	lines := make([]string, height)
-	for row := range height {
-		level := height - 1 - row
-		var sb strings.Builder
-		for i, b := range bs {
-			if i > 0 {
-				sb.WriteString(gap)
-			}
-			eighths := int(b.value * float64(height*8) / peak)
-			if b.value > 0 {
-				eighths = max(1, eighths)
-			}
-			sb.WriteRune(fill[min(8, max(0, eighths-level*8))])
-		}
-		lines[row] = sCursor.Render(sb.String())
-	}
-	top := fmtTokens(int(peak))
-	if byCost {
-		top = fmtCost(usage.Totals{Cost: peak})
-	}
-	lines[0] += "  " + sFaint.Render(top)
-	unit := "a day"
-	if step == 7 {
-		unit = "a week"
-	} else if step > 1 {
-		unit = fmt.Sprintf("%d days", step)
-	}
-	lines[height-1] += "  " + sFaint.Render(map[bool]string{false: "tokens", true: "cost"}[byCost]+" · "+unit)
-	span := len(bs) + (len(bs)-1)*len(gap)
-	first, last := shortDate(bs[0].date), shortDate(bs[len(bs)-1].date)
-	under := first
-	if n := span - len(first) - len(last); n > 0 {
-		under += strings.Repeat(" ", n) + last
-	}
-	return append(lines, sFaint.Render(under))
-}
-
-func shortDate(d string) string {
-	t, err := time.ParseInLocation(time.DateOnly, d, time.Local)
-	if err != nil {
-		return d
-	}
-	return t.Format("Jan 2")
 }
 
 func tildePath(p string) string {
