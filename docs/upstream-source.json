@@ -29732,13 +29732,13 @@
     },
     {
       "path": "docs/subsystems/gui-shell.md",
-      "sha256": "a9e4ba19f342e2bae15208ebb35d41d192d30ff239515caf1e0f106a3e7182fd",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Document the unified product sidebar for Settings, gateway status, version updates and version information. Scope Add-sheet subscriptions to the selected client, label third-party providers and hide local preset configuration through presentation options while retaining backend support. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Join retired signal handlers and capture startup hooks; document and test signal ownership without background hook races."
+      "sha256": "2122576981deaa8fa19b03b99f169cc976c0d74d6e0106e1d62ebecfd4adefe7",
+      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Document the unified product sidebar for Settings, gateway status, version updates and version information. Scope Add-sheet subscriptions to the selected client, label third-party providers and hide local preset configuration through presentation options while retaining backend support. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Join retired signal handlers and capture startup hooks; document and test signal ownership without background hook races. Canonicalize Windows 8.3 aliases for library directory identities and shell shortcut idempotence; retain missing-path fallback and distinct moved/hard-link pathnames. Verify actual aliases and shell links."
     },
     {
       "path": "docs/subsystems/library.md",
-      "sha256": "1992b1c69a4f2ec80fb2b6a46cbfe9de55bc7f2355420c8e23b18850e41d5405",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove cross-computer synchronization, portable/manual/automatic backups and obsolete feature-only tests; retain local config write safety and historical data compatibility. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Provide client-page image setup with an explicit shared image-model choice and per-client built-in tool injection using the retained settings and Library APIs, preserving other clients and reporting failed reads/writes. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks."
+      "sha256": "b981899b90cc5b72aca8688e5506522cb0367e491897436c8c1900447715edc8",
+      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove cross-computer synchronization, portable/manual/automatic backups and obsolete feature-only tests; retain local config write safety and historical data compatibility. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Provide client-page image setup with an explicit shared image-model choice and per-client built-in tool injection using the retained settings and Library APIs, preserving other clients and reporting failed reads/writes. Wait for Codex MCP library rewrites before CLI exit; verify completion while the library lock is held and retain read-only command checks. Canonicalize Windows 8.3 aliases for library directory identities and shell shortcut idempotence; retain missing-path fallback and distinct moved/hard-link pathnames. Verify actual aliases and shell links."
     },
     {
       "path": "docs/subsystems/mcp-router.md",
@@ -48444,8 +48444,8 @@
     },
     {
       "path": "internal/library/skills.go",
-      "sha256": "563492f0afca440b1e4bea76559ec01e8168ad8c7484d502b21c5e0a42bb0aaa",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "f7a7b283084817773782a6ffceb3f45948c93f2f32c9cf11ebda4891d90c6f3a",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Canonicalize Windows 8.3 aliases for library directory identities and shell shortcut idempotence; retain missing-path fallback and distinct moved/hard-link pathnames. Verify actual aliases and shell links."
     },
     {
       "path": "internal/library/skilltree.go",
@@ -48929,8 +48929,8 @@
     },
     {
       "path": "internal/proc/proc_windows_test.go",
-      "sha256": "d2c67600904e81058d0541b26ef4b9966a4f3dd15d583b3213fc70c8bc284a33",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "03e9cd40f3b29df929828b95feeabe532b01a33117c1588a446fa55b0b884882",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use ready parent/child process fixtures and explicitly held kill completion to verify process-tree shutdown under race instrumentation without exact timer-boundary assumptions."
     },
     {
       "path": "internal/proc/proc_windows.go",
@@ -52911,18 +52911,18 @@
     },
     {
       "path": "internal/shortcut/shortcut_windows_test.go",
-      "sha256": "7c790d83f510a8d7c34022ffcf0269fe6665dca38174fa8754ba71186a02241f",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "7bc336060175aa6793a944f493387a488b2c65aa1d68ccac9e25ed6087478d4b",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Canonicalize Windows 8.3 aliases for library directory identities and shell shortcut idempotence; retain missing-path fallback and distinct moved/hard-link pathnames. Verify actual aliases and shell links."
     },
     {
       "path": "internal/shortcut/shortcut_windows.go",
-      "sha256": "7410cc7938ab1effd3671fe02385170ab4e14ef41a24039c1c1c376f89d0e942",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "554f108ba15da676435bde69e7400b4403349ed81948d48087c6bfa2d50f25a0",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Canonicalize Windows 8.3 aliases for library directory identities and shell shortcut idempotence; retain missing-path fallback and distinct moved/hard-link pathnames. Verify actual aliases and shell links."
     },
     {
       "path": "internal/shortcut/shortcut.go",
-      "sha256": "e96387b08c701f168ca37fc691424377a76644ad7260ad79f1a7b38743d0a6a7",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "6f4bb2a5a2100cb38f48c26c48dafbe5d3dc961b860710289d6a9734f2e17175",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Canonicalize Windows 8.3 aliases for library directory identities and shell shortcut idempotence; retain missing-path fallback and distinct moved/hard-link pathnames. Verify actual aliases and shell links."
     },
     {
       "path": "internal/source/china_test.go",
@@ -54273,6 +54273,11 @@
       "path": "internal/catalog/listed_index_test.go",
       "sha256": "e7045c4114c0544a26ba048ff09533be954b29324b1006f310dfd292a40e1a38",
       "reason": "Repair race-detector regressions with synchronized synthetic server counters, immutable cache fixtures and allocation measurements isolated from fixture formatting and regexp pool eviction."
+    },
+    {
+      "path": "internal/proc/killtree_windows_test.go",
+      "sha256": "db045facbec43115d265fa925e1f2f0c257fc41fa9295278bc1feed5df5fce36",
+      "reason": "Use ready parent/child process fixtures and explicitly held kill completion to verify process-tree shutdown under race instrumentation without exact timer-boundary assumptions."
     }
   ],
   "removedFiles": [

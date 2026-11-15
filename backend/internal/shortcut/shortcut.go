@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/dieqiyun/uni-switch/backend/internal/appdir"
@@ -122,10 +123,25 @@ func Target(exe string) string {
 // exe: there is none yet, or the exe was moved. Windows paths are the same
 // in any case.
 func Stale(target, dir, exe string) bool {
-	same := func(a, b string) bool {
-		return a != "" && strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
+	return !sameLocation(target, exe) || !sameLocation(dir, filepath.Dir(exe))
+}
+
+// Windows shell links may return the long spelling of an 8.3 path (or
+// vice versa). Resolve existing aliases without equating different hard
+// link pathnames: moving the executable still repoints the shortcut.
+func sameLocation(a, b string) bool {
+	if a == "" || b == "" {
+		return false
 	}
-	return !same(target, exe) || !same(dir, filepath.Dir(exe))
+	if strings.EqualFold(filepath.Clean(a), filepath.Clean(b)) {
+		return true
+	}
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	left, errA := filepath.EvalSymlinks(a)
+	right, errB := filepath.EvalSymlinks(b)
+	return errA == nil && errB == nil && strings.EqualFold(left, right)
 }
 
 // what Remove asks of the system besides startMenu; the tests put fakes in

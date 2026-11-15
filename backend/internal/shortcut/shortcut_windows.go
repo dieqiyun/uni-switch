@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -132,7 +131,7 @@ func unregisterAppPath(exe string) error {
 	}
 	v, _, err := k.GetStringValue("")
 	k.Close()
-	if err == nil && v != "" && !strings.EqualFold(filepath.Clean(v), filepath.Clean(exe)) {
+	if err == nil && v != "" && !sameLocation(v, exe) {
 		if _, err := os.Stat(v); err == nil {
 			return nil // another uni-switch's
 		}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,30 +89,24 @@ func TestEchoArgs(t *testing.T) {
 // a probe still asking when uni-switch exits is ended by EndProbes, and
 // EndProbes returns once its kill is over, not after its whole wait (#1278)
 func TestEndProbesWindows(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	cmd := ProbeContext(ctx, "ping", "-n", "60", "127.0.0.1")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := cmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	done := make(chan error, 1)
-	go func() {
-		_, _ = io.Copy(io.Discard, out)
-		done <- cmd.Wait()
-	}()
-	time.Sleep(500 * time.Millisecond) // asking, not starting
+	cmd, kids, done := startedTree(t, ProbeContext)
 	start := time.Now()
 	EndProbes()
-	if d := time.Since(start); d > endWait {
+	// Other probes can have answered without starting their cancel hook;
+	// EndProbes gives those endWait, and a started kill gets killWait.
+	// Allow scheduling room beyond that bound rather than comparing to
+	// the exact timer boundary. The completion test holds a kill explicitly.
+	if d := time.Since(start); d > endWait+killWait()+time.Second {
 		t.Fatalf("EndProbes took %v over a probe it killed", d)
 	}
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the probe went on after EndProbes")
+	}
+	for _, pid := range append(kids, uint32(cmd.Process.Pid)) {
+		if alive(pid) {
+			t.Errorf("probe process %d outlived EndProbes", pid)
+		}
 	}
 }

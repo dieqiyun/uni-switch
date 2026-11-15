@@ -22,6 +22,13 @@ take SIGINT/SIGTERM back while keeping probe cleanup on SIGHUP; session-index
 saving remains bounded before exit. `TestSignalHandlerKeepsStartedHooks` and the
 Unix signal tests cover the handoff and bounded saving.
 
+Windows Start menu shortcuts and App Paths compare existing long and 8.3 path
+spellings through [`sameLocation`](../../internal/shortcut/shortcut.go), so a
+shortcut already pointing at this executable is retained. A moved executable or
+a different hard-link pathname still requires repointing; a path that cannot be
+resolved is not assumed equal. `TestWriteShortAndLongPaths` exercises a real shell
+link and short alias without changing the user's Start menu or registry.
+
 ## Responsibilities and sources of truth
 
 | Part | Responsibility | Source |

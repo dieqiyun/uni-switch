@@ -470,6 +470,14 @@ func unlink(p string) error {
 func realDir(p string) string {
 	p = filepath.Clean(p)
 	if r, ok := resolve(p, 0); ok {
+		// A TEMP path can use 8.3 aliases while a client names the long
+		// spelling. Junctions are already followed by resolve; normalize
+		// the remaining Windows spelling so both name one library folder.
+		if runtime.GOOS == "windows" {
+			if long, err := filepath.EvalSymlinks(r); err == nil {
+				return long
+			}
+		}
 		return r
 	}
 	return p

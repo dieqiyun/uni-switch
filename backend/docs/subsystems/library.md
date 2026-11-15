@@ -17,6 +17,12 @@ Cross-computer setup synchronization and portable backups have been removed.
 Client configuration safety copies and local library application remain; see
 [the current boundary](sync-backup-removed.md).
 
+On Windows, [`realDir`](../../internal/library/skills.go) follows junctions and
+normalizes existing 8.3 aliases to their long spelling. A TEMP path and a client
+path using different spellings therefore identify one skill folder. An unreadable,
+missing or looping path retains its prior fallback behavior.
+`TestRealDirShortPathHasOneIdentity` checks an actual Windows short alias.
+
 The library keeps what every agent should know in one place: the
 instructions each agent reads before a conversation, the MCP servers it can
 call, the skills it can load, the hooks it runs at points of its turn, and
