@@ -16,16 +16,10 @@ import (
 // after a change) is decoded anew.
 func TestAlmaProvidersSeenDecodeOnce(t *testing.T) {
 	var mu sync.Mutex
-	gets, model := 0, "gpt-5.4"
-	asked := func() int { mu.Lock(); defer mu.Unlock(); return gets }
-	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			return
-		}
-		mu.Lock()
-		gets++
-		m := model
-		mu.Unlock()
+	gets := 0
+	// Build the fixture outside the allocation measurement. The HTTP server
+	// runs on another goroutine, whose formatting also counts in AllocsPerRun.
+	answer := func(m string) []byte {
 		var b strings.Builder
 		b.WriteString(`[{"id":"mg","name":"uni-switch","type":"openai","baseURL":"http://x/v1","enabled":true,"models":["` + m + `"],"availableModels":[`)
 		for i := range 400 {
@@ -35,7 +29,19 @@ func TestAlmaProvidersSeenDecodeOnce(t *testing.T) {
 			fmt.Fprintf(&b, `{"id":"m-%d","name":"Model %d","capabilityOverrides":{"vision":true,"functionCalling":true}}`, i, i)
 		}
 		b.WriteString(`]}]`)
-		rw.Write([]byte(b.String()))
+		return []byte(b.String())
+	}
+	body := answer("gpt-5.4")
+	asked := func() int { mu.Lock(); defer mu.Unlock(); return gets }
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			return
+		}
+		mu.Lock()
+		gets++
+		b := body
+		mu.Unlock()
+		rw.Write(b)
 	}))
 	t.Cleanup(srv.Close)
 	oldAPI, oldFor := almaAPI, almaReadFor
@@ -73,8 +79,9 @@ func TestAlmaProvidersSeenDecodeOnce(t *testing.T) {
 	mu.Lock()
 	gets = 1
 	mu.Unlock()
+	next := answer("gpt-5.5")
 	mu.Lock()
-	model = "gpt-5.5"
+	body = next
 	mu.Unlock()
 	if err := almaDo("PUT", "/api/providers/mg", map[string]any{}, nil); err != nil {
 		t.Fatal(err)

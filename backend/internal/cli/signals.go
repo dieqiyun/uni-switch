@@ -25,6 +25,7 @@ import (
 // take those back (ownSignals). A signal uni-switch was started ignoring (nohup,
 // a background job) stays ignored: asking for it would undo that.
 func endProbesOnSignal() {
+	stopSignals()
 	caught = nil
 	for _, s := range []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGHUP} {
 		if !signal.Ignored(s) {
@@ -35,8 +36,10 @@ func endProbesOnSignal() {
 		return
 	}
 	onSignal = make(chan os.Signal, 1)
+	signalDone = make(chan struct{})
 	signal.Notify(onSignal, caught...)
-	go func(sigs chan os.Signal) {
+	go func(sigs chan os.Signal, done chan struct{}, save func(), wait time.Duration, end func(os.Signal)) {
+		defer close(done)
 		for s := range sigs {
 			// asked before the probes are ended, which can take a moment
 			// the command may spend finishing, and stop asking
@@ -47,11 +50,23 @@ func endProbesOnSignal() {
 				gateway.FlushSticks()  // and who answered which conversation
 				// and the session index, or the next start reads every
 				// file a scan read since the last save again
-				savedWithin(sessionsSaved, saveOnSignal)
-				die(s)
+				savedWithin(save, wait)
+				end(s)
 			}
 		}
-	}(onSignal)
+	}(onSignal, signalDone, sessionsSaved, saveOnSignal, die)
+}
+
+// stopSignals unregisters and joins the handler before its hooks or owner
+// change. signal.Stop alone leaves the goroutine waiting on the old channel.
+func stopSignals() {
+	if onSignal == nil {
+		return
+	}
+	signal.Stop(onSignal)
+	close(onSignal)
+	<-signalDone
+	onSignal, signalDone = nil, nil
 }
 
 // saveOnSignal bounds how long a signal waits for the session index to be
@@ -75,8 +90,9 @@ func savedWithin(save func(), d time.Duration) {
 // caught are the signals endProbesOnSignal asked for; onSignal is where
 // they come.
 var (
-	caught   []os.Signal
-	onSignal chan os.Signal
+	caught     []os.Signal
+	onSignal   chan os.Signal
+	signalDone chan struct{}
 )
 
 // die ends uni-switch of s, as s would have had there been no handler: the
@@ -115,9 +131,7 @@ func ownSignals() {
 // leaveSignals hands every signal endProbesOnSignal asked for back, for a
 // command that starts no probe and ends on each its own way.
 func leaveSignals() {
-	if onSignal != nil {
-		signal.Stop(onSignal)
-	}
+	stopSignals()
 }
 
 // interrupts counts the commands ending themselves on Ctrl+C.

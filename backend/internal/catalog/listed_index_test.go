@@ -2,7 +2,6 @@ package catalog
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -35,16 +34,11 @@ func TestListedByReadsAnIndex(t *testing.T) {
 	if got, ok := ListedByBorrowed([]string{"big"}, "big/model_7.5"); !ok || len(got) != 0 {
 		t.Fatalf("a key under its bare id: %v %v", got, ok)
 	}
-	var a, b runtime.MemStats
-	runtime.ReadMemStats(&a)
-	for range 20 {
-		ask()
-	}
-	runtime.ReadMemStats(&b)
-	// a SameModel of each of 2000 keys is ~200KB; a look in the index a
-	// few strings
-	if per := (b.TotalAlloc - a.TotalAlloc) / 20; per > 8<<10 {
-		t.Fatalf("an ask took %d bytes with the catalog unchanged", per)
+	// Count allocations, not regexp's pooled machine bytes: the race
+	// runtime deliberately discards sync.Pool entries. An index lookup
+	// allocates a few strings; scanning 2000 model keys allocates thousands.
+	if per := testing.AllocsPerRun(20, func() { ask() }); per > 64 {
+		t.Fatalf("an ask allocated %v times with the catalog unchanged", per)
 	}
 
 	writeCatalog(t, big(`"low","high"`))
@@ -74,16 +68,8 @@ func TestKinEffortsReadsAnIndex(t *testing.T) {
 	if got := ask(); got != "low,high,max" {
 		t.Fatalf("glm-6.1-flash's line: %q", got)
 	}
-	var a, b runtime.MemStats
-	runtime.ReadMemStats(&a)
-	for range 20 {
-		ask()
-	}
-	runtime.ReadMemStats(&b)
-	// a versionless of each of 2000 keys is ~200KB; a look in the index a
-	// few strings
-	if per := (b.TotalAlloc - a.TotalAlloc) / 20; per > 8<<10 {
-		t.Fatalf("an ask took %d bytes with the catalog unchanged", per)
+	if per := testing.AllocsPerRun(20, func() { ask() }); per > 64 {
+		t.Fatalf("an ask allocated %v times with the catalog unchanged", per)
 	}
 
 	writeCatalog(t, big(`"low","high"`))

@@ -159,7 +159,9 @@ func TestClaudeCdKeptParseReadAgain(t *testing.T) {
 	// one this uni-switch made is kept: a session in a folder that isn't its
 	// cwd's for another reason (a project folder named by hand) is read once
 	mu.Lock()
-	cache[p].Cwd = "/w/elsewhere"
+	elsewhere := cache[p].clone()
+	elsewhere.Cwd = "/w/elsewhere"
+	cache[p] = elsewhere
 	mu.Unlock()
 	if rows := ccCdRows(t); len(rows) != 1 || rows[0].Cwd != "/w/elsewhere" {
 		t.Fatalf("a parse this uni-switch made was read again: %+v", rows)

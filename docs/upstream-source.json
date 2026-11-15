@@ -29732,8 +29732,8 @@
     },
     {
       "path": "docs/subsystems/gui-shell.md",
-      "sha256": "6376048246247428611ea98d4ec8c54257d9074c60eefeb91e2847e03da3bb74",
-      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Document the unified product sidebar for Settings, gateway status, version updates and version information. Scope Add-sheet subscriptions to the selected client, label third-party providers and hide local preset configuration through presentation options while retaining backend support. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout."
+      "sha256": "a9e4ba19f342e2bae15208ebb35d41d192d30ff239515caf1e0f106a3e7182fd",
+      "reason": "Remove synchronization/portable backup integration and management UI; retain client configuration safety, native core features and unrelated tests. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Remove configurable request/response masking, local detection models, rules, reversible placeholders, routes and related controls; retain diagnostic credential cleanup and protocol behavior. Remove external observability, OTLP/Langfuse collectors, gateway and usage observers, exported agent conversation traces, and related settings/UI/tests; retain local accounting and routing diagnostics. Document the unified product sidebar for Settings, gateway status, version updates and version information. Scope Add-sheet subscriptions to the selected client, label third-party providers and hide local preset configuration through presentation options while retaining backend support. Remove the Usage reports module, reporting APIs, tray totals and session Token/cost rendering; preserve local protocol accounting, account allowances, limits, routing diagnostics and session management. Remove routing group management, automatic grouping, templates, group rules and group execution from source; retain shared model parsing, direct provider routing, key/account rotation, fallbacks and historical trace decoding. Merge the sidebar version/update row, remove the credential note and add persistent accessible section disclosure. Remove the standalone Routing page, tray entry and animation/replay client; provide collapsible five-field request records in Gateway while retaining provider routing, rotation and fallback execution. Move Gateway controls into Settings with a compact status/address/restart card, collapsed request records and advanced keys/manual connection; remove the independent navigation and model-list UI while preserving the local gateway. Simplify settings and provider onboarding with progressive advanced controls, per-account automation, automatic model listing, native text zoom and autostart, contextual provider actions and concise connection errors; remove the retired classifier timeout. Join retired signal handlers and capture startup hooks; document and test signal ownership without background hook races."
     },
     {
       "path": "docs/subsystems/library.md",
@@ -29917,8 +29917,8 @@
     },
     {
       "path": "internal/agent/alma_seen_test.go",
-      "sha256": "17d9d9857a9f32f14acf8fc659e16f55ba58da002cc6c35f5c513934ae1f5cb5",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "bb8f414aa1a8dd49166909f08226939b51665fdad6fdd3905bc37a42b388c082",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair race-detector regressions with synchronized synthetic server counters, immutable cache fixtures and allocation measurements isolated from fixture formatting and regexp pool eviction."
     },
     {
       "path": "internal/agent/alma_test.go",
@@ -32856,8 +32856,8 @@
     },
     {
       "path": "internal/cli/accounts_import_cli_test.go",
-      "sha256": "769dd80160361d3e060cb0bf390d2fa9332d023ef69dd2bbde3996f689ac7943",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "0dc9db9eb202560b2e97b1bb8e1800d4bf39f8f9bbd16720334e0ddde5d3df4c",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair race-detector regressions with synchronized synthetic server counters, immutable cache fixtures and allocation measurements isolated from fixture formatting and regexp pool eviction."
     },
     {
       "path": "internal/cli/additional_tools_cli_test.go",
@@ -33411,8 +33411,8 @@
     },
     {
       "path": "internal/cli/signals_test.go",
-      "sha256": "d76068715c108afa27a9979be1dc4560775dd6c441037f3e5d266991463eecf6",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "2deaa46e7e7483643c6710d9b2480dd8d1cc4fe2fd38c267a2644fb690a68c51",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Join retired signal handlers and capture startup hooks; document and test signal ownership without background hook races."
     },
     {
       "path": "internal/cli/signals_unix.go",
@@ -33421,8 +33421,8 @@
     },
     {
       "path": "internal/cli/signals.go",
-      "sha256": "f31d7c162d52b95677c6b83e4fb3cc7eb0124d02a7795c03bd3db25d32d6e493",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "7847de4313ae44d53c7f1a0c65ab4d2138de6cf05d30ded1885f3a2cc67231cf",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Join retired signal handlers and capture startup hooks; document and test signal ownership without background hook races."
     },
     {
       "path": "internal/cli/snow_cli_test.go",
@@ -52196,8 +52196,8 @@
     },
     {
       "path": "internal/sessions/cc_cd_test.go",
-      "sha256": "42ffa4cc180a16c704a584edbd69df2984747d13e001b711499114dd6e4260a5",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "fb112a7d692cfea1d252f580dcb55eb9ccf69fe3ee83fcc8eeb2553aa54c2eb6",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair race-detector regressions with synchronized synthetic server counters, immutable cache fixtures and allocation measurements isolated from fixture formatting and regexp pool eviction."
     },
     {
       "path": "internal/sessions/cindy_test.go",
@@ -53276,8 +53276,8 @@
     },
     {
       "path": "internal/update/download_test.go",
-      "sha256": "2a6b4a0dbe4f30316d5e7677a2679d024523e8e0854469edb5c06d22c0b1140c",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "470dde49bde34b51963007fb2a87254257c30c6c89ba287c0df62d5c2c431d48",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair race-detector regressions with synchronized synthetic server counters, immutable cache fixtures and allocation measurements isolated from fixture formatting and regexp pool eviction."
     },
     {
       "path": "internal/update/elevate_script_test.go",
@@ -54268,6 +54268,11 @@
       "path": "docs/subsystems/claude-subscription-bridge.md",
       "sha256": "f650a12032e6bd794094ed7e6537430d2fc2eaa2a08ba51c0ea058b86645a499",
       "reason": "Bound Claude MCP tool names to 64 characters including the uni-switch namespace and verify boundary names and uniqueness."
+    },
+    {
+      "path": "internal/catalog/listed_index_test.go",
+      "sha256": "e7045c4114c0544a26ba048ff09533be954b29324b1006f310dfd292a40e1a38",
+      "reason": "Repair race-detector regressions with synchronized synthetic server counters, immutable cache fixtures and allocation measurements isolated from fixture formatting and regexp pool eviction."
     }
   ],
   "removedFiles": [

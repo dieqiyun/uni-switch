@@ -26,10 +26,7 @@ func deaths(t *testing.T, sigs ...os.Signal) chan os.Signal {
 	old := die
 	die = func(s os.Signal) { died <- s }
 	t.Cleanup(func() {
-		if onSignal != nil {
-			signal.Stop(onSignal)
-			onSignal = nil
-		}
+		stopSignals()
 		die = old
 	})
 	return died
@@ -166,10 +163,13 @@ func TestSignalSavesTheSessionIndex(t *testing.T) {
 		t.Fatal("died without the session index saved")
 	}
 
+	stopSignals()
 	saveOnSignal = 50 * time.Millisecond
 	stuck := make(chan struct{})
-	t.Cleanup(func() { close(stuck) })
-	sessionsSaved = func() { <-stuck }
+	savedDone := make(chan struct{})
+	t.Cleanup(func() { close(stuck); <-savedDone })
+	sessionsSaved = func() { <-stuck; close(savedDone) }
+	endProbesOnSignal()
 	send(t, syscall.SIGTERM)
 	diesOf(t, died, syscall.SIGTERM)
 }

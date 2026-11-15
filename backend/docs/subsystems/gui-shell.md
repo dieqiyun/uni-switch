@@ -14,6 +14,14 @@ The standalone Routing page and tray tab, animation and replay assets are remove
 See [progressive settings and onboarding](newcomer-settings.md) for the current
 default settings, native text size/autostart and account automation controls.
 
+Signal ownership is managed by [`internal/cli/signals.go`](../../internal/cli/signals.go).
+Each probe-cleanup handler keeps its startup save/exit hooks. Replacing it or
+returning all signals to a command unregisters and joins that handler, so an old
+handler cannot keep waiting or use a later command's hooks. The app and TUI still
+take SIGINT/SIGTERM back while keeping probe cleanup on SIGHUP; session-index
+saving remains bounded before exit. `TestSignalHandlerKeepsStartedHooks` and the
+Unix signal tests cover the handoff and bounded saving.
+
 ## Responsibilities and sources of truth
 
 | Part | Responsibility | Source |

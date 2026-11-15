@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,11 +33,11 @@ func TestAccountsImport(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
 	t.Setenv("CODEX_HOME", filepath.Join(home, ".codex"))
-	asked := 0
+	var asked atomic.Int32
 	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]string
 		json.NewDecoder(r.Body).Decode(&body)
-		asked++
+		asked.Add(1)
 		who := strings.TrimPrefix(body["refresh_token"], "r-")
 		if who == body["refresh_token"] {
 			w.WriteHeader(400)
@@ -85,8 +86,8 @@ func TestAccountsImport(t *testing.T) {
 
 	// not agreed to: the takeover said, nothing asked of ChatGPT
 	out, err := run("codex", a, b)
-	if err == nil || !strings.Contains(err.Error(), "canceled") || asked != 0 || len(provider.Logins("codex")) != 0 {
-		t.Fatalf("imported without --yes: %v %d\n%s", err, asked, out)
+	if err == nil || !strings.Contains(err.Error(), "canceled") || asked.Load() != 0 || len(provider.Logins("codex")) != 0 {
+		t.Fatalf("imported without --yes: %v %d\n%s", err, asked.Load(), out)
 	}
 	if !strings.Contains(out, "signed out of that account") || !strings.Contains(out, "only read") {
 		t.Fatalf("the takeover wasn't said:\n%s", out)

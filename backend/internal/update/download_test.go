@@ -157,9 +157,9 @@ func TestDownloadResumedFileIsStillChecked(t *testing.T) {
 // and the cause, not the signed address it was redirected to.
 func TestDownloadDroppedConnectionErrorKeepsAddressOut(t *testing.T) {
 	quickRetries(t)
-	tries := 0
+	var tries atomic.Int32
 	assets := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tries++
+		tries.Add(1)
 		conn, _, _ := w.(http.Hijacker).Hijack()
 		conn.Close() // EOF, no answer at all
 	}))
@@ -174,8 +174,8 @@ func TestDownloadDroppedConnectionErrorKeepsAddressOut(t *testing.T) {
 	if err == nil || !Network(err) {
 		t.Fatalf("err = %v, want a network error", err)
 	}
-	if tries != len(retryWaits)+1 {
-		t.Fatalf("tries = %d, want %d", tries, len(retryWaits)+1)
+	if n := tries.Load(); int(n) != len(retryWaits)+1 {
+		t.Fatalf("tries = %d, want %d", n, len(retryWaits)+1)
 	}
 	if msg := err.Error(); strings.Contains(msg, "SECRET") || strings.Contains(msg, "http") || !strings.Contains(msg, "uni-switch.new") || !strings.Contains(msg, "EOF") {
 		t.Fatalf("error = %q", msg)
