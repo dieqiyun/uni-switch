@@ -17,7 +17,7 @@ import (
 const modelUsage = `usage:
   uni-switch model name <provider/model>             the name the model goes by
   uni-switch model name <provider/model> <name>      name it so everywhere: in uni-switch, in the gateway's
-                                                 model list, and in the lists uni-switch writes into the agents
+                                                     model list, and in the lists uni-switch writes into the agents
   uni-switch model name <provider/model> --reset     give it back its own name
   uni-switch model efforts <provider/model>          the reasoning levels it offers, and those it has
   uni-switch model efforts <provider/model> <l>,<l>  offer only these of them, e.g. low,medium,high
@@ -25,18 +25,18 @@ const modelUsage = `usage:
   uni-switch model efforts <provider/model> off      send it no reasoning field at all
   uni-switch model price <provider/model>            what the model costs you, and what you said it costs
   uni-switch model price <provider/model> <in>,<out>,<cache read>,<cache write>
-                                                 say what it costs, in USD per million tokens, all four parts as
-                                                 0.12,1.20,0.01,0.15; 0 is a model served for nothing, which is
-                                                 a price, not the absence of one; a fifth part is a 1-hour cache
-                                                 write's (not given: a Claude model's is 2× input, any other's the 4th)
+                                                     say what it costs, in USD per million tokens, all four parts as
+                                                     0.12,1.20,0.01,0.15; 0 is a model served for nothing, which is
+                                                     a price, not the absence of one; a fifth part is a 1-hour cache
+                                                     write's (not given: a Claude model's is 2× input, any other's the 4th)
   uni-switch model price <provider/model> <in>,<out>,<cache read>,<cache write> --tier 272k <in>,<out>,<cr>,<cw>
-                                                 and what a request whose input, cached tokens included, is over
-                                                 272K costs, the whole request; --tier may be given again
+                                                     and what a request whose input, cached tokens included, is over
+                                                     272K costs, the whole request; --tier may be given again
   uni-switch model price <provider/model> --reset    take your price off this model
   uni-switch model price <model> <in>,<out>,<cache read>,<cache write>
-                                                 what the model costs from any provider you have not priced it
-                                                 for, kept as '*/<model>': for usage whose provider is gone, or
-                                                 a model models.dev doesn't price, e.g. gemini-3-pro-preview
+                                                     what the model costs from any provider you have not priced it
+                                                     for, kept as '*/<model>': for usage whose provider is gone, or
+                                                     a model models.dev doesn't price, e.g. gemini-3-pro-preview
   uni-switch model prices                            the models you priced
   uni-switch model context <provider/model>          how long a request it takes, and what you said it takes
   uni-switch model context <provider/model> <n>      say how long, as 200000 or 1m; '<provider>/*' is every model
@@ -46,69 +46,70 @@ const modelUsage = `usage:
   uni-switch model output <provider/model> --reset   take your limit off this model
   uni-switch model spec <provider/model>             its context window, max output, vision and reasoning levels
   uni-switch model spec <provider/model> [--context <n>] [--output <n>] [--vision on|off] [--reasoning <levels>]
-                                                 say any of them at once, e.g. --reasoning low-high; auto as a
-                                                 value goes back to the vendor's list (uni-switch model spec --help)
+                                                     say any of them at once, e.g. --reasoning low-high; auto as a
+                                                     value goes back to the vendor's list (uni-switch model spec --help)
   uni-switch model spec <provider/model> --reset     take every value you set off this model
   uni-switch model specs                             the models you gave a spec
   uni-switch model wire <provider/model>             the name the vendor is asked for, and the one you gave
   uni-switch model wire <provider/model> <name>      ask for the model by this name, for a relay that serves it
   uni-switch model wire '<provider>/*' <name>        ask for every model of that provider by this name; a * in
-                                                 it is the model, so vendor-c/* asks for model-3 as
-                                                 vendor-c/model-3. Quote it: a shell reads a bare * as a glob
+                                                     it is the model, so vendor-c/* asks for model-3 as
+                                                     vendor-c/model-3. Quote it: a shell reads a bare * as a glob
   uni-switch model wire <provider/model> --reset     ask for it by the name uni-switch knows it by again, under an
-                                                 id of its own for a provider that has since been deleted,
-                                                 and says when there was no name of its own to take away
+                                                     id of its own for a provider that has since been deleted,
+                                                     and says when there was no name of its own to take away
   uni-switch model wires                             the names your vendors are asked for models by
   uni-switch model id <provider/model>               the id uni-switch lists the model by, and the provider's own
   uni-switch model id <provider/model> <id>          list the model by this id at that provider, e.g.
-                                                 relay-a/deepseek-v4.1-flash-1017 deepseek-v4.1-flash: agents,
-                                                 /v1/models, routing groups, the groups uni-switch finds, gateway keys
-                                                 and Usage all use it, and relay-a is still asked for
-                                                 deepseek-v4.1-flash-1017. One id is one model of a provider: the
-                                                 latest model given an id has it, and a model of the provider's
-                                                 own with that id is not listed while another is. A provider of
-                                                 your own (a key) only
+                                                     relay-a/deepseek-v4.1-flash-1017 deepseek-v4.1-flash: agents,
+                                                     /v1/models, routing groups, the groups uni-switch finds, gateway keys
+                                                     and Usage all use it, and relay-a is still asked for
+                                                     deepseek-v4.1-flash-1017. One id is one model of a provider: the
+                                                     latest model given an id has it, and a model of the provider's
+                                                     own with that id is not listed while another is. A provider of
+                                                     your own (a key) only
   uni-switch model id <provider/model> --reset       list it by the provider's own id again
   uni-switch model ids                               the models you list by an id of your own
   uni-switch model api <provider/model>... <api>     ask the model(s) on one API of the provider's: chat,
-                                                 responses, anthropic, gemini, or auto (--reset) for the
-                                                 vendor's list and every URL it has (uni-switch model api --help)
+                                                     responses, anthropic, gemini, or auto (--reset) for the
+                                                     vendor's list and every URL it has (uni-switch model api --help)
   uni-switch model apis [<provider>]                 the models you set an API for, or each of a provider's
   uni-switch model names                             the models you named or narrowed
   uni-switch model alias <model> <name>              count the model's usage under another model id in Usage,
-                                                 Sessions and the usage summaries, e.g. deepseek-v4.1-flash
-                                                 deepseek-flash: two ids of one model are one row. Each call is
-                                                 still priced by the id it was made under. Requests, routing and
-                                                 the agents' model lists never change. Ids match as the routing
-                                                 groups match them: a vendor/ prefix, case, "_" or a snapshot
-                                                 date make no difference
+                                                     Sessions and the usage summaries, e.g. deepseek-v4.1-flash
+                                                     deepseek-flash: two ids of one model are one row. Each call is
+                                                     still priced by the id it was made under. Requests, routing and
+                                                     the agents' model lists never change. Ids match as the routing
+                                                     groups match them: a vendor/ prefix, case, "_" or a snapshot
+                                                     date make no difference
   uni-switch model alias <model>                     the name the model's usage is counted under
   uni-switch model alias <model> --reset             count its usage under its own id again
   uni-switch model aliases                           the models whose usage you count under another id
   uni-switch model disable <model> [<model>...]      turn models off for every request through uni-switch: each an id
-                                                 (provider/model or a bare model id) or a glob, * any run of
-                                                 characters and ? one, as '*fable*'. A disabled model leaves
-                                                 every list and routing group, and the gateway refuses it on
-                                                 every route (403). Quote a glob: a shell reads a bare *
+                                                     (provider/model or a bare model id) or a glob, * any run of
+                                                     characters and ? one, as '*fable*'. A disabled model leaves
+                                                     every list and routing group, and the gateway refuses it on
+                                                     every route (403). Quote a glob: a shell reads a bare *
   uni-switch model enable <model> [<model>...]       take them off the disabled list, as written there
   uni-switch model disabled                          the disabled list, and the models each one turns off now
   uni-switch model suffix [on|own|off]               whether the agents' lists name each model with its provider
-                                                 (or "routing group") after it: on, as by default, "Sol · OpenAI";
-                                                 own, a name you gave a model just as you wrote it, "Opus 5.5",
-                                                 the others as on; off, "Sol" alone — but two a list would name
-                                                 the same keep it
+                                                     (or "routing group") after it: on, as by default, "Sol · OpenAI";
+                                                     own, a name you gave a model just as you wrote it, "Opus 5.5",
+                                                     the others as on; off, "Sol" alone — but two a list would name
+                                                     the same keep it
   uni-switch model compact [on|off|<size>]           whether Codex, Claude Code and Grok Build compact a long
-                                                 conversation at 272K: on, as by default, for a model of a
-                                                 longer window (in Claude Code, a Claude model runs to its
-                                                 own); off, at the model's whole window, 1M for a [1m] one; a
-                                                 size such as 500k compacts there instead. The app's Long
-                                                 conversations, in Codex's, Claude Code's and Grok Build's
-                                                 settings on the Agents page,
-                                                 is the same switch; a provider's own Compact at (its
-                                                 editor) comes before it
-  uni-switch model compact <agent> [every|off|<size>] codex, claude or grok's own Long conversations: every
-                                                 follows the one above; off runs to the whole window; a
-                                                 size compacts there
+                                                     conversation at 272K: on, as by default, for a model of a
+                                                     longer window (in Claude Code, a Claude model runs to its
+                                                     own); off, at the model's whole window, 1M for a [1m] one; a
+                                                     size such as 500k compacts there instead. The app's Long
+                                                     conversations, in Codex's, Claude Code's and Grok Build's
+                                                     settings on the Agents page,
+                                                     is the same switch; a provider's own Compact at (its
+                                                     editor) comes before it
+  uni-switch model compact <agent> [every|off|<size>]
+                                                     codex, claude or grok's own Long conversations: every
+                                                     follows the one above; off runs to the whole window; a
+                                                     size compacts there
 
   Each is looked for in this order: this model, then <provider id>/*, then the provider's own
   list, then models.dev. --reset removes only the first, and says so when a <provider id>/* value

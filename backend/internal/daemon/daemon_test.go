@@ -443,15 +443,15 @@ func TestInstallWithWeb(t *testing.T) {
 	}{
 		{"linux", func() string {
 			return filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "systemd", "user", "uni-switch.service")
-		}, "ExecStart=\"/opt/my uni-switch/uni-switch%%1\" serve \"--web=0.0.0.0:3430\"\n", "Environment=\"UNI_SWITCH_WEB_KEY=" + key + "\"\n"},
+		}, "ExecStart=\"/opt/my uni-switch/uni-switch%%1\" serve \"--web=127.0.0.1:3430\"\n", "Environment=\"UNI_SWITCH_WEB_KEY=" + key + "\"\n"},
 		{"darwin", func() string {
 			return filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "io.uni-switch.desktop.serve.plist")
-		}, "<array><string>/opt/my uni-switch/uni-switch%1</string><string>serve</string><string>--web=0.0.0.0:3430</string></array>", "<key>UNI_SWITCH_WEB_KEY</key><string>" + key + "</string>"},
+		}, "<array><string>/opt/my uni-switch/uni-switch%1</string><string>serve</string><string>--web=127.0.0.1:3430</string></array>", "<key>UNI_SWITCH_WEB_KEY</key><string>" + key + "</string>"},
 	} {
 		t.Run(c.goos, func(t *testing.T) {
 			fakes(t, c.goos)
 			t.Setenv("UNI_SWITCH_WEB_KEY", "from-the-shell-0123456789")
-			if err := Install(Options{Web: "0.0.0.0:3430", Key: key}); err != nil {
+			if err := Install(Options{Web: "127.0.0.1:3430", Key: key}); err != nil {
 				t.Fatal(err)
 			}
 			b, err := os.ReadFile(c.file())
@@ -471,7 +471,7 @@ func TestInstallWithWeb(t *testing.T) {
 					t.Errorf("plutil: %s", out)
 				}
 			}
-			if a, k := Web(); a != "0.0.0.0:3430" || k != key {
+			if a, k := Web(); a != "127.0.0.1:3430" || k != key {
 				t.Errorf("Web: %q %q", a, k)
 			}
 			if err := Install(Options{}); err != nil {

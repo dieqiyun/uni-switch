@@ -538,7 +538,9 @@ func TestGrokInstalled(t *testing.T) {
 		if version != "" {
 			name = "grok-" + version + "-" + platform
 		}
-		os.Chtimes(file(t, filepath.Join(home, ".grok/downloads", name), "MZ"), when, when)
+		download := filepath.Join(home, ".grok/downloads", name)
+		testenv.Program(t, download, "#!/bin/sh\nexit 0\n")
+		os.Chtimes(download, when, when)
 		bin = filepath.Join(home, ".grok/bin/grok")
 		os.Remove(bin)
 		link(t, "../downloads/"+name, bin)

@@ -30383,8 +30383,8 @@
     },
     {
       "path": "internal/agent/cliupdate_test.go",
-      "sha256": "876fdce5d6309b9df485035379280df195c80c1f7dd4c6d11753d9bb0aa73dac",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align isolated regression fixtures with retained provider, key-group, context-window and local-only contracts; use synthetic credentials and portable native-process/path fixtures."
+      "sha256": "3f03f9cc8dc970bfd5214a26576fa19861e8c6b9e573a459546656fb0bb6e9b2",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align isolated regression fixtures with retained provider, key-group, context-window and local-only contracts; use synthetic credentials and portable native-process/path fixtures. Align native-platform integration fixtures with retained local-only provider contracts, use executable isolated stand-ins and repair CLI help description alignment."
     },
     {
       "path": "internal/agent/cliupdate.go",
@@ -31706,8 +31706,8 @@
     },
     {
       "path": "internal/agent/pi_native_models_test.go",
-      "sha256": "bfe8ffc583369ce69fbbdb546e9a5f6c26fc2b1c8f56b734f4f7fde2fde9267e",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "6937292faff0ec5dbdaa64f23b41682dc12932a1f8b2a4308e88526f0fea05b4",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align native-platform integration fixtures with retained local-only provider contracts, use executable isolated stand-ins and repair CLI help description alignment."
     },
     {
       "path": "internal/agent/pi_scope_test.go",
@@ -33131,8 +33131,8 @@
     },
     {
       "path": "internal/cli/model_cli.go",
-      "sha256": "f08f393b6fb9ad15189e1bb0218d83d479a4862c247222c1699560f8e10c37f7",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Repair integrated retained behavior: local key attribution and revocation, ordinary provider/key fallback, stable client sync, native identity and Windows transport/path handling; remove retired terminal usage reports."
+      "sha256": "f7133616aaeb33acf024832b2df3f8c6ffc6fd760ffb62833a0c0fb3313520f2",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Repair integrated retained behavior: local key attribution and revocation, ordinary provider/key fallback, stable client sync, native identity and Windows transport/path handling; remove retired terminal usage reports. Align native-platform integration fixtures with retained local-only provider contracts, use executable isolated stand-ins and repair CLI help description alignment."
     },
     {
       "path": "internal/cli/model_compact_cli_test.go",
@@ -33331,8 +33331,8 @@
     },
     {
       "path": "internal/cli/save_sync_behind_test.go",
-      "sha256": "c7b7c864e9cd62376966db20a15d87838937d45aa5b180a07fff2d35b5c52204",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "a5de777999736584d2a06f79ad62b71616c44dd7816e9e297a3926885ced36db",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align native-platform integration fixtures with retained local-only provider contracts, use executable isolated stand-ins and repair CLI help description alignment."
     },
     {
       "path": "internal/cli/search_cli_test.go",
@@ -33671,8 +33671,8 @@
     },
     {
       "path": "internal/daemon/daemon_test.go",
-      "sha256": "5bcb47781cf641d61c996a564d3ad4cb28a6e8f0c4dfdfda7be5a035124b9c04",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "e3bc3a23507f7c007654e6ff1db4ba8741d9db0140c42a273c05c9f5aa040bb7",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Align native-platform integration fixtures with retained local-only provider contracts, use executable isolated stand-ins and repair CLI help description alignment."
     },
     {
       "path": "internal/daemon/daemon.go",

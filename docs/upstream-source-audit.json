@@ -33,7 +33,7 @@
   },
   {
     "file": "backend/internal/daemon/daemon_test.go",
-    "sha256": "5bcb47781cf641d61c996a564d3ad4cb28a6e8f0c4dfdfda7be5a035124b9c04",
+    "sha256": "e3bc3a23507f7c007654e6ff1db4ba8741d9db0140c42a273c05c9f5aa040bb7",
     "types": [
       "credential_url"
     ],

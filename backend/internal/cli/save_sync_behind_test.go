@@ -18,7 +18,7 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/provider"
 )
 
-// A routing group or a provider saved answers before the agents' model
+// A provider saved answers before the agents' model
 // lists are rewritten. Every save ends in catalog.Changed, which rewrote
 // each agent's files inside the request; on Windows each file an agent
 // holds open cost half a second of retried renames, and a save took
@@ -69,7 +69,6 @@ func TestSaveAnswersBeforeTheAgentsSync(t *testing.T) {
 
 	syncAgentsOnChange()
 	for _, c := range []struct{ name, path, body string }{
-		{"group", "/api/groups/save", `{"id":"g1","from":"g1","name":"G1","members":["a/m1"]}`},
 		{"provider", "/api/provider/save", `{"id":"a","from":"a","name":"A","key":"ka","chat":"http://127.0.0.1:1/v1","models":["m1"]}`},
 	} {
 		t.Run(c.name, func(t *testing.T) {

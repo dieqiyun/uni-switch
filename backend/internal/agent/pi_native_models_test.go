@@ -97,7 +97,7 @@ func TestPiOffersItsOwnOpenAICodexModels(t *testing.T) {
 		t.Fatalf("openai rows: %v", pickRows(opts, "openai/"))
 	}
 	for _, o := range opts {
-		if o.Value == "openai-codex/gpt-6-astra" && o.GroupIcon == "" {
+		if o.Value == "openai-codex/gpt-6-astra" && o.Icon != "openai" {
 			t.Fatalf("no provider logo: %+v", o)
 		}
 	}
