@@ -2,15 +2,19 @@ package gateway
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/dieqiyun/uni-switch/backend/internal/proc"
 	"github.com/dieqiyun/uni-switch/backend/internal/provider"
 )
 
@@ -34,6 +38,22 @@ func (s *streamingHold) Flush()                      {}
 // it before the gateway has the answer, and a request not answered yet
 // still holds what it sent.
 func TestStreamingRequestsLetTheirSentBodyGo(t *testing.T) {
+	// HeapAlloc covers the entire process. Run the measurement in a fresh
+	// instance of this same test binary so unrelated suite workers and
+	// caches cannot become part of these requests' retained memory. A race
+	// binary also starts a race-instrumented child; the limit stays the same.
+	const child = "UNI_SWITCH_TEST_STREAMING_HEAP"
+	if os.Getenv(child) != t.Name() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		cmd := proc.CommandContext(ctx, os.Args[0], "-test.run=^"+t.Name()+"$", "-test.timeout=90s", "-test.v")
+		cmd.Env = append(os.Environ(), child+"="+t.Name())
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("isolated streaming heap check: %v\n%s", err, out)
+		}
+		return
+	}
 	fresh(t)
 	const n = 8
 	answered := make(chan struct{}, n)

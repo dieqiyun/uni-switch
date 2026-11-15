@@ -38931,8 +38931,8 @@
     },
     {
       "path": "internal/gateway/streaming_heap_test.go",
-      "sha256": "ea336490a12195ceaa0e8000a1c5c3a799c9faee0d0c5bf1e0b24f0dc52dba7a",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "36c619c6f8e98951640ab15a0fc34e4ce3eb4c5bbb63c6385162837ed28a6474",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Run the original streaming heap measurement in a fresh instance of the same test binary to isolate process-wide HeapAlloc from suite background work; retain the three-body limit and verify disabling LetGo still fails."
     },
     {
       "path": "internal/gateway/strict_affinity_test.go",
