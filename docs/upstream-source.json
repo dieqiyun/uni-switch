@@ -52841,8 +52841,8 @@
     },
     {
       "path": "internal/settings/save_concurrent_test.go",
-      "sha256": "68ef545464992960f5d61daeb734c46e6bb6136b92e6886cdcfea5862d32ad38",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations."
+      "sha256": "fa54044c5c08f6bcaa21c32a1ff2b78a762b3d3d40fd74c300185549d689c45d",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the known-file reader for the Windows replacement window while retaining independent complete-JSON and field checks; report the first read error."
     },
     {
       "path": "internal/settings/save_test.go",
