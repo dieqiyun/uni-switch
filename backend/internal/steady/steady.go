@@ -76,6 +76,17 @@ func retryMissing(f func() error, count int, delay time.Duration) error {
 	return err
 }
 
+// retryThere shares one allowance across missing-file and sharing errors.
+// Alternating errors must not restart a half-second wait at every attempt.
+func retryThere(f func() error) error {
+	err := f()
+	for i := 0; err != nil && windows && !errors.Is(err, errPathNotFound) && i < tries; i++ {
+		time.Sleep(pause)
+		err = f()
+	}
+	return err
+}
+
 // Stat is os.Stat of a file that was there: one being replaced is waited
 // for, so it isn't taken for gone. A file not there costs the wait, so a
 // caller asking again remembers it gone (filememo does).
@@ -94,10 +105,10 @@ func Stat(p string) (fs.FileInfo, error) {
 // found still use Stat's short wait; a genuinely deleted file remains an error.
 func StatThere(p string) (fs.FileInfo, error) {
 	var fi fs.FileInfo
-	err := retryMissing(func() (err error) {
+	err := retryThere(func() (err error) {
 		fi, err = stat(p)
 		return err
-	}, tries, pause)
+	})
 	return fi, err
 }
 
@@ -105,10 +116,10 @@ func StatThere(p string) (fs.FileInfo, error) {
 // it being replaced, waited out.
 func ReadThere(p string) ([]byte, error) {
 	var b []byte
-	err := retryMissing(func() (err error) {
+	err := retryThere(func() (err error) {
 		b, err = readFile(p)
 		return err
-	}, tries, pause)
+	})
 	return b, err
 }
 
@@ -118,10 +129,10 @@ func ReadThere(p string) ([]byte, error) {
 // as it started (a 1.5 MB config.toml read 150 times over).
 func ReadThereInto(p string, buf []byte) ([]byte, error) {
 	var b []byte
-	err := retryMissing(func() (err error) {
+	err := retryThere(func() (err error) {
 		b, err = readInto(p, buf[:0])
 		return err
-	}, tries, pause)
+	})
 	return b, err
 }
 

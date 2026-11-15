@@ -23,5 +23,5 @@ try{
  process.exitCode=result.status??1;
 }finally{
  if(fd!==undefined)closeSync(fd);
- const path=relative(qa,home);if(path&&!path.startsWith(".."+sep)&&path!=="..")rmSync(home,{recursive:true,force:true});
+ const path=relative(qa,home);if(path&&!path.startsWith(".."+sep)&&path!=="..")rmSync(home,{recursive:true,force:true,maxRetries:10,retryDelay:100});
 }

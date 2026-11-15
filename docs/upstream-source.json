@@ -52981,8 +52981,8 @@
     },
     {
       "path": "internal/steady/steady.go",
-      "sha256": "05959a89d4c853b35b99a512aa8aa9acc4ce15b7ef121871a9f28f36677c08ff",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage."
+      "sha256": "671f2e3285e6a8e879b63235e8aac33fb1fd3925cc81b243f7120806c9c5c573",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage. Bound Windows known-file retries across alternating missing/sharing errors and verify the retry regression against the prior behavior."
     },
     {
       "path": "internal/steady/write_test.go",
@@ -54261,8 +54261,8 @@
     },
     {
       "path": "internal/steady/steady_test.go",
-      "sha256": "1bf52d61eb2b2d5393bef1a74577dbf762d1dae0ae966f45cc3e805d786c3ed8",
-      "reason": "Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage."
+      "sha256": "a1451e506ef4ef01793eb1650c40ef883f738155217e324427492bebeaec2126",
+      "reason": "Repair the retained local key contract, reject retired routing preferences and wait out concurrent Windows credential-file replacements; preserve confirmed deletion and regression coverage. Bound Windows known-file retries across alternating missing/sharing errors and verify the retry regression against the prior behavior."
     }
   ],
   "removedFiles": [

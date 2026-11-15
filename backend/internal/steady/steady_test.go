@@ -63,6 +63,25 @@ func TestKnownFileWaitsOutConcurrentReplacements(t *testing.T) {
 	}
 }
 
+func TestKnownFileAlternatingErrorsStayBounded(t *testing.T) {
+	windows = true
+	defer func() { windows, stat = runtime.GOOS == "windows", os.Stat }()
+	looks := 0
+	stat = func(string) (fs.FileInfo, error) {
+		looks++
+		if looks > tries+1 {
+			t.Fatal("alternating sharing and missing errors restarted the retry allowance")
+		}
+		if looks%2 == 0 {
+			return nil, fs.ErrPermission
+		}
+		return nil, fs.ErrNotExist
+	}
+	if _, err := StatThere("logins.json"); err == nil {
+		t.Fatal("a file that never becomes readable was accepted")
+	}
+}
+
 // #1665: a file whose folder isn't there is not being renamed into it, and
 // is said gone without the wait; most agents aren't installed, and each
 // one's first look waited the whole of it
