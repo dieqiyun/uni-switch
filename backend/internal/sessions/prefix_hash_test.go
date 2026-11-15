@@ -68,9 +68,15 @@ func TestPrefixHashUnchangedAndUnbuffered(t *testing.T) {
 		prefixHash(path, 1<<20)
 	}
 	runtime.ReadMemStats(&z)
-	// io.CopyN's buffers came to 65 KB a call. Under -race the pool drops
-	// some of what it is given (13 KB a call), so the bar sits between.
-	if per := (z.TotalAlloc - a.TotalAlloc) / runs; per > 24<<10 {
+	// A cold call allocates one 64 KB scratch buffer. Both the collector
+	// and the race runtime may drop pooled buffers at any time, so the
+	// byte bound must allow every call to be cold. Count allocations too:
+	// the old io.CopyN path allocates readers and buffers for all 16
+	// samples, unlike a cold call's one scratch buffer.
+	if per := (z.TotalAlloc - a.TotalAlloc) / runs; per > 80<<10 {
 		t.Fatalf("hashing a long log allocated %d KB", per>>10)
+	}
+	if per := testing.AllocsPerRun(runs, func() { prefixHash(path, 1<<20) }); per > 16 {
+		t.Fatalf("hashing a long log made %.0f allocations", per)
 	}
 }

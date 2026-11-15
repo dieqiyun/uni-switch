@@ -54278,6 +54278,11 @@
       "path": "internal/proc/killtree_windows_test.go",
       "sha256": "db045facbec43115d265fa925e1f2f0c257fc41fa9295278bc1feed5df5fce36",
       "reason": "Use ready parent/child process fixtures and explicitly held kill completion to verify process-tree shutdown under race instrumentation without exact timer-boundary assumptions."
+    },
+    {
+      "path": "internal/sessions/prefix_hash_test.go",
+      "sha256": "b8bc50cb91e56659712657be5ca88a119e5bfda7485cc0b03629f17ac4f8dcb1",
+      "reason": "Allow a cold 64 KiB scratch buffer on every hash under race/GC pool eviction and count allocations to reject the old per-sample reader/buffer path; preserve exact hash and missing-tail checks."
     }
   ],
   "removedFiles": [
