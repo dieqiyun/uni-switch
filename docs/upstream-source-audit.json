@@ -9,19 +9,19 @@
   },
   {
     "file": "backend/internal/agent/codex_proxy_test.go",
-    "sha256": "2bd46da003d12bcb6e405fd1ea33f867a8ff31fcb7ae60c808adb7e9dd306738",
+    "sha256": "5a4f60803792dd338ce20462eec0d1d9911c5e6513fe6efab38a53229618c75a",
     "types": [
       "credential_url"
     ],
-    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+    "reason": "Reviewed fixed test fixtures: loopback proxy credentials, deliberately rejected import URL credentials, or an empty unsupported private-key envelope; no usable credential material."
   },
   {
     "file": "backend/internal/agent/lody_test.go",
-    "sha256": "ff11c2132eb19b7f33325bf5bc8a849f41b4190fa2a71426b81507f72a973244",
+    "sha256": "ba9a446d5e21e19ad15fede56f80a6c672ca63ad4bc743cd54e70bdf4ae89bd4",
     "types": [
       "credential_url"
     ],
-    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+    "reason": "Reviewed fixed test fixtures: loopback proxy credentials, deliberately rejected import URL credentials, or an empty unsupported private-key envelope; no usable credential material."
   },
   {
     "file": "backend/internal/applog/applog_test.go",
@@ -233,19 +233,19 @@
   },
   {
     "file": "backend/internal/provider/importurl_test.go",
-    "sha256": "56939c0a7c7e384706bc05031f413ec449733f2c3edf5f5228bf5250753e58b6",
+    "sha256": "6579c3d6cb394f2b99ecdc70f5dfa2ad26561a5ee2f07a906417b5b9e8851602",
     "types": [
       "credential_url"
     ],
-    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+    "reason": "Reviewed fixed test fixtures: loopback proxy credentials, deliberately rejected import URL credentials, or an empty unsupported private-key envelope; no usable credential material."
   },
   {
     "file": "backend/internal/provider/vertex_test.go",
-    "sha256": "51e88829fa851b869ca3aabebd137964f28bb7467c2720b21cdee724e144f2de",
+    "sha256": "6f8fb7b013be1d1e724bed179bf4f7e18e6632d252ab8635b2f0c5e7f89492d8",
     "types": [
       "private_key"
     ],
-    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file."
+    "reason": "Reviewed fixed test fixtures: loopback proxy credentials, deliberately rejected import URL credentials, or an empty unsupported private-key envelope; no usable credential material."
   },
   {
     "file": "backend/internal/sessions/testdata/agy-sessions/conversation_summaries.db",
