@@ -1,0 +1,25 @@
+{
+  "info": {
+    "id": "01a1826c-64a3-7871-a4c1-5cfb6a077576",
+    "cwd": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/proj"
+  },
+  "agent_id": "ag1.9c713fe015244911829db0e41b0b8ef2",
+  "attempt_id": "at1.e4f0f7dc98564169b8eaca8f746f6633",
+  "session_summary": "Nonexistentzz command requests simple ok response",
+  "created_at": "2026-10-28T12:11:44.189178Z",
+  "updated_at": "2026-10-28T12:11:49.729971Z",
+  "num_messages": 4,
+  "num_chat_messages": 7,
+  "current_model_id": "grok-4.7",
+  "next_trace_turn": 1,
+  "chat_format_version": 1,
+  "session_kind": "headless",
+  "git_root_dir": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/proj/",
+  "request_id": "0cbdb19f-66ce-4e42-a685-bb31630aa25c",
+  "grok_home": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/.grok",
+  "last_active_at": "2026-10-28T12:11:49.159027Z",
+  "generated_title": "Nonexistentzz command requests simple ok response",
+  "agent_name": "grok-build-plan",
+  "sandbox_profile": "off",
+  "reasoning_effort": "high"
+}

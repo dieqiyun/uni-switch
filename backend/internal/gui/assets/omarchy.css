@@ -1,0 +1,72 @@
+/* Omarchy: uni-switch drawn in Omarchy's own design language, only on Omarchy.
+   omarchy.js puts the class on <html> and the theme's colours, font, border
+   and rounding (from ~/.local/state/omarchy/current/theme and Hyprland) in
+   the variables; everything here is scoped under html.omarchy, so no other
+   system sees any of it. Omarchy's shell draws flat: no shadows, no blur, no
+   rounding (Hyprland's decoration:rounding, 0 by default), popups framed by
+   the window border's colour, uppercase letter-spaced labels, and a row
+   picked out by a faint fill with its text in the accent. */
+
+/* what only Omarchy shows, and what it hides: the Appearance setting follows
+   Omarchy's theme instead of offering light and dark */
+.om-only { display: none !important; }
+html.omarchy .om-hide { display: none !important; }
+html.omarchy .om-only { display: revert !important; }
+html.omarchy .om-theme-name { color: var(--accent); font-size: 12px; white-space: nowrap; }
+
+html.omarchy, html.omarchy body { font-family: var(--ui-font, var(--font)); font-size: var(--om-size); }
+html:where([data-fonts]).omarchy, html:where([data-fonts]).omarchy body { font-style: var(--ui-style, inherit); font-weight: var(--ui-weight, inherit); font-stretch: var(--ui-stretch, 100%); }
+html.omarchy body { -webkit-font-smoothing: antialiased; }
+
+/* square, or rounded as far as Hyprland rounds its windows; what spins or
+   draws a dial stays round, as does a slider.s knob; a status dot goes square, like Omarchy.s workspace marks */
+html.omarchy *, html.omarchy *::before, html.omarchy *::after { border-radius: var(--om-radius) !important; }
+html.omarchy :is(.pq-dial, .pq-dial b, .sk-ring, .si-spin, .mk-spin, .signing .spinner, .eslide .knob, .effort-ticks i),
+html.omarchy input[type="range"]::-webkit-slider-thumb { border-radius: 50% !important; }
+
+/* no shadows or frosted glass: surfaces are the theme's background */
+html.omarchy * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.omarchy :is(.pop, .modal .dialog, .status.lift, body.panel .profiles.open, .list, body.panel .list, .seg > .thumb) { box-shadow: none; }
+html.omarchy body.panel { background: var(--bg); border: var(--om-border) solid var(--om-edge); }
+
+/* popups, menus and dialogs: framed by the window border's colour */
+html.omarchy :is(.pop, body.panel .profiles.open, .status.lift) { background: var(--pop-bg); border: var(--om-border) solid var(--om-edge) !important; }
+html.omarchy .modal { background: color-mix(in srgb, var(--bg) 55%, transparent); }
+html.omarchy .modal .dialog { background: var(--bg); border: var(--om-border) solid var(--om-edge); }
+
+/* labels as Omarchy's shell sets its headings: uppercase, spaced out */
+html.omarchy :is(.label, .pop li.group, .kpi span, .editor .ehead + * .k) { letter-spacing: .12em; text-transform: uppercase; font-weight: 500; }
+html.omarchy .brand { letter-spacing: 0; font-weight: 700; }
+
+/* the tabs: no track, the chosen one a faint square with its text in the accent */
+html.omarchy .seg { background: transparent; }
+html.omarchy .seg > .thumb { background: var(--om-sel); }
+html.omarchy :is(.seg button.on, .ptabs button.on, .opt.on) { color: var(--accent); }
+html.omarchy :is(.segs, .ptabs) { background: transparent; }
+html.omarchy :is(.segs, .ptabs) > .thumb { background: var(--om-sel); box-shadow: inset 0 0 0 1px var(--om-sel-line); }
+
+/* lists: a hairline frame, rows picked out by a faint fill */
+html.omarchy .list { border: 1px solid var(--line); background: transparent; }
+html.omarchy .row:hover { background: var(--om-hover); }
+
+/* controls: Omarchy's buttons are a faint fill under a thin edge */
+html.omarchy .field, html.omarchy body.panel .field, html.omarchy body.panel .field:hover { background: var(--om-hover); box-shadow: inset 0 0 0 1px var(--om-hover-line); }
+html.omarchy .field:hover { background: var(--om-sel); }
+html.omarchy .field.open, html.omarchy body.panel .field.open { box-shadow: inset 0 0 0 1px var(--accent); }
+html.omarchy .icon:hover { background: var(--om-sel); color: var(--accent); }
+html.omarchy .text.primary { background: var(--accent); color: var(--accent-fg); }
+
+/* a menu's row under the cursor or keys: the fill and the accent, like Walker's */
+html.omarchy :is(.pop li.sel, .pop li:hover:not(.group), .row-menu .rm-item:not(:disabled):is(:hover, :focus)) { background: var(--om-sel); color: var(--accent); }
+html.omarchy :is(.pop li.sel, .pop li:hover) :is(.v, .n) { color: inherit; }
+
+/* Linux's close button: square like the rest */
+html.omarchy .icon.winclose { background: transparent; }
+html.omarchy .icon.winclose:hover { background: var(--red-soft); color: var(--red); }
+
+html.omarchy ::selection { background: var(--om-sel); color: var(--accent); }
+html.omarchy body.side-nav :is(#nav button[data-view], #prefs).on { background: var(--om-sel); box-shadow: inset 0 0 0 1px var(--om-sel-line); color: var(--accent); }
+html.omarchy .nav-hl { background: var(--om-sel); }
+html.omarchy body.side-nav #nav > .nav-top-hl { background: var(--om-sel); box-shadow: inset 0 0 0 1px var(--om-sel-line); }
+html.omarchy body.side-nav #nav.hl-on button[data-view].on { background: transparent; box-shadow: none; }
+html.omarchy .nav-s.cur { color: var(--accent); }

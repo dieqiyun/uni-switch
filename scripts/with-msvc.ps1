@@ -1,4 +1,4 @@
-param([ValidateSet('dev', 'test', 'build', 'check', 'clippy', 'qa', 'restart-fixture')][string]$Action = 'build')
+param([ValidateSet('dev', 'test', 'build', 'check', 'clippy', 'qa')][string]$Action = 'build')
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -20,7 +20,6 @@ try {
         'clippy' { cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings }
         'build' { corepack pnpm build:desktop }
         'qa' { cargo build --manifest-path src-tauri/Cargo.toml --features qa-webview,tauri/custom-protocol }
-        'restart-fixture' { cargo build --manifest-path src-tauri/Cargo.toml --no-default-features --example codex_restart_fixture --example claude_cli_restart_fixture }
     }
     exit $LASTEXITCODE
 } finally { Pop-Location }

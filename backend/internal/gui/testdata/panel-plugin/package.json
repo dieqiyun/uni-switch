@@ -1,0 +1,13 @@
+{
+  "name": "uni-switch-provider-notes",
+  "version": "0.1.0",
+  "description": "An example of a plugin's panels in uni-switch's own pages: a note in each provider's editor, the top models on Usage, and its settings",
+  "uni-switch": {
+    "panels": [
+      { "slot": "provider", "title": "Notes", "file": "ui/notes.html" },
+      { "slot": "usage", "title": "Top models today", "file": "ui/spend.html" },
+      { "slot": "settings", "title": "Provider notes", "file": "ui/settings.html" }
+    ],
+    "permissions": ["usage:summary"]
+  }
+}

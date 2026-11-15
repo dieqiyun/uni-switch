@@ -1,0 +1,19 @@
+{
+  "id": "session_fc16731e-2bfe-4873-a6cb-4b9e73280360",
+  "version": 2,
+  "cwd": "[redacted]",
+  "createdAt": 1786134177385,
+  "updatedAt": 1786134357754,
+  "archived": false,
+  "agents": {
+    "main": {
+      "homedir": "[redacted]",
+      "type": "main"
+    }
+  },
+  "custom": {},
+  "lastPrompt": "[redacted]",
+  "title": "[redacted]",
+  "isCustomTitle": false,
+  "lastTurnReason": "[redacted]"
+}

@@ -1,0 +1,480 @@
+package catalog
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+)
+
+// writeCatalog puts a valid models.dev-shaped file where load() will find it;
+// load() falls back to the machine's own caches, so a malformed file would
+// silently read the developer's real catalog.
+func writeCatalog(t *testing.T, body string) {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "uni-switch"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(CachePath(), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	Reset()
+	t.Cleanup(Reset)
+}
+
+func TestProviderReadsTemperatureCapability(t *testing.T) {
+	writeCatalog(t, `{
+	  "openai": {
+	    "models": {
+	      "gpt-5.5": {"id":"gpt-5.5","name":"GPT-5.5","temperature":false,
+	                  "reasoning_options":[{"type":"effort","values":["low","high"]}]},
+	      "gpt-4.1": {"id":"gpt-4.1","name":"GPT-4.1","temperature":true}
+	    }
+	  }
+	}`)
+
+	ms := Provider("openai")
+	if len(ms) != 2 {
+		t.Fatalf("models: %+v", ms)
+	}
+	byID := map[string]Model{}
+	for _, m := range ms {
+		byID[m.ID] = m
+	}
+	if p := byID["gpt-5.5"].Temperature; p == nil || *p {
+		t.Fatalf("gpt-5.5 temperature: %v", p)
+	}
+	if p := byID["gpt-4.1"].Temperature; p == nil || !*p {
+		t.Fatalf("gpt-4.1 temperature: %v", p)
+	}
+	if got := byID["gpt-5.5"].Efforts; len(got) != 2 || got[0] != "low" {
+		t.Fatalf("efforts: %v", got)
+	}
+}
+
+func TestToggleAddsOffLevelForVerifiedProviders(t *testing.T) {
+	// This trimmed fixture retains every provider row for the tested model IDs
+	// from models.dev/api.json fetched 2026-10-09 (SHA-256 of the full response:
+	// 31cd8dd78d79706d444bb7f781f0edda422e8ce098fc4da66d154b4848850654), so
+	// EffortsOf sees the real votes.
+	body, err := os.ReadFile(filepath.Join("testdata", "models.dev-2026-10-09.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeCatalog(t, string(body))
+
+	tests := []struct {
+		provider string
+		model    string
+		want     string
+	}{
+		{"deepseek", "deepseek-flash", "none,low,high,max"},
+		{"deepseek", "deepseek-v4-pro", "none,low,high,max"},
+		{"deepseek", "deepseek-v4-flash", "none,low,high,max"},
+		{"deepseek", "deepseek-v4-flash-vision-exp", "none,low,high,max"},
+		{"kimi-code-plan-global", "k3", "none,low,high,max"},
+		{"kimi-code-plan-global", "kimi-for-coding", "none,low,high,max"},
+		{"kimi-code-plan-cn", "k3", "none,low,high,max"},
+		{"kimi-code-plan-cn", "kimi-for-coding", "none,low,high,max"},
+	}
+	for _, tc := range tests {
+		var found bool
+		for _, model := range Provider(tc.provider) {
+			if model.ID != tc.model {
+				continue
+			}
+			found = true
+			if got := strings.Join(model.Efforts, ","); got != tc.want {
+				t.Errorf("Provider(%q) model %q efforts = %q, want %q", tc.provider, tc.model, got, tc.want)
+			}
+			break
+		}
+		if !found {
+			t.Fatalf("Provider(%q) does not list %q", tc.provider, tc.model)
+		}
+		if got, ok := ListedBy([]string{tc.provider}, tc.model); !ok || strings.Join(got, ",") != tc.want {
+			t.Errorf("ListedBy([%q], %q) = %v, %v; want %q, true", tc.provider, tc.model, got, ok, tc.want)
+		}
+	}
+
+	// The real catalog also lists deepseek-flash through 302ai. Its unchanged
+	// levels keep the aggregate on low/high/max even though DeepSeek itself has
+	// the verified off level.
+	if got := strings.Join(EffortsOf("deepseek-flash"), ","); got != "low,high,max" {
+		t.Errorf("EffortsOf(%q) = %q, want low,high,max", "deepseek-flash", got)
+	}
+	for _, id := range []string{"k3", "kimi-for-coding"} {
+		if got := strings.Join(EffortsOf(id), ","); got != "low,high,max" {
+			t.Errorf("EffortsOf(%q) = %q, want low,high,max", id, got)
+		}
+	}
+	if got, ok := ListedByBorrowed([]string{"deepseek"}, "deepseek-v4-pro"); !ok || strings.Join(got, ",") != "low,high,max" {
+		t.Errorf("ListedByBorrowed(%q) = %v, %v; want low,high,max, true", "deepseek-v4-pro", got, ok)
+	}
+	if got, ok := KinEfforts([]string{"deepseek"}, "deepseek-v5-flash-vision-exp"); !ok || strings.Join(got, ",") != "low,high,max" {
+		t.Errorf("KinEfforts(%q) = %v, %v; want low,high,max, true", "deepseek-v5-flash-vision-exp", got, ok)
+	}
+
+	for _, tc := range []struct {
+		provider string
+		model    string
+		want     string
+	}{
+		{"302ai", "deepseek-flash", "low,high,max"},
+		{"kimi-code-plan-global", "k3-256k", "low,high,max"},
+		{"kimi-code-plan-cn", "k3-256k", "low,high,max"},
+		{"kimi-code-plan-global", "kimi-for-coding-highspeed", ""},
+		{"kimi-code-plan-cn", "kimi-for-coding-highspeed", ""},
+		{"anthropic", "claude-sonnet-5", "low,medium,high,xhigh,max"},
+		{"amazon-bedrock", "us.anthropic.claude-sonnet-5", "low,medium,high,xhigh,max"},
+	} {
+		var found bool
+		for _, model := range Provider(tc.provider) {
+			if model.ID != tc.model {
+				continue
+			}
+			found = true
+			if got := strings.Join(model.Efforts, ","); got != tc.want {
+				t.Errorf("Provider(%q) model %q efforts = %q, want %q", tc.provider, tc.model, got, tc.want)
+			}
+			break
+		}
+		if !found {
+			t.Fatalf("Provider(%q) does not list %q", tc.provider, tc.model)
+		}
+	}
+}
+
+func TestDecorateCarriesTemperature(t *testing.T) {
+	no, yes := false, true
+	live := []Model{{ID: "new-model"}, {ID: "gpt-5.5"}}
+	known := []Model{
+		{ID: "gpt-5.5", Name: "GPT-5.5", Temperature: &no, Released: "2026-04-23"},
+		{ID: "old", Temperature: &yes},
+	}
+	out := Decorate(live, known)
+	if out[0].Temperature != nil {
+		t.Fatalf("an unknown model gained a capability: %v", *out[0].Temperature)
+	}
+	if out[1].Temperature == nil || *out[1].Temperature || out[1].Name != "GPT-5.5" {
+		t.Fatalf("decorated: %+v", out[1])
+	}
+}
+
+// A model takes images where models.dev says so; one listed by several
+// providers takes them as most of those say, whatever a vendor prefixes.
+func TestImages(t *testing.T) {
+	writeCatalog(t, `{
+	  "a": {"models": {
+	    "vision": {"id":"vision","name":"V","modalities":{"input":["text","image"],"output":["text"]}},
+	    "text":   {"id":"text","name":"T","modalities":{"input":["text"],"output":["text"]}}
+	  }},
+	  "b": {"models": {"text": {"id":"text","name":"T","modalities":{"input":["text"],"output":["text"]}}}},
+	  "c": {"models": {"org/text": {"id":"org/text","name":"T","modalities":{"input":["text","image"],"output":["text"]}}}}
+	}`)
+	for _, m := range Provider("a") {
+		if m.Images != (m.ID == "vision") {
+			t.Errorf("%s: images %v", m.ID, m.Images)
+		}
+	}
+	if !SeesImages("z-ai/Vision") || SeesImages("text") || SeesImages("unknown") {
+		t.Error("SeesImages")
+	}
+}
+
+// A model's window is models.dev's input limit where it gives one (what a
+// prompt may hold), else its context; looked up by bare id, it is the size
+// most providers give, so a relay's model finds it too.
+func TestContextOf(t *testing.T) {
+	writeCatalog(t, `{
+	  "openai": {"models": {
+	    "gpt-5.5": {"id":"gpt-5.5","limit":{"context":1050000,"input":922000,"output":128000}},
+	    "gpt-4.1": {"id":"gpt-4.1","limit":{"context":1047576,"output":32768}}
+	  }},
+	  "zai": {"models": {"glm-4.6": {"id":"glm-4.6","limit":{"context":204800}}}},
+	  "a": {"models": {"zai/glm-4.6": {"id":"zai/glm-4.6","limit":{"context":204800}}}},
+	  "b": {"models": {"glm-4.6": {"id":"glm-4.6","limit":{"context":128000}}}}
+	}`)
+	for id, want := range map[string]int{
+		"gpt-5.5":        922000,
+		"openai/gpt-5.5": 922000,
+		"gpt-5.5(high)":  922000,
+		"gpt-4.1":        1047576,
+		"GLM-4.6":        204800,
+		"glm-4.6:free":   204800,
+		"unknown-model":  0,
+	} {
+		if got := ContextOf(id); got != want {
+			t.Errorf("ContextOf(%q) = %d, want %d", id, got, want)
+		}
+	}
+	for _, m := range Provider("openai") {
+		if m.ID == "gpt-5.5" && m.Context != 922000 {
+			t.Errorf("Provider: %+v", m)
+		}
+	}
+	if out := Decorate([]Model{{ID: "gpt-5.5"}}, Provider("openai")); out[0].Context != 922000 {
+		t.Errorf("Decorate: %+v", out[0])
+	}
+}
+
+// A Bedrock inference profile of a geography models.dev doesn't list the
+// model in (apac.) takes the model id's window, output and levels.
+func TestBedrockProfiles(t *testing.T) {
+	writeCatalog(t, `{
+	  "amazon-bedrock": {"models": {
+	    "anthropic.claude-opus-5-5": {"id":"anthropic.claude-opus-5-5","limit":{"context":1000000,"output":128000},"reasoning_options":[{"type":"effort","values":["low","high"]}]},
+	    "global.anthropic.claude-opus-5-5": {"id":"global.anthropic.claude-opus-5-5","limit":{"context":1000000,"output":128000}}
+	  }}
+	}`)
+	for _, id := range []string{"apac.anthropic.claude-opus-5-5", "us-gov.anthropic.claude-opus-5-5", "global.anthropic.claude-opus-5-5"} {
+		if ContextOf(id) != 1000000 || OutputOf(id) != 128000 {
+			t.Errorf("%s: %d %d", id, ContextOf(id), OutputOf(id))
+		}
+	}
+	if got := strings.Join(EffortsOf("apac.anthropic.claude-opus-5-5"), ","); got != "low,high" {
+		t.Errorf("efforts: %q", got)
+	}
+	// not a profile: a model named with a dot
+	if ContextOf("us.") != 0 || ContextOf("eu.unknown") != 0 {
+		t.Error("a bare geography taken for a profile")
+	}
+}
+
+// A vendor models.dev doesn't list takes the levels the providers serving
+// the model give; one that gives none (a toggle, nothing) doesn't vote.
+func TestEffortsOf(t *testing.T) {
+	writeCatalog(t, `{
+	  "zai": {"models": {"glm-5.3-flash": {"id":"glm-5.3-flash","reasoning_options":[{"type":"effort","values":["low","high","max"]}]}}},
+	  "a": {"models": {"z-ai/glm-5.3-flash": {"id":"z-ai/glm-5.3-flash","reasoning_options":[{"type":"effort","values":["low","high","max"]}]}}},
+	  "b": {"models": {"glm-5.3-flash": {"id":"glm-5.3-flash","reasoning_options":[{"type":"effort","values":["none","low","medium","high"]}]},
+	                   "glm-5": {"id":"glm-5","reasoning_options":[{"type":"toggle"}]},
+	                   "deepseek-chat": {"id":"deepseek-chat"}}},
+	  "c": {"models": {"glm-5.3-flash": {"id":"glm-5.3-flash","reasoning_options":[{"type":"toggle"}]}}}
+	}`)
+	for id, want := range map[string]string{
+		"glm-5.3-flash":       "low,high,max",
+		"GLM-5.3-Flash":       "low,high,max",
+		"volc/glm-5.3-flash":  "low,high,max",
+		"glm-5.3-flash:free":  "low,high,max",
+		"glm-5.3-flash(high)": "low,high,max",
+		"glm-5":               "",
+		"deepseek-chat":       "",
+		"unknown-model":       "",
+	} {
+		if got := strings.Join(EffortsOf(id), ","); got != want {
+			t.Errorf("EffortsOf(%q) = %q, want %q", id, got, want)
+		}
+	}
+}
+
+// A gateway listing a model under each host it routes to votes once for
+// the levels it gives: llmgateway's deepinfra/… and xiaomi/… made its
+// none…max the levels of mimo-v2.6-flash over two others giving none, high
+// (#214).
+func TestEffortsOfOneVoteAProvider(t *testing.T) {
+	writeCatalog(t, `{
+	  "llmgateway": {"models": {
+	    "deepinfra/mimo-v2.6-flash": {"id":"deepinfra/mimo-v2.6-flash","reasoning_options":[{"type":"effort","values":["none","minimal","low","medium","high","xhigh","max"]}]},
+	    "xiaomi/mimo-v2.6-flash": {"id":"xiaomi/mimo-v2.6-flash","reasoning_options":[{"type":"effort","values":["none","minimal","low","medium","high","xhigh","max"]}]},
+	    "novita/mimo-v2.6-flash": {"id":"novita/mimo-v2.6-flash","reasoning_options":[{"type":"effort","values":["none","minimal","low","medium","high","xhigh","max"]}]}}},
+	  "kilo": {"models": {"xiaomi/mimo-v2.6-flash": {"id":"xiaomi/mimo-v2.6-flash","reasoning_options":[{"type":"effort","values":["none","high"]}]}}},
+	  "nano-gpt": {"models": {"xiaomi/mimo-v2.6-flash": {"id":"xiaomi/mimo-v2.6-flash","reasoning_options":[{"type":"effort","values":["none","high"]}]}}}
+	}`)
+	if got := strings.Join(EffortsOf("mimo-v2.6-flash"), ","); got != "none,high" {
+		t.Fatalf("EffortsOf = %q, want none,high", got)
+	}
+}
+
+// ListedBy is what the first of the providers named listing a model says of
+// its levels: a thinking switch alone or nothing is none, a budget without
+// levels says nothing, and a model none of them lists isn't theirs to say.
+func TestListedBy(t *testing.T) {
+	writeCatalog(t, `{
+	  "xiaomi": {"models": {"mimo-v2.6-flash": {"id":"mimo-v2.6-flash","reasoning_options":[{"type":"toggle"}]},
+	                        "mimo-v2-omni": {"id":"mimo-v2-omni"}}},
+	  "anthropic": {"models": {"claude-sonnet-4-5": {"id":"claude-sonnet-4-5","reasoning_options":[{"type":"budget_tokens"}]}}},
+	  "zai": {"models": {"glm-5.3-flash": {"id":"glm-5.3-flash","reasoning_options":[{"type":"effort","values":["low","high","max"]}]}}},
+	  "relay": {"models": {"mimo-v2.6-flash": {"id":"mimo-v2.6-flash","reasoning_options":[{"type":"effort","values":["none","low","medium","high","max"]}]},
+	                       "claude-sonnet-4-5": {"id":"claude-sonnet-4-5","reasoning_options":[{"type":"effort","values":["low","medium","high","max"]}]}}}
+	}`)
+	makers := []string{"anthropic", "xiaomi", "zai"}
+	for _, c := range []struct {
+		id, want string
+		ok       bool
+	}{
+		{"mimo-v2.6-flash", "", true},
+		{"xiaomi/MiMo-V2.6-Flash", "", true},
+		{"mimo-v2.6-flash:free", "", true},
+		{"mimo-v2-omni", "", true},
+		{"relay/glm-5.3-flash", "low,high,max", true},
+		{"claude-sonnet-4-5", "", false},
+		{"unknown-model", "", false},
+	} {
+		got, ok := ListedBy(makers, c.id)
+		if strings.Join(got, ",") != c.want || ok != c.ok {
+			t.Errorf("ListedBy(%q) = %v, %v; want %q, %v", c.id, got, ok, c.want, c.ok)
+		}
+	}
+	if got, ok := ListedBy([]string{"relay", "xiaomi"}, "mimo-v2.6-flash"); !ok || len(got) != 5 {
+		t.Errorf("the first provider listing it: %v %v", got, ok)
+	}
+}
+
+// A model listed as thinking with no levels yet takes those of the newest
+// of its family released by then (gpt-6.1-sol's from gpt-6-sol, not from
+// the later gpt-7-sol), and a model the catalog doesn't list those of the
+// newest of the same name but for its version. A family that takes a
+// thinking switch alone gives none (#214), a budgeted model is left alone,
+// and one that doesn't think takes none.
+func TestFamilyLevels(t *testing.T) {
+	writeCatalog(t, `{
+	  "openai": {"models": {
+	    "gpt-6.1-sol": {"id":"gpt-6.1-sol","family":"gpt-sol","reasoning":true,"release_date":"2026-09-29"},
+	    "gpt-6-sol": {"id":"gpt-6-sol","family":"gpt-sol","reasoning":true,"release_date":"2026-09-22","reasoning_options":[{"type":"effort","values":["none","low","medium","high","xhigh","max"]}]},
+	    "gpt-5.6-sol": {"id":"gpt-5.6-sol","family":"gpt-sol","reasoning":true,"release_date":"2026-07-09","reasoning_options":[{"type":"effort","values":["none","low","medium","high"]}]},
+	    "gpt-7-sol": {"id":"gpt-7-sol","family":"gpt-sol","reasoning":true,"release_date":"2027-01-01","reasoning_options":[{"type":"effort","values":["low","max"]}]},
+	    "gpt-4.1": {"id":"gpt-4.1","family":"gpt","release_date":"2025-04-14"}}},
+	  "xiaomi": {"models": {
+	    "mimo-v2.6-flash": {"id":"mimo-v2.6-flash","family":"mimo","reasoning":true,"release_date":"2026-09-22","reasoning_options":[{"type":"toggle"}]},
+	    "mimo-v2.5": {"id":"mimo-v2.5","family":"mimo","reasoning":true,"release_date":"2026-04-22"}}},
+	  "anthropic": {"models": {
+	    "claude-sonnet-4-5": {"id":"claude-sonnet-4-5","family":"claude-sonnet","reasoning":true,"reasoning_options":[{"type":"budget_tokens"}]},
+	    "claude-sonnet-4": {"id":"claude-sonnet-4","family":"claude-sonnet","reasoning":true,"reasoning_options":[{"type":"effort","values":["low","high"]}]}}}
+	}`)
+	makers := []string{"anthropic", "openai", "xiaomi"}
+	for _, c := range []struct {
+		id, want string
+		ok       bool
+	}{
+		{"gpt-6.1-sol", "none,low,medium,high,xhigh,max", true},
+		{"openai/GPT-6.1-Sol", "none,low,medium,high,xhigh,max", true},
+		{"gpt-4.1", "", true},
+		{"mimo-v2.6-flash", "", true},
+		{"claude-sonnet-4-5", "", false},
+	} {
+		got, ok := ListedBy(makers, c.id)
+		if strings.Join(got, ",") != c.want || ok != c.ok {
+			t.Errorf("ListedBy(%q) = %v, %v; want %q, %v", c.id, got, ok, c.want, c.ok)
+		}
+	}
+	for _, m := range Provider("openai") {
+		if m.ID == "gpt-6.1-sol" && (strings.Join(m.Efforts, ",") != "none,low,medium,high,xhigh,max" || !m.Reasoning) {
+			t.Errorf("Provider(openai)'s gpt-6.1-sol: %v, reasoning %v", m.Efforts, m.Reasoning)
+		}
+	}
+	for _, c := range []struct {
+		id, want string
+		ok       bool
+	}{
+		{"gpt-7.1-sol", "low,max", true},
+		{"relay/gpt-7.1-sol", "low,max", true},
+		{"mimo-v2.7-flash", "", true},
+		{"gpt-7.1-terra", "", false},
+		{"sol", "", false},
+	} {
+		got, ok := KinEfforts(makers, c.id)
+		if strings.Join(got, ",") != c.want || ok != c.ok {
+			t.Errorf("KinEfforts(%q) = %v, %v; want %q, %v", c.id, got, ok, c.want, c.ok)
+		}
+	}
+}
+
+func TestFetchedImageCapabilityOverridesCatalog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"data":[
+			{"id":"vision","modalities":{"input":["text","image"]}},
+			{"id":"text","modalities":{"input":["text"]}},
+			{"id":"unknown"}
+		]}`))
+	}))
+	defer server.Close()
+	live, err := Fetch(context.Background(), server.URL, "", false, nil)
+	if err != nil || len(live) != 3 {
+		t.Fatalf("fetched models: %+v, %v", live, err)
+	}
+	known := []Model{
+		{ID: "vision", Images: true, ImageInput: imageInput([]string{"text", "image"})},
+		{ID: "text", Images: true, ImageInput: imageInput([]string{"text", "image"})},
+		{ID: "unknown", Images: true, ImageInput: imageInput([]string{"text", "image"})},
+	}
+	got := Decorate(live, known)
+	if got[0].ImageInput == nil || !*got[0].ImageInput || !got[0].Images ||
+		got[1].ImageInput == nil || *got[1].ImageInput || got[1].Images ||
+		got[2].ImageInput == nil || !*got[2].ImageInput || !got[2].Images {
+		t.Fatalf("source precedence: %+v", got)
+	}
+}
+
+// A list's modalities keep every kind it names, input and output, not
+// image alone; a model the list says nothing of takes the catalog's (#1595).
+func TestFetchedModalitiesKeepEveryKind(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"data":[
+			{"id":"omni","modalities":{"input":["text","image","audio","video","pdf"],"output":["text","audio"]}},
+			{"id":"unknown"}
+		]}`))
+	}))
+	defer server.Close()
+	live, err := Fetch(context.Background(), server.URL, "", false, nil)
+	if err != nil || len(live) != 2 {
+		t.Fatalf("fetched models: %+v, %v", live, err)
+	}
+	known := []Model{{ID: "unknown", ImageInput: imageInput([]string{"text", "pdf"}), InputModalities: []string{"text", "pdf"}, OutputModalities: []string{"text"}}}
+	got := Decorate(live, known)
+	if !reflect.DeepEqual(got[0].InputModalities, []string{"text", "image", "audio", "video", "pdf"}) ||
+		!reflect.DeepEqual(got[0].OutputModalities, []string{"text", "audio"}) {
+		t.Errorf("omni: in %v out %v", got[0].InputModalities, got[0].OutputModalities)
+	}
+	if !reflect.DeepEqual(got[1].InputModalities, []string{"text", "pdf"}) ||
+		!reflect.DeepEqual(got[1].OutputModalities, []string{"text"}) {
+		t.Errorf("unknown: in %v out %v", got[1].InputModalities, got[1].OutputModalities)
+	}
+}
+
+// Finding a model's kin doesn't copy each model of its provider to the
+// heap: Provider ran once a round of dsh's wiring, and a pointer to the
+// loop's copy made its allocations grow with the square of a provider's
+// models (~6 GB in 48 minutes of a user's uni-switch). 200 models of one
+// family ask a few allocations each, not 200. And a provider's list is
+// built once a load: asked again, it is a copy of the one built.
+func TestProviderAllocsGrowWithModels(t *testing.T) {
+	var b strings.Builder
+	b.WriteString(`{"openai": {"models": {`)
+	const n = 200
+	for i := range n {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		fmt.Fprintf(&b, `"m-%03d": {"id":"m-%03d","family":"m","reasoning":true,"release_date":"2026-01-%02d"}`, i, i, i%28+1)
+	}
+	b.WriteString(`}}}`)
+	writeCatalog(t, b.String())
+	if len(Provider("openai")) != n {
+		t.Fatalf("Provider(openai) has %d models, want %d", len(Provider("openai")), n)
+	}
+	if a := testing.AllocsPerRun(5, func() { provider(load(), "openai") }); a > 10*n {
+		t.Errorf("building openai's %d models: %.0f allocations, want at most %d", n, a, 10*n)
+	}
+	if a := testing.AllocsPerRun(5, func() { Provider("openai") }); a > 2 {
+		t.Errorf("Provider(openai) asked again: %.0f allocations, want a copy (1)", a)
+	}
+	ms := Provider("openai")
+	ms[0].ID = "changed"
+	if Provider("openai")[0].ID == "changed" {
+		t.Error("a caller's change to Provider's list reached the next caller")
+	}
+	writeCatalog(t, `{"openai": {"models": {"m-new": {"id":"m-new"}}}}`)
+	if ms := Provider("openai"); len(ms) != 1 || ms[0].ID != "m-new" {
+		t.Errorf("after Reset, Provider(openai) = %v, want the new load's m-new", ms)
+	}
+}

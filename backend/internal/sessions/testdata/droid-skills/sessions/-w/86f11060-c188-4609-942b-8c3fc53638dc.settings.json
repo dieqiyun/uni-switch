@@ -1,0 +1,41 @@
+{
+  "assistantActiveTimeMs": 4328,
+  "model": "custom:mh",
+  "reasoningEffort": "high",
+  "interactionMode": "auto",
+  "autonomyLevel": "low",
+  "autonomyMode": "auto-low",
+  "compactionThresholdCheckEnabled": true,
+  "allowSubagentsInScripts": false,
+  "tags": [
+    {
+      "name": "exec"
+    }
+  ],
+  "toolExecutionMode": "direct_only",
+  "toolExecutionModeModelId": "custom:mh",
+  "tokenUsage": {
+    "inputTokens": 30750,
+    "outputTokens": 113,
+    "cacheCreationTokens": 0,
+    "cacheReadTokens": 0,
+    "thinkingTokens": 53,
+    "factoryCredits": 0
+  },
+  "childInclusiveTokenUsageBySessionId": {},
+  "inclusiveTokenUsage": {
+    "inputTokens": 30750,
+    "outputTokens": 113,
+    "cacheCreationTokens": 0,
+    "cacheReadTokens": 0,
+    "thinkingTokens": 53,
+    "factoryCredits": 0
+  },
+  "providerLock": "anthropic",
+  "providerLockTimestamp": "2026-10-30T03:02:04.191Z",
+  "lastCallTokenUsage": {
+    "inputTokens": 15456,
+    "outputTokens": 16,
+    "cacheReadTokens": 0
+  }
+}

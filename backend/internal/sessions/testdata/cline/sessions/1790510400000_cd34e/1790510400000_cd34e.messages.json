@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-27T12:01:00.000Z",
+  "sessionId": "1790510400000_cd34e",
+  "messages": [
+    {
+      "role": "user",
+      "content": "<mode_notice>Act mode</mode_notice><user_input mode=\"act\">Speed up the importer</user_input>",
+      "ts": 1790503200000
+    },
+    {
+      "role": "assistant",
+      "content": "...",
+      "ts": 1790503210000,
+      "modelInfo": {
+        "id": "claude-opus-5-5",
+        "provider": "anthropic"
+      },
+      "metrics": {
+        "inputTokens": 1600,
+        "outputTokens": 50,
+        "cacheReadTokens": 1000,
+        "cacheWriteTokens": 500,
+        "cost": 0.01
+      }
+    },
+    {
+      "role": "user",
+      "content": "<user_input mode=\"plan\">And the exporter</user_input>",
+      "ts": 1790510410000
+    },
+    {
+      "role": "assistant",
+      "content": "ok",
+      "ts": 1790510460000,
+      "modelInfo": {
+        "id": "claude-opus-5-5",
+        "provider": "anthropic"
+      },
+      "metrics": {
+        "inputTokens": 400,
+        "outputTokens": 30,
+        "cacheReadTokens": 300,
+        "cacheWriteTokens": 0,
+        "cost": 0.01
+      }
+    }
+  ]
+}

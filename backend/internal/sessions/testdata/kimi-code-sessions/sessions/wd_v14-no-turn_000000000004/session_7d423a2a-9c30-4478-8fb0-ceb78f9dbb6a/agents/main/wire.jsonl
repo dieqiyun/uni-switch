@@ -1,0 +1,4 @@
+{"type":"metadata","protocol_version":"1.4","created_at":1783026547038,"app_version":"[redacted]"}
+{"type":"config.update","profileName":"agent","systemPrompt":"[redacted]","time":1783026547038}
+{"type":"tools.set_active_tools","names":["[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]","[redacted]"],"time":1783026547039}
+{"type":"config.update","modelAlias":"kimi-code/kimi-for-coding","thinkingLevel":"high","time":1783026547039}

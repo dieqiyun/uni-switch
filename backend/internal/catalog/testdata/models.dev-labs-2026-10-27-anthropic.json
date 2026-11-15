@@ -1,0 +1,1853 @@
+{
+ "anthropic/claude-3-5-haiku-20241022": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2024-12-21",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 28,
+    "source": "https://aider.chat/docs/leaderboards/"
+   }
+  ],
+  "description": "Fast Claude model for responsive assistance, classification, and lightweight agents",
+  "family": "claude-haiku",
+  "id": "anthropic/claude-3-5-haiku-20241022",
+  "knowledge": "2024-07-31",
+  "last_updated": "2024-10-22",
+  "limit": {
+   "context": 200000,
+   "output": 8192
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Haiku 3.5",
+  "open_weights": false,
+  "reasoning": false,
+  "release_date": "2024-10-22",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-3-5-sonnet-20241022": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2025-01-17",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 51.6,
+    "source": "https://aider.chat/docs/leaderboards/"
+   }
+  ],
+  "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-3-5-sonnet-20241022",
+  "knowledge": "2024-04-30",
+  "last_updated": "2024-10-22",
+  "limit": {
+   "context": 200000,
+   "output": 8192
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 3.5 v2",
+  "open_weights": false,
+  "reasoning": false,
+  "release_date": "2024-10-22",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-3-7-sonnet-20250219": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2025-02-24",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 64.9,
+    "source": "https://aider.chat/docs/leaderboards/"
+   }
+  ],
+  "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-3-7-sonnet-20250219",
+  "knowledge": "2024-10-31",
+  "last_updated": "2025-02-19",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 3.7",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-02-19",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-3-haiku-20240307": {
+  "attachment": true,
+  "description": "Legacy model retained for compatibility with older integrations",
+  "family": "claude-haiku",
+  "id": "anthropic/claude-3-haiku-20240307",
+  "knowledge": "2023-08-31",
+  "last_updated": "2024-03-13",
+  "limit": {
+   "context": 200000,
+   "output": 4096
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Haiku 3",
+  "open_weights": false,
+  "reasoning": false,
+  "release_date": "2024-03-13",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-fable-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-06-09",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 80.3,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+   },
+   {
+    "metric": "resolved",
+    "name": "SWE-Bench Verified",
+    "score": 95,
+    "source": "https://benchlm.ai/benchmarks/sweVerified"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "success rate",
+    "name": "Terminal-Bench",
+    "score": 88,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 59,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "variant": "no tools"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 64.5,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "success rate",
+    "name": "OSWorld-Verified",
+    "score": 85,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+   },
+   {
+    "dataset": "Diamond",
+    "date": "2026-06-09",
+    "metric": "pass rate",
+    "name": "FrontierCode",
+    "score": 29.3,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "variant": "high effort"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "Elo",
+    "name": "GDPval-AA",
+    "score": 1932,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "success rate",
+    "name": "AutomationBench",
+    "score": 17.4,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+   }
+  ],
+  "description": "Claude model for creative writing, analysis, and controlled agent workflows",
+  "family": "claude-fable",
+  "id": "anthropic/claude-fable-5",
+  "knowledge": "2026-01-31",
+  "last_updated": "2026-06-09",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Fable 5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-06-09",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-fable-5-1": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-09-01",
+    "metric": "score",
+    "name": "Terminal-Bench-Science",
+    "score": 52.6,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "production safeguards with fallback",
+    "version": "0.1"
+   },
+   {
+    "date": "2026-09-01",
+    "metric": "score",
+    "name": "Terminal-Bench",
+    "score": 55.8,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "production safeguards with fallback",
+    "version": "4.0"
+   },
+   {
+    "date": "2026-09-01",
+    "metric": "Elo",
+    "name": "GDPval-AA",
+    "score": 1853,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "production safeguards with fallback",
+    "version": "2"
+   },
+   {
+    "dataset": "August 2026 task release",
+    "date": "2026-09-01",
+    "metric": "partial score",
+    "name": "OSWorld",
+    "score": 77.9,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "production safeguards; interventions score zero; no fallback",
+    "version": "2.0"
+   },
+   {
+    "dataset": "August 2026 task release",
+    "date": "2026-09-01",
+    "metric": "strict success rate",
+    "name": "OSWorld",
+    "score": 41.7,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "production safeguards; interventions score zero; no fallback",
+    "version": "2.0"
+   },
+   {
+    "date": "2026-09-01",
+    "metric": "score",
+    "name": "Humanity's Last Exam",
+    "score": 60.9,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "without tools; production safeguards with fallback"
+   },
+   {
+    "date": "2026-09-01",
+    "metric": "score",
+    "name": "Humanity's Last Exam",
+    "score": 65,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "with tools; production safeguards with fallback"
+   },
+   {
+    "date": "2026-09-01",
+    "metric": "pass rate",
+    "name": "AutomationBench",
+    "score": 31.4,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "production safeguards with fallback"
+   },
+   {
+    "date": "2026-09-01",
+    "metric": "score",
+    "name": "CursorBench",
+    "score": 73.4,
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "variant": "max effort; production safeguards with fallback",
+    "version": "3.2.0"
+   }
+  ],
+  "description": "Claude model for demanding reasoning and long-horizon agentic work",
+  "family": "claude-fable",
+  "id": "anthropic/claude-fable-5-1",
+  "knowledge": "2026-06",
+  "last_updated": "2026-09-01",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Fable 5.1",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-09-01",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-haiku-4-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "dataset": "public",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 39.45,
+    "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
+   }
+  ],
+  "description": "Fast Claude lane for lightweight agents, office tasks, and responsive chat",
+  "family": "claude-haiku",
+  "id": "anthropic/claude-haiku-4-5",
+  "knowledge": "2025-02-28",
+  "last_updated": "2025-10-15",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Haiku 4.5 (latest)",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-10-15",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-haiku-4-5-20251001": {
+  "attachment": true,
+  "description": "Fast Claude model for responsive assistance, classification, and lightweight agents",
+  "family": "claude-haiku",
+  "id": "anthropic/claude-haiku-4-5-20251001",
+  "knowledge": "2025-02-28",
+  "last_updated": "2025-10-15",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Haiku 4.5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-10-15",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-haiku-5-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-10-07",
+    "metric": "Elo",
+    "name": "GDPval-AA",
+    "score": 1620,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-10-07",
+    "metric": "Elo",
+    "name": "AA-Briefcase",
+    "score": 1578,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "version": "1.1"
+   },
+   {
+    "date": "2026-10-07",
+    "metric": "partial score",
+    "name": "OSWorld",
+    "score": 72.4,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "variant": "offline subset",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-10-07",
+    "metric": "score",
+    "name": "Humanity's Last Exam",
+    "score": 45.9,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "variant": "no tools"
+   },
+   {
+    "date": "2026-10-07",
+    "metric": "score",
+    "name": "Humanity's Last Exam",
+    "score": 57.4,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-10-07",
+    "metric": "score",
+    "name": "Terminal-Bench",
+    "score": 39.2,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "version": "4.0"
+   },
+   {
+    "dataset": "Main",
+    "date": "2026-10-07",
+    "metric": "score",
+    "name": "FrontierCode",
+    "score": 46.4,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "version": "1.1"
+   },
+   {
+    "date": "2026-10-07",
+    "metric": "score",
+    "name": "Chartography",
+    "score": 46.4,
+    "source": "https://www.anthropic.com/claude-haiku-5-5",
+    "variant": "no tools"
+   }
+  ],
+  "description": "Fast Claude model for responsive assistance, classification, and lightweight agents",
+  "family": "claude-haiku",
+  "id": "anthropic/claude-haiku-5-5",
+  "knowledge": "2026-06",
+  "last_updated": "2026-10-07",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Haiku 5.5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-10-07",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-mythos-5": {
+  "attachment": true,
+  "description": "Restricted Claude model for advanced cybersecurity and biology research workflows",
+  "family": "claude-mythos",
+  "id": "anthropic/claude-mythos-5",
+  "knowledge": "2026-01-31",
+  "last_updated": "2026-06-09",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Mythos 5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-06-09",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-mythos-5-1": {
+  "attachment": true,
+  "description": "Restricted Claude model for advanced cybersecurity and biology research workflows",
+  "family": "claude-mythos",
+  "id": "anthropic/claude-mythos-5-1",
+  "knowledge": "2026-06",
+  "last_updated": "2026-09-01",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Mythos 5.1",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-09-01",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-0": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2025-05-25",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 72,
+    "source": "https://aider.chat/docs/leaderboards/"
+   }
+  ],
+  "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-0",
+  "knowledge": "2025-03-31",
+  "last_updated": "2025-05-22",
+  "limit": {
+   "context": 200000,
+   "output": 32000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4 (latest)",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-05-22",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-1": {
+  "attachment": true,
+  "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-1",
+  "knowledge": "2025-03-31",
+  "last_updated": "2025-08-05",
+  "limit": {
+   "context": 200000,
+   "output": 32000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.1 (latest)",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-08-05",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-1-20250805": {
+  "attachment": true,
+  "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-1-20250805",
+  "knowledge": "2025-03-31",
+  "last_updated": "2025-08-05",
+  "limit": {
+   "context": 200000,
+   "output": 32000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.1",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-08-05",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-20250514": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2025-05-25",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 72,
+    "source": "https://aider.chat/docs/leaderboards/"
+   }
+  ],
+  "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-20250514",
+  "knowledge": "2025-03-31",
+  "last_updated": "2025-05-22",
+  "limit": {
+   "context": 200000,
+   "output": 32000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-05-22",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-5": {
+  "attachment": true,
+  "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-5",
+  "knowledge": "2025-05",
+  "last_updated": "2025-11-24",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.5 (latest)",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-11-24",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-5-20251101": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "dataset": "public",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 45.89,
+    "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
+   }
+  ],
+  "description": "Flagship Claude model for deep reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-5-20251101",
+  "knowledge": "2025-05",
+  "last_updated": "2025-11-24",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-11-24",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-6": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "dataset": "public",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 51.9,
+    "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 33.3,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-qna"
+   },
+   {
+    "harness": "Mini-SWE-Agent",
+    "metric": "score",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 30,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-qna"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Refactoring",
+    "score": 35.58,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-refactoring"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Test Writing",
+    "score": 36.67,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-tw"
+   },
+   {
+    "harness": "Mini-SWE-Agent",
+    "metric": "score",
+    "name": "SWE-Atlas Test Writing",
+    "score": 36.08,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-tw"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "average pass@1",
+    "name": "Artificial Analysis Coding Agent Index",
+    "score": 51.3,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 71.9,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "dataset": "hard-aa",
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Bench Pro",
+    "score": 11.8,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "Terminal-Bench",
+    "score": 70.2,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium",
+    "version": "2.1"
+   }
+  ],
+  "description": "High-end Claude for difficult coding, planning, and slower expert reasoning",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-6",
+  "knowledge": "2025-05-31",
+  "last_updated": "2026-03-13",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.6",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-02-05",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-7": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-05-28",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 64.3,
+    "source": "https://www.anthropic.com/news/claude-opus-4-8"
+   },
+   {
+    "date": "2026-05-28",
+    "harness": "Terminus-2",
+    "metric": "success rate",
+    "name": "Terminal-Bench",
+    "score": 66.1,
+    "source": "https://www.anthropic.com/news/claude-opus-4-8",
+    "version": "2.1"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Refactoring",
+    "score": 48.57,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-refactoring"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "average pass@1",
+    "name": "Artificial Analysis Coding Agent Index",
+    "score": 66.6,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "max"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 81,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "max"
+   },
+   {
+    "dataset": "hard-aa",
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Bench Pro",
+    "score": 44.9,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "max"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "Terminal-Bench",
+    "score": 73.8,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "max",
+    "version": "2.1"
+   },
+   {
+    "harness": "Cursor CLI",
+    "metric": "average pass@1",
+    "name": "Artificial Analysis Coding Agent Index",
+    "score": 61.2,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Cursor CLI",
+    "metric": "pass@1",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 78.4,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "dataset": "hard-aa",
+    "harness": "Cursor CLI",
+    "metric": "pass@1",
+    "name": "SWE-Bench Pro",
+    "score": 34.4,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Cursor CLI",
+    "metric": "pass@1",
+    "name": "Terminal-Bench",
+    "score": 70.6,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium",
+    "version": "2.1"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "average pass@1",
+    "name": "Artificial Analysis Coding Agent Index",
+    "score": 59.9,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 71.7,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "dataset": "hard-aa",
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Bench Pro",
+    "score": 36.4,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "Terminal-Bench",
+    "score": 71.4,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-04-23",
+    "metric": "accuracy",
+    "name": "GPQA Diamond",
+    "score": 94.2,
+    "source": "https://openai.com/index/introducing-gpt-5-5/"
+   },
+   {
+    "date": "2026-04-23",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 46.9,
+    "source": "https://openai.com/index/introducing-gpt-5-5/",
+    "variant": "no tools"
+   },
+   {
+    "date": "2026-04-23",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 54.7,
+    "source": "https://openai.com/index/introducing-gpt-5-5/",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-04-23",
+    "metric": "success rate",
+    "name": "OSWorld-Verified",
+    "score": 78,
+    "source": "https://openai.com/index/introducing-gpt-5-5/"
+   }
+  ],
+  "description": "Stronger Opus tier for advanced software work and high-stakes reasoning",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-7",
+  "knowledge": "2026-01-31",
+  "last_updated": "2026-04-16",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.7",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-04-16",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-4-8": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-05-28",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 69.2,
+    "source": "https://www.anthropic.com/news/claude-opus-4-8"
+   },
+   {
+    "date": "2026-05-28",
+    "harness": "Terminus-2",
+    "metric": "success rate",
+    "name": "Terminal-Bench",
+    "score": 74.6,
+    "source": "https://www.anthropic.com/news/claude-opus-4-8",
+    "version": "2.1"
+   },
+   {
+    "metric": "resolved",
+    "name": "SWE-Bench Verified",
+    "score": 88.6,
+    "source": "https://benchlm.ai/benchmarks/sweVerified"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 49.8,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "variant": "no tools"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 57.9,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-06-09",
+    "metric": "success rate",
+    "name": "OSWorld-Verified",
+    "score": 83.4,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+   },
+   {
+    "dataset": "Diamond",
+    "date": "2026-06-09",
+    "metric": "pass rate",
+    "name": "FrontierCode",
+    "score": 13.4,
+    "source": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+    "variant": "high effort"
+   }
+  ],
+  "description": "Top Claude Opus tier for the hardest reasoning, coding, and long-horizon agents",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-4-8",
+  "knowledge": "2026-01",
+  "last_updated": "2026-05-28",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 4.8",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-05-28",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-07-24",
+    "metric": "resolved",
+    "name": "SWE-Bench Verified",
+    "score": 96,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 79.2,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Multilingual",
+    "score": 89.5,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Multimodal",
+    "score": 59.4,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "resolve rate",
+    "name": "DeepSWE",
+    "score": 68.8,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "version": "1.1"
+   },
+   {
+    "dataset": "Main",
+    "date": "2026-07-24",
+    "metric": "mean@5",
+    "name": "FrontierCode",
+    "score": 53.4,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "medium effort",
+    "version": "1.1"
+   },
+   {
+    "date": "2026-07-24",
+    "harness": "mini-SWE-agent",
+    "metric": "mean reward",
+    "name": "Frontier-Bench",
+    "score": 43.3,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort",
+    "version": "v0.1"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "accuracy",
+    "name": "BrowseComp",
+    "score": 90.8,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "single agent"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 56.3,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "no tools"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 64.7,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "F1",
+    "name": "DeepSearchQA",
+    "score": 95,
+    "source": "https://www.anthropic.com/news/claude-opus-5",
+    "variant": "max effort"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "success rate",
+    "name": "OSWorld",
+    "score": 70.6,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "version": "2.0"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "Elo",
+    "name": "GDPval-AA",
+    "score": 1861,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort",
+    "version": "v2"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "Elo",
+    "name": "AA-Briefcase",
+    "score": 1720,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "success rate",
+    "name": "AutomationBench",
+    "score": 26,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "accuracy",
+    "name": "ARC-AGI-1",
+    "score": 97.5,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "accuracy",
+    "name": "ARC-AGI-2",
+    "score": 90.4,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "RHAE",
+    "name": "ARC-AGI-3",
+    "score": 30.2,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "high effort"
+   },
+   {
+    "date": "2026-07-24",
+    "metric": "score",
+    "name": "HealthBench Professional",
+    "score": 59.8,
+    "source": "https://www.anthropic.com/claude-opus-5-system-card",
+    "variant": "max effort"
+   }
+  ],
+  "description": "Strongest Claude Opus model for coding, agents, and professional work",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-5",
+  "knowledge": "2026-05",
+  "last_updated": "2026-07-24",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-07-24",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-opus-5-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-09-22",
+    "metric": "score",
+    "name": "Terminal-Bench",
+    "score": 66.4,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "xhigh effort; production safeguards with fallback",
+    "version": "4.0"
+   },
+   {
+    "dataset": "Main",
+    "date": "2026-09-22",
+    "metric": "score",
+    "name": "FrontierCode",
+    "score": 54.4,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; production safeguards with fallback",
+    "version": "1.1"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "score",
+    "name": "CursorBench",
+    "score": 57.8,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; production safeguards with fallback",
+    "version": "4.0"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "Elo",
+    "name": "GDPval-AA",
+    "score": 1846,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; production safeguards with fallback",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "pass rate",
+    "name": "AutomationBench",
+    "score": 40,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; production safeguards; no fallback"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "score",
+    "name": "Humanity's Last Exam",
+    "score": 67.7,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; with tools; production safeguards with fallback"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "score",
+    "name": "Terminal-Bench-Science",
+    "score": 58.7,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; production safeguards with fallback",
+    "version": "0.1"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "partial score",
+    "name": "OSWorld",
+    "score": 81.8,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; production safeguards with fallback",
+    "version": "2.0"
+   },
+   {
+    "date": "2026-09-22",
+    "metric": "score",
+    "name": "Chartography",
+    "score": 89,
+    "source": "https://www.anthropic.com/claude-opus-5-5",
+    "variant": "max effort; with tools; production safeguards with fallback"
+   }
+  ],
+  "description": "Claude model for long-running agentic coding and knowledge work",
+  "family": "claude-opus",
+  "id": "anthropic/claude-opus-5-5",
+  "knowledge": "2026-06",
+  "last_updated": "2026-09-22",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Opus 5.5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-09-22",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-4-0": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2025-05-24",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 61.3,
+    "source": "https://aider.chat/docs/leaderboards/"
+   },
+   {
+    "dataset": "public",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 42.7,
+    "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
+   }
+  ],
+  "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-4-0",
+  "knowledge": "2025-03-31",
+  "last_updated": "2025-05-22",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 4 (latest)",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-05-22",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-4-20250514": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2025-05-24",
+    "metric": "percent correct",
+    "name": "Aider Polyglot",
+    "score": 61.3,
+    "source": "https://aider.chat/docs/leaderboards/"
+   }
+  ],
+  "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-4-20250514",
+  "knowledge": "2025-03-31",
+  "last_updated": "2025-05-22",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 4",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-05-22",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-4-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "dataset": "public",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 43.6,
+    "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
+   }
+  ],
+  "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-4-5",
+  "knowledge": "2025-07-31",
+  "last_updated": "2025-09-29",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 4.5 (latest)",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-09-29",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-4-5-20250929": {
+  "attachment": true,
+  "description": "Balanced Claude model for coding, analysis, agent workflows, and cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-4-5-20250929",
+  "knowledge": "2025-07-31",
+  "last_updated": "2025-09-29",
+  "limit": {
+   "context": 200000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 4.5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2025-09-29",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-4-6": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 31.2,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-qna"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Refactoring",
+    "score": 32.21,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-refactoring"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "score",
+    "name": "SWE-Atlas Test Writing",
+    "score": 31.76,
+    "source": "https://labs.scale.com/leaderboard/sweatlas-tw"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "average pass@1",
+    "name": "Artificial Analysis Coding Agent Index",
+    "score": 49.4,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Atlas Codebase QnA",
+    "score": 70.3,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "dataset": "hard-aa",
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "SWE-Bench Pro",
+    "score": 14.9,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium"
+   },
+   {
+    "harness": "Claude Code",
+    "metric": "pass@1",
+    "name": "Terminal-Bench",
+    "score": 63.1,
+    "source": "https://artificialanalysis.ai/agents/coding-agents",
+    "variant": "medium",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-06-30",
+    "harness": "Terminus-2",
+    "metric": "success rate",
+    "name": "Terminal-Bench",
+    "score": 67,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 34.6,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5",
+    "variant": "no tools"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "accuracy",
+    "name": "Humanity's Last Exam",
+    "score": 46.8,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "success rate",
+    "name": "OSWorld-Verified",
+    "score": 78.5,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5"
+   }
+  ],
+  "description": "Claude workhorse for coding agents, careful analysis, and production cost control",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-4-6",
+  "knowledge": "2025-08-31",
+  "last_updated": "2026-03-13",
+  "limit": {
+   "context": 1000000,
+   "output": 64000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 4.6",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-02-17",
+  "temperature": true,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-06-30",
+    "metric": "resolved",
+    "name": "SWE-Bench Verified",
+    "score": 85.2,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Pro",
+    "score": 63.2,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "resolve rate",
+    "name": "SWE-Bench Multilingual",
+    "score": 78.3,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5"
+   },
+   {
+    "date": "2026-06-30",
+    "harness": "Terminus-2",
+    "metric": "success rate",
+    "name": "Terminal-Bench",
+    "score": 80.4,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "success rate",
+    "name": "OSWorld-Verified",
+    "score": 81.2,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "accuracy",
+    "name": "BrowseComp",
+    "score": 84.7,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5",
+    "variant": "single agent"
+   },
+   {
+    "date": "2026-06-30",
+    "metric": "pass rate",
+    "name": "FrontierCode",
+    "score": 38.8,
+    "source": "https://www.anthropic.com/news/claude-sonnet-5",
+    "version": "v1"
+   }
+  ],
+  "description": "Everyday Claude agent model for coding, planning, browsing, and general work",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-5",
+  "knowledge": "2026-01-31",
+  "last_updated": "2026-06-30",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-06-30",
+  "temperature": false,
+  "tool_call": true
+ },
+ "anthropic/claude-sonnet-5-5": {
+  "attachment": true,
+  "benchmarks": [
+   {
+    "date": "2026-09-28",
+    "metric": "score",
+    "name": "Terminal-Bench",
+    "score": 70.6,
+    "source": "https://www.anthropic.com/claude-sonnet-5-5",
+    "version": "4.0"
+   },
+   {
+    "dataset": "Main",
+    "date": "2026-09-28",
+    "metric": "score",
+    "name": "FrontierCode",
+    "score": 46.2,
+    "source": "https://www.anthropic.com/claude-sonnet-5-5",
+    "variant": "max effort",
+    "version": "1.1"
+   },
+   {
+    "date": "2026-09-28",
+    "metric": "score",
+    "name": "CursorBench",
+    "score": 55.5,
+    "source": "https://www.anthropic.com/claude-sonnet-5-5",
+    "version": "4.0"
+   },
+   {
+    "date": "2026-09-28",
+    "metric": "Elo",
+    "name": "GDPval-AA",
+    "score": 1844,
+    "source": "https://www.anthropic.com/claude-sonnet-5-5",
+    "version": "2.1"
+   },
+   {
+    "date": "2026-09-28",
+    "metric": "score",
+    "name": "Humanity's Last Exam",
+    "score": 64.5,
+    "source": "https://www.anthropic.com/claude-sonnet-5-5",
+    "variant": "with tools"
+   },
+   {
+    "date": "2026-09-28",
+    "metric": "partial score",
+    "name": "OSWorld",
+    "score": 80.1,
+    "source": "https://www.anthropic.com/claude-sonnet-5-5",
+    "version": "2.1"
+   }
+  ],
+  "description": "Fast Claude model for everyday coding, agents, and knowledge work",
+  "family": "claude-sonnet",
+  "id": "anthropic/claude-sonnet-5-5",
+  "knowledge": "2026-06",
+  "last_updated": "2026-09-28",
+  "limit": {
+   "context": 1000000,
+   "output": 128000
+  },
+  "modalities": {
+   "input": [
+    "text",
+    "image",
+    "pdf"
+   ],
+   "output": [
+    "text"
+   ]
+  },
+  "name": "Claude Sonnet 5.5",
+  "open_weights": false,
+  "reasoning": true,
+  "release_date": "2026-09-28",
+  "temperature": false,
+  "tool_call": true
+ }
+}

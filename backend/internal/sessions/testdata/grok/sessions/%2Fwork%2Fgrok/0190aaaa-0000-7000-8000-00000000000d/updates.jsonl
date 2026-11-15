@@ -1,0 +1,2 @@
+{"timestamp":1790503200,"method":"_x.ai/session/update","params":{"sessionId":"0190aaaa-0000-7000-8000-00000000000d","update":{"sessionUpdate":"hook_execution","event_name":"session_start","runs":[]}}}
+{"timestamp":1790503260,"method":"_x.ai/session/update","params":{"sessionId":"0190aaaa-0000-7000-8000-00000000000d","update":{"sessionUpdate":"hook_execution","event_name":"session_end","runs":[]}}}

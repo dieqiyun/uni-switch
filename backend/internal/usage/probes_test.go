@@ -1,0 +1,113 @@
+package usage
+
+import (
+	"os"
+	"slices"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/probelog"
+)
+
+// A request uni-switch sends a provider on its own (the editor's Test, Detect
+// APIs, a model list) is a row of the request log, marked as uni-switch's own
+// with what it was for, and counts in nothing: no total, source, group,
+// summary, Load or LastSeen (neiko, gys619).
+func TestProbeRowsListedNotCounted(t *testing.T) {
+	reportedHome(t)
+	now := time.Now().Add(-time.Hour)
+	Append(Record{Time: now, Agent: "claude", Provider: "anthropic", Model: "claude-opus-5-5", Input: 1000, Output: 100, Status: 200})
+	probelog.Sink(probelog.Row{Time: now.Add(time.Second), Kind: probelog.KindTest, Provider: "relay", Account: "me", Model: "gpt-9",
+		Host: "relay.example", Endpoint: "/v1/chat/completions", Status: 401, Millis: 120, Error: strings.Repeat("页", 400)})
+	probelog.Sink(probelog.Row{Time: now.Add(2 * time.Second), Kind: probelog.KindList, Provider: "relay", Host: "relay.example", Endpoint: "GET /v1/models", Status: 502, Millis: 30, Error: "bad gateway"})
+
+	page := QueryPage(All, Filter{}, 0, 50)
+	if page.Total != 3 || len(page.Rows) != 3 {
+		t.Fatalf("total %d, %d rows: %+v", page.Total, len(page.Rows), page.Rows)
+	}
+	var probes []Row
+	for _, r := range page.Rows {
+		if r.Source == SourceProbe {
+			probes = append(probes, r)
+		}
+	}
+	if len(probes) != 2 {
+		t.Fatalf("probe rows %+v", page.Rows)
+	}
+	test := probes[1] // newest first
+	if probes[0].Kind != probelog.KindList || test.Kind != probelog.KindTest || test.Agent != "uni-switch" || test.Provider != "relay" ||
+		test.ProviderAccount != "me" || test.Model != "gpt-9" || test.Status != 401 || test.Endpoint != "/v1/chat/completions" {
+		t.Fatalf("probe rows %+v", probes)
+	}
+	if len(test.Error) > 504 || !strings.HasSuffix(test.Error, "…") || !strings.HasPrefix(test.Error, "页") {
+		t.Fatalf("error not clipped at a character: %d bytes", len(test.Error))
+	}
+	if page.Sum.Calls != 1 || page.Sum.Errors != 0 || page.Through.Calls != 1 || page.Direct.Calls != 0 || page.Reported.Calls != 0 {
+		t.Fatalf("sum %+v through %+v direct %+v", page.Sum, page.Through, page.Direct)
+	}
+	for dim, shares := range page.By {
+		for _, s := range shares {
+			if s.ID == "relay" || s.ID == "uni-switch" || s.ID == "gpt-9" {
+				t.Fatalf("%s counts a probe: %+v", dim, shares)
+			}
+		}
+	}
+	if s := Summarize(All); s.Calls != 1 || s.Errors != 0 {
+		t.Fatalf("summary %+v", s.Totals)
+	}
+	if rs := Load(time.Time{}); len(rs) != 1 {
+		t.Fatalf("Load %+v", rs)
+	}
+	if !LastSeen("uni-switch").IsZero() {
+		t.Fatal("a probe is a request from agent uni-switch")
+	}
+	// a filter on the probe's provider lists it and still counts nothing
+	if p := QueryPage(All, Filter{Provider: "relay"}, 0, 50); p.Total != 2 || p.Sum.Calls != 0 {
+		t.Fatalf("provider filter: total %d sum %+v", p.Total, p.Sum)
+	}
+}
+
+// ferock on Discord: Usage > Requests filled with "Model list" rows, 0
+// tokens and 200, one every 10 minutes for a Remote uni-switch, that no agent
+// sent. A model list that was answered is no row, neither written nor
+// read back from a log that has it from before; one that failed is still
+// listed (it is why models are missing), and so is every Test.
+func TestAnsweredModelListIsNoRow(t *testing.T) {
+	reportedHome(t)
+	now := time.Now().Add(-time.Hour)
+	list := func(at time.Duration, status int, err string) probelog.Row {
+		return probelog.Row{Time: now.Add(at), Kind: probelog.KindList, Provider: "remote", Host: "10.0.0.2:3425",
+			Endpoint: "GET /v1/models", Status: status, Millis: 757, Error: err}
+	}
+	probelog.Sink(list(time.Second, 200, ""))
+	probelog.Sink(list(2*time.Second, 304, ""))
+	probelog.Sink(list(3*time.Second, 503, "upstream down"))
+	probelog.Sink(list(4*time.Second, 0, "dial tcp 10.0.0.2:3425: connection refused"))
+	probelog.Sink(probelog.Row{Time: now.Add(5 * time.Second), Kind: probelog.KindTest, Provider: "remote", Host: "10.0.0.2:3425",
+		Endpoint: "/v1/chat/completions", Model: "m", Status: 200, Millis: 900})
+	// a log written before: its answered lists are left out as it is read
+	Append(Record{Time: now.Add(6 * time.Second), Agent: "uni-switch", Provider: "remote", Host: "10.0.0.2:3425",
+		Endpoint: "GET /v1/models", Kind: probelog.KindList, Status: 200, Millis: 700, Source: SourceProbe})
+
+	b, err := os.ReadFile(Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(string(b), `"kind":"model_list"`); n != 3 {
+		t.Fatalf("%d model list lines written, want the 2 that failed and the old one:\n%s", n, b)
+	}
+	page := QueryPage(All, Filter{}, 0, 50)
+	var got []string
+	for _, r := range page.Rows {
+		got = append(got, r.Kind+" "+strconv.Itoa(r.Status))
+	}
+	want := []string{"provider_test 200", "model_list 0", "model_list 503"}
+	if page.Total != 3 || !slices.Equal(got, want) {
+		t.Fatalf("total %d, rows %v, want %v", page.Total, got, want)
+	}
+	if p := QueryPage(All, Filter{Failed: true}, 0, 50); p.Total != 2 {
+		t.Fatalf("failed filter: total %d", p.Total)
+	}
+}

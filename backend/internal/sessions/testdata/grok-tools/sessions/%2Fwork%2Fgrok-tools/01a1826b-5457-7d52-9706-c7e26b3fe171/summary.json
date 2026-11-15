@@ -1,0 +1,25 @@
+{
+  "info": {
+    "id": "01a1826b-5457-7d52-9706-c7e26b3fe171",
+    "cwd": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/proj"
+  },
+  "agent_id": "ag1.5aab11693c87494ca0ad4d3ab531fd53",
+  "attempt_id": "at1.cfbae69bac0d487eac9dfe12fbd8cfff",
+  "session_summary": "Cat notes.txt then greet-user skill",
+  "created_at": "2026-10-28T12:10:34.561689Z",
+  "updated_at": "2026-10-28T12:10:47.177651Z",
+  "num_messages": 12,
+  "num_chat_messages": 11,
+  "current_model_id": "grok-4.7",
+  "next_trace_turn": 1,
+  "chat_format_version": 1,
+  "session_kind": "headless",
+  "git_root_dir": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/proj/",
+  "request_id": "e9f4ff57-78be-40d4-aae5-1f55275cbcd9",
+  "grok_home": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/.grok",
+  "last_active_at": "2026-10-28T12:10:47.177651Z",
+  "generated_title": "Cat notes.txt then greet-user skill",
+  "agent_name": "grok-build-plan",
+  "sandbox_profile": "off",
+  "reasoning_effort": "high"
+}

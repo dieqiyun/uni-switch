@@ -1,0 +1,1250 @@
+package provider
+
+// Retiring a built-in subscription. Each subscription with a mover below
+// has a community plugin that does what the built-in does
+// (github.com/dieqiyun/uni-switch). Moving one puts its accounts onto
+// the plugin under the same id, so agents on zed/<model>, the model picks,
+// routing and fallbacks carry on as they were:
+//
+//  1. the plugin is installed, if it isn't;
+//  2. each account's sign-in is kept as the plugin keeps one, in the order
+//     and on or off as the user had it;
+//  3. each is tried as a request would try it (the plugin's loader and its
+//     model list for that account): one the vendor refuses is marked, and
+//     one that fails otherwise goes along untried, since the built-in is
+//     retired and the plugin is where the account is fixed now;
+//  4. the id changes hands: the built-in's saved accounts go out of
+//     logins.json into migrations.json.
+//
+// A failure on the way (the install, the plugin not serving the id, a
+// sign-in it won't import) puts the built-in's saved accounts back as they
+// were — the plugin's newer tokens included, since a refresh token used
+// once is spent — for the next try. The built-in serves nothing either
+// way (Retired): MoveCandidates lists the accounts still to move, and why.
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/fs"
+	"log"
+	"maps"
+	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/filememo"
+	"github.com/dieqiyun/uni-switch/backend/internal/lastgood"
+	"github.com/dieqiyun/uni-switch/backend/internal/plugin"
+	"github.com/dieqiyun/uni-switch/backend/internal/settings"
+	"github.com/dieqiyun/uni-switch/backend/internal/update"
+)
+
+// A migration's states.
+const (
+	MoveMoving = "moving" // under way, or cut short (put back at the next try)
+	MovePlugin = "plugin" // the plugin has the id
+	MovedBack  = "back"   // moved back to the built-in by an older uni-switch: moved again by itself
+	MoveFailed = "failed" // the last try failed: the built-in carries on
+	// MoveRemoved is a moved one whose plugin the user removed: its
+	// accounts stay with the plugin's sign-ins, and the plugin installed
+	// again has it at once (HandOver). Nothing installs it by itself.
+	MoveRemoved = "removed"
+)
+
+// retiring are the built-ins uni-switch moves onto their plugins by itself:
+// every one with a mover, since each built-in is being retired (the owner,
+// 10-16: 陆续把内置Provider下线掉). A tests' list stands in for it.
+var retiring = MovableIDs
+
+// moveRetry is how long a failed move waits before it is tried again,
+// while the built-in carries on. One whose built-in is retired waits
+// retiredRetry: nothing serves its accounts until it moves, so a move that
+// failed for a moment (npm out of reach, the plugin not installed yet) is
+// tried again soon, not hours later.
+const (
+	moveRetry    = 6 * time.Hour
+	retiredRetry = 10 * time.Minute
+)
+
+// retryWait is how long a failed move of id waits before it is tried again.
+func retryWait(id string) time.Duration {
+	if BuiltinRetired(id) {
+		return retiredRetry
+	}
+	return moveRetry
+}
+
+// retryDue says whether a failed move of id, last tried at, is due again.
+func retryDue(id string, at time.Time) bool { return time.Since(at) >= retryWait(id) }
+
+// Migration is where one built-in's move stands.
+type Migration struct {
+	State   string    `json:"state"`
+	Package string    `json:"package,omitempty"`
+	At      time.Time `json:"at"`
+	Err     string    `json:"error,omitempty"`
+	// Accounts are the plugin's accounts the move made or took over.
+	Accounts []movedAccount `json:"accounts,omitempty"`
+	// Backup is the built-in's accounts as logins.json kept them.
+	Backup []savedLogin `json:"backup,omitempty"`
+	// Kept is what else of the built-in's the move set aside (Kiro's key).
+	Kept json.RawMessage `json:"kept,omitempty"`
+	// Installed is whether the move installed the plugin: a failed move
+	// takes it away again.
+	Installed bool `json:"installed,omitempty"`
+	// Host is the built-in's API host, which the plugin's provider shows.
+	Host string `json:"host,omitempty"`
+	// Why is a failed move's reason, for the page to say in the user's
+	// language.
+	Why *MoveWhy `json:"why,omitempty"`
+}
+
+// MoveWhy is why a move didn't go through: Code names the case, Args fill
+// in its sentence.
+//
+//	offline   uni-switch couldn't reach npm (or Bun's download) to install the plugin
+//	install   npm couldn't install it: line
+//
+// An older uni-switch also failed a move for an account (lapsed, unserved,
+// account), which the page still reads from migrations.json; since the
+// built-ins are retired every account goes along.
+type MoveWhy struct {
+	Code string            `json:"code"`
+	Args map[string]string `json:"args,omitempty"`
+}
+
+// moveError is a failed move's error in words a user reads, with its why.
+type moveError struct {
+	why MoveWhy
+	msg string
+	err error // what lay under it, for the log
+}
+
+func (e *moveError) Error() string { return e.msg }
+func (e *moveError) Unwrap() error { return e.err }
+
+// WhyOf is the reason a move failed, nil for one it has no words for.
+func WhyOf(err error) *MoveWhy {
+	var me *moveError
+	if errors.As(err, &me) {
+		w := me.why
+		return &w
+	}
+	return nil
+}
+
+// unreachable is an install that never got through to npm (or to Bun's
+// download): Bun's words for it, and Go's.
+var unreachable = regexp.MustCompile(`(?i)ConnectionRefused|ConnectionClosed|FailedToOpenSocket|ENOTFOUND|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|Unable to connect|network|no such host|dial tcp|i/o timeout|TLS handshake`)
+
+// installFailed says why the plugin couldn't be installed.
+func installFailed(pkg string, err error) error {
+	if unreachable.MatchString(err.Error()) {
+		return &moveError{MoveWhy{Code: "offline"}, "uni-switch couldn't reach npm to install the plugin. Check the network or proxy, then try again.", err}
+	}
+	line := strings.TrimSpace(err.Error())
+	if ls := strings.Split(line, "\n"); len(ls) > 1 {
+		line = strings.TrimSpace(ls[len(ls)-1])
+	}
+	return &moveError{MoveWhy{Code: "install", Args: map[string]string{"line": line}}, fmt.Sprintf("npm couldn't install %s: %s", pkg, line), err}
+}
+
+// nameOf is the built-in id's name, as the providers list shows it.
+func nameOf(id string) string {
+	// a retired built-in is listed no more: the name it had
+	if c, ok := movedCards[id]; ok {
+		return c.name
+	}
+	if id == QoderCNID {
+		return "Qoder CN"
+	}
+	for _, p := range All() {
+		if p.ID == id && !p.IsPlugin() && p.Name != "" {
+			return p.Name
+		}
+	}
+	return id
+}
+
+type movedAccount struct {
+	Key  string `json:"key"`
+	User string `json:"user"`
+	Own  bool   `json:"own,omitempty"`
+	// ID is the vendor's id of the account (WorkBuddy's uid), where the
+	// mover reads one: two accounts of one name are told apart by it.
+	ID string `json:"id,omitempty"`
+	// Was is what the plugin kept at Key before, when the user had signed
+	// in to the same account through the plugin already.
+	Was map[string]any `json:"was,omitempty"`
+	// Sent is (a hash of) the sign-in given to the plugin: a plugin still
+	// holding it renewed nothing, so the built-in's own is as new.
+	Sent string `json:"sent,omitempty"`
+}
+
+// signinHash tells two sign-ins apart without keeping either.
+func signinHash(a map[string]any) string {
+	h := sha256.Sum256([]byte(jsonText(a)))
+	return hex.EncodeToString(h[:8])
+}
+
+// renewedSince are the built-in's accounts whose sign-in isn't the one
+// sent: the built-in renewed them while the move went on (a request, a
+// refresh) and, a refresh token being spent once used, the plugin's copy
+// may be dead.
+func renewedSince(mv *mover, moved []movedAccount) []movedAccount {
+	now, err := mv.out()
+	if err != nil {
+		return nil
+	}
+	var out []movedAccount
+	for _, ma := range moved {
+		if ma.Own {
+			continue
+		}
+		if slices.ContainsFunc(now, func(a Moving) bool { return !a.Own && a.same(ma) && signinHash(a.Auth) != ma.Sent }) {
+			out = append(out, ma)
+		}
+	}
+	return out
+}
+
+// same is whether a is the account moved as ma: by the vendor's id where
+// both have one, a name being no one's own (wakkana on Discord), else by
+// name.
+func (a Moving) same(ma movedAccount) bool {
+	if a.ID != "" && ma.ID != "" {
+		return a.ID == ma.ID
+	}
+	return strings.EqualFold(a.User, ma.User)
+}
+
+// Moving is one of a built-in's accounts on its way to the plugin.
+type Moving struct {
+	User string
+	// ID is the vendor's id of the account, where the built-in kept one
+	// (WorkBuddy's uid).
+	ID        string
+	First, On bool
+	// Lapsed is an account the vendor already refused: it goes along, but
+	// isn't tried.
+	Lapsed bool
+	// Plan is the plan the account showed, kept beside it until the
+	// plugin tells it anew.
+	Plan string
+	// Own is the agent's own sign-in (its CLI's, its app's), which the
+	// plugin reads where the agent keeps it, as the built-in did.
+	Own  bool
+	Auth map[string]any
+}
+
+// A mover carries one built-in's accounts to its plugin and back.
+type mover struct {
+	pkg string
+	// min is the oldest version of pkg that runs the accounts as moved
+	min string
+	// agents are the logins.json agents its accounts are saved under.
+	agents []string
+	// out is the built-in's accounts as the plugin's sign-ins, the one in
+	// use first.
+	out func() ([]Moving, error)
+	// back puts one of the plugin's sign-ins back into the built-in's
+	// saved accounts: into the one it came from (user), else a new one.
+	// It gives the accounts and the one it wrote to.
+	back func(ls []savedLogin, user string, auth map[string]any) ([]savedLogin, string, error)
+	// take and give set aside what else of the built-in's the plugin now
+	// has, and put it back.
+	take func() (json.RawMessage, error)
+	give func(json.RawMessage) error
+	// settle finishes the sign-ins handed back once logins.json is let go:
+	// what else of the built-in's they carry (a key onto its provider),
+	// whose saving syncs the agents, which read the accounts.
+	settle func(auths map[string]map[string]any) error
+}
+
+// movers are the deprecated built-ins and their plugins, by id. Once one
+// is moved, its plugin serves it and the built-in's code no longer does:
+// each built-in's files say so (PLUGIN-SERVED, AGENTS.md), and
+// TestMovedBuiltinsSayTheirPlugin fails for a mover added without that.
+var movers = map[string]*mover{}
+
+// errStays is a back's answer for a sign-in the built-in has nowhere to
+// keep (one made in the plugin's own way): it stays with the plugin, which
+// lists it under its own id once the built-in has the id again.
+var errStays = errors.New("stays with the plugin")
+
+// Movable is whether the built-in id has a plugin it can move to.
+func Movable(id string) bool { return movers[id] != nil }
+
+// BuiltinRetired is whether uni-switch's built-in id is retired: its plugin serves
+// it, and the built-in serves nothing, moved or not. One whose accounts
+// haven't moved yet (a failed install, an account the plugin turned away)
+// is listed by MoveCandidates with why, until it moves. The built-ins are
+// retired one by one, each with its code (the owner, 10-16: 陆续把内置
+// Provider下线掉), so this is the set retired so far.
+func BuiltinRetired(id string) bool { return Movable(id) && retiredBuiltins[id] }
+
+// retiredBuiltins are the built-in subscriptions whose code is gone.
+var retiredBuiltins = map[string]bool{
+	"zed":             true,
+	"kiro":            true,
+	"cursor":          true,
+	"qoder":           true,
+	QoderCNID:         true,
+	"workbuddy":       true,
+	WorkBuddyAIID:     true,
+	MiMoID:            true,
+	"zcode":           true,
+	"factory":         true,
+	"grok":            true,
+	"devin":           true,
+	CommandCodePlanID: true,
+}
+
+// PluginServes is whether the built-in id's subscription is its plugin's to
+// serve, and uni-switch's built-in code serves none of it: moved onto its plugin,
+// or retired.
+func PluginServes(id string) bool { return Moved(id) || BuiltinRetired(id) }
+
+// MovableIDs are the built-ins that have a plugin to move to, by id: the
+// page marks them deprecated, moved or not.
+func MovableIDs() []string {
+	out := make([]string, 0, len(movers))
+	for id := range movers {
+		out = append(out, id)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// MoveCandidate is a built-in with accounts its plugin could run instead.
+type MoveCandidate struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Package  string `json:"package"`
+	Accounts int    `json:"accounts"`
+	// Error and Why are the last try's failure, when one failed
+	Error string   `json:"error,omitempty"`
+	Why   *MoveWhy `json:"why,omitempty"`
+}
+
+// MoveCandidates are the built-ins not on their plugins that have accounts
+// to move, by name. One whose plugin the user removed (MoveRemoved) is
+// none: its accounts moved already and are kept with the plugin's sign-ins,
+// and installing the plugin again gives it back (HandOver), as MoveRetiring
+// and HandOver leave it too. A login row of the built-in's left behind kept
+// it here, so the Providers page's line said its accounts "haven't moved
+// yet" for good, with a Move that would install the plugin the user had
+// just removed (plugins#404: Grok, after the plugin, the provider and its
+// sign-ins were removed; #3542: ZCode).
+func MoveCandidates() []MoveCandidate {
+	if settings.AccountDiscoveryOff() {
+		return nil
+	}
+	out := []MoveCandidate{}
+	for id, mv := range movers {
+		if Moved(id) {
+			continue
+		}
+		if m, ok := MigrationOf(id); ok && m.State == MoveRemoved {
+			continue
+		}
+		if accts, err := mv.out(); err == nil && len(accts) > 0 {
+			c := MoveCandidate{ID: id, Name: nameOf(id), Package: mv.pkg, Accounts: len(accts)}
+			if m, ok := MigrationOf(id); ok && m.State == MoveFailed {
+				c.Error, c.Why = m.Err, m.Why
+			}
+			out = append(out, c)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
+// a retired subscription's id names its plugin to `uni-switch plugin add`
+// and the Plugins page's field (qoder-cn, commandcode-plan)
+func init() { plugin.SubscriptionPlugin = MovePackage }
+
+// MovePackage is the plugin the built-in id moves to.
+func MovePackage(id string) string {
+	if m := movers[id]; m != nil {
+		return m.pkg
+	}
+	return ""
+}
+
+func migrationsPath() string { return filepath.Join(filepath.Dir(Path()), "migrations.json") }
+
+var migrationsMu sync.Mutex
+
+// readMigrations is held while a request reads: the GUI's state asks each
+// provider's move several times over, thousands of looks at the file.
+func readMigrations() map[string]Migration { return heldOf("migrations", readMigrationsFile) }
+
+func readMigrationsFile() map[string]Migration {
+	m, err := filememo.Read("migrations", migrationsPath(), parseMigrations)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		// one that doesn't read (all zero after a crash, #1505) is not
+		// "nothing moved": a moved subscription would come back as its
+		// built-in, and the next move write that over every other's
+		if b, ferr := lastgood.Fallback(migrationsPath(), unreadBytes(migrationsPath()), validMigrations); ferr == nil {
+			m, _ = parseMigrations(b)
+		} else {
+			log.Printf("migrations.json: %v", ferr)
+		}
+	}
+	return m
+}
+
+func parseMigrations(b []byte) (map[string]Migration, error) {
+	var m map[string]Migration
+	err := json.Unmarshal(b, &m)
+	return m, err
+}
+
+func validMigrations(b []byte) bool {
+	_, err := parseMigrations(b)
+	return err == nil
+}
+
+// MigrationOf is where the built-in id's move stands.
+func MigrationOf(id string) (Migration, bool) {
+	m, ok := readMigrations()[id]
+	return m, ok
+}
+
+// Moved is whether the built-in id's accounts are its plugin's now.
+func Moved(id string) bool {
+	m, ok := MigrationOf(id)
+	return ok && m.State == MovePlugin
+}
+
+// movedAgent is whether the logins.json agent's accounts are a moved
+// built-in's, its plugin's now. Retired is not enough: a retired
+// built-in's own account, the agent's own sign-in, still has to be listed
+// for its mover to take it (MoveRetiring, MoveCandidates).
+func movedAgent(agent string) bool {
+	for id, mv := range movers {
+		if slices.Contains(mv.agents, agent) && Moved(id) {
+			return true
+		}
+	}
+	return false
+}
+
+// OnPlugins are the built-ins moved onto their plugins.
+func OnPlugins() []string {
+	var out []string
+	for id, m := range readMigrations() {
+		if m.State == MovePlugin && movers[id] != nil {
+			out = append(out, id)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func movingNow(id string) bool {
+	m, ok := MigrationOf(id)
+	return ok && m.State == MoveMoving
+}
+
+func setMigration(id string, f func(m *Migration)) error {
+	migrationsMu.Lock()
+	defer migrationsMu.Unlock()
+	all := map[string]Migration{}
+	for k, v := range readMigrationsFile() {
+		all[k] = v
+	}
+	// f changes its own copy: the lists read are shared with every reader
+	// (filememo), and a write that fails leaves them as the file has them
+	m := all[id]
+	m.Accounts = slices.Clone(m.Accounts)
+	for i := range m.Accounts {
+		m.Accounts[i].Was = maps.Clone(m.Accounts[i].Was)
+	}
+	m.Backup = slices.Clone(m.Backup)
+	f(&m)
+	all[id] = m
+	b, err := json.MarshalIndent(all, "", "  ")
+	if err != nil {
+		return err
+	}
+	defer Changed()
+	if err := lastgood.Keep(migrationsPath(), validMigrations, 0o600); err != nil {
+		return err
+	}
+	return writePrivate(migrationsPath(), append(b, '\n'))
+}
+
+// lockMoves keeps two uni-switchs (the app and a CLI, a dev build beside a
+// release) from moving at once.
+func lockMoves() (func(), error) {
+	p := migrationsPath() + ".lock"
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		return nil, err
+	}
+	for range 2 {
+		f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err == nil {
+			fmt.Fprint(f, os.Getpid())
+			f.Close()
+			return func() { os.Remove(p) }, nil
+		}
+		// one left by a uni-switch that died moving (killed, or stopped
+		// mid-move) holds nothing
+		if b, rerr := os.ReadFile(p); rerr == nil {
+			if pid, perr := strconv.Atoi(strings.TrimSpace(string(b))); perr == nil && pid != os.Getpid() && !update.Alive(pid) {
+				os.Remove(p)
+				continue
+			}
+		}
+		if fi, serr := os.Stat(p); serr == nil && time.Since(fi.ModTime()) > 15*time.Minute {
+			os.Remove(p)
+			continue
+		}
+		return nil, errors.New("another uni-switch is moving subscriptions to plugins")
+	}
+	return nil, errors.New("another uni-switch is moving subscriptions to plugins")
+}
+
+// Hooks the tests stand in for.
+var (
+	installPlugin = func(ctx context.Context, pkg, min string) error {
+		// what the user has is theirs: a version they pinned stays, and
+		// a git one is reinstalled from its own repository, where a bare
+		// name would replace either with <pkg>@latest
+		found, older := pkg, false
+		for _, e := range plugin.Load().Plugins {
+			if plugin.PackageName(e.Spec) != pkg {
+				continue
+			}
+			if e.Off {
+				return fmt.Errorf("%s is turned off in Plugins", pkg)
+			}
+			v := plugin.Version(e.Spec)
+			if min == "" || !update.Newer(min, v) {
+				return nil
+			}
+			if plugin.IsPath(e.Spec) {
+				return fmt.Errorf("%s at %s is %s; moving needs %s or newer", pkg, e.Spec, v, min)
+			}
+			if plugin.Pinned(e.Spec) {
+				return fmt.Errorf("%s is pinned at %s; moving needs %s or newer", pkg, e.Spec, min)
+			}
+			found, older = e.Spec, !plugin.IsGit(e.Spec)
+			break
+		}
+		var err error
+		if older {
+			// npm's newest, which bun says why it won't install (a
+			// minimumReleaseAge), where bun's own latest is an older
+			// version without a word (sweanng424 on Discord)
+			err = upgradePlugin(ctx, pkg)
+		} else {
+			_, err = addPlugin(ctx, found)
+		}
+		if err == nil && min != "" {
+			if v := plugin.Version(pkg); update.Newer(min, v) {
+				return fmt.Errorf("%s %s is installed; moving needs %s or newer", pkg, v, min)
+			}
+		}
+		return err
+	}
+	pluginProviders = plugin.Providers
+	removePlugin    = plugin.Remove
+	// addPlugin and upgradePlugin install what installPlugin decided: vars
+	// so a test can read what it is handed
+	addPlugin     = plugin.Add
+	upgradePlugin = plugin.Upgrade
+	// addPluginExact is a backup's or a sync's install: the spec as the
+	// other computer has it, never taken for a name
+	addPluginExact = plugin.AddExact
+	// importAuth keeps a built-in's sign-in as one of the plugin's
+	importAuth = plugin.Import
+)
+
+// Move puts the built-in id's accounts onto its plugin (see above). An
+// error leaves the built-in as it was.
+func Move(ctx context.Context, id string) error {
+	if settings.AccountDiscoveryOff() {
+		return errAccountDiscoveryOff
+	}
+	mv := movers[id]
+	if mv == nil {
+		return fmt.Errorf("%s has no plugin to move to", id)
+	}
+	unlock, err := lockMoves()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	if Moved(id) {
+		return nil
+	}
+	if movingNow(id) {
+		putBack(ctx, id, mv, "")
+	}
+	err = move(ctx, id, mv)
+	if err != nil {
+		_ = setMigration(id, func(m *Migration) {
+			*m = Migration{State: MoveFailed, Package: mv.pkg, At: time.Now().UTC().Truncate(time.Second), Err: err.Error(), Why: WhyOf(err)}
+		})
+		if me := (*moveError)(nil); errors.As(err, &me) && me.err != nil {
+			log.Printf("moving %s to its plugin: %s (%s)", id, me.msg, me.err)
+		}
+	}
+	return err
+}
+
+// Adopt puts the built-in id onto its plugin before any account of it is
+// signed in: the plugin installed, and the subscription signs in through
+// it from now on, as a moved one does. One with accounts is moved instead,
+// and one whose plugin the user removed is the plugin's again.
+func Adopt(ctx context.Context, id string) error {
+	if settings.AccountDiscoveryOff() {
+		return errAccountDiscoveryOff
+	}
+	mv := movers[id]
+	if mv == nil {
+		return fmt.Errorf("%s has no plugin to move to", id)
+	}
+	if accts, err := mv.out(); err != nil {
+		return err
+	} else if len(accts) > 0 {
+		return Move(ctx, id)
+	}
+	unlock, err := lockMoves()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	if Moved(id) {
+		return nil
+	}
+	had := pluginListed(mv.pkg)
+	if err := installPlugin(ctx, mv.pkg, mv.min); err != nil {
+		return installFailed(mv.pkg, err)
+	}
+	pps, err := pluginProviders(ctx)
+	if err == nil && !slices.ContainsFunc(pps, func(p plugin.Provider) bool { return p.ID == id && plugin.PackageName(p.Spec) == mv.pkg }) {
+		err = fmt.Errorf("%s doesn't serve %s", mv.pkg, id)
+	}
+	if err == nil {
+		err = setMigration(id, func(m *Migration) {
+			at := time.Now().UTC().Truncate(time.Second)
+			// one whose plugin the user removed: its accounts are with
+			// the plugin's sign-ins still, and the record says which
+			if m.State == MoveRemoved {
+				m.State, m.At, m.Installed = MovePlugin, at, !had
+				return
+			}
+			*m = Migration{State: MovePlugin, Package: mv.pkg, At: at, Installed: !had}
+		})
+	}
+	if err != nil && !had {
+		if rerr := removePlugin(context.WithoutCancel(ctx), mv.pkg); rerr != nil {
+			log.Printf("removing %s after %s failed to go onto it: %s", mv.pkg, id, rerr)
+		}
+	}
+	return err
+}
+
+func move(ctx context.Context, id string, mv *mover) (err error) {
+	var host string
+	if p, err := Find(id); err == nil && !p.IsPlugin() {
+		host = p.Host()
+	}
+	accts, err := mv.out()
+	if err != nil {
+		return err
+	}
+	if len(accts) == 0 {
+		return fmt.Errorf("no %s account to move", id)
+	}
+	had := pluginListed(mv.pkg)
+	if err := installPlugin(ctx, mv.pkg, mv.min); err != nil {
+		return installFailed(mv.pkg, err)
+	}
+	installed := !had
+	// a plugin the move installed goes with a move that failed, which
+	// leaves nothing of it behind: no provider saying it's signed out
+	defer func() {
+		if err != nil && installed {
+			if rerr := removePlugin(context.WithoutCancel(ctx), mv.pkg); rerr != nil {
+				log.Printf("removing %s after a failed move: %s", mv.pkg, rerr)
+			}
+		}
+	}()
+	pps, err := pluginProviders(ctx)
+	if err != nil {
+		return err
+	}
+	var pp plugin.Provider
+	for _, p := range pps {
+		if p.ID == id {
+			if plugin.PackageName(p.Spec) != mv.pkg {
+				return fmt.Errorf("%s is served by another plugin, %s", id, p.Spec)
+			}
+			pp = p
+		}
+	}
+	if pp.ID == "" {
+		return fmt.Errorf("%s doesn't serve %s", mv.pkg, id)
+	}
+	before := plugin.Auths(id)
+	if err := setMigration(id, func(m *Migration) {
+		*m = Migration{State: MoveMoving, Package: mv.pkg, At: time.Now().UTC().Truncate(time.Second)}
+	}); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			putBack(ctx, id, mv, err.Error())
+		}
+	}()
+	var moved []movedAccount
+	for _, a := range accts {
+		key, err := importAuth(ctx, id, a.Auth)
+		if err != nil {
+			return fmt.Errorf("%s: %w", a.User, err)
+		}
+		ma := movedAccount{Key: key, User: a.User, Own: a.Own, ID: a.ID, Was: before[key], Sent: signinHash(a.Auth)}
+		moved = append(moved, ma)
+		if err := setMigration(id, func(m *Migration) { m.Accounts = moved }); err != nil {
+			return err
+		}
+	}
+	if err := keepOrder(pp, accts, moved); err != nil {
+		return err
+	}
+	// the built-in is retired, so every account goes: one the vendor
+	// refuses is marked, as the built-in marked it; one that is lapsed,
+	// or that the plugin couldn't prove (its vendor unreachable, its sign-in
+	// gone in words), goes untried and unmarked, and the plugin's own reads
+	// judge it from now on. No model the built-in served holds it back.
+	for i, a := range accts {
+		if a.Lapsed {
+			continue
+		}
+		// through the account's proxy, as its requests go
+		c, err := plugin.Check(ViaLogin(ctx, id, a.User), id, moved[i].Key)
+		switch {
+		case err == nil && (c.Refused != "" || refused(c.Usage)):
+			notePluginLapse(pp, moved[i].Key, http.StatusUnauthorized)
+		case err != nil:
+			log.Printf("moving %s's %s to its plugin untried: %s", id, a.User, err)
+		}
+	}
+	return commitMove(id, mv, moved, installed, host)
+}
+
+// refused is a check's usage read saying the vendor turned the account's
+// sign-in away, read as the usage page reads it: a models hook may fall
+// back to a list it keeps, but the read asks the vendor of the account.
+func refused(u *plugin.Usage) bool {
+	return u != nil && (u.SignIn == "expired" || u.SignIn == "" && signInGone.MatchString(u.Error))
+}
+
+// pluginListed is whether the package is in the plugin list already.
+func pluginListed(pkg string) bool {
+	return slices.ContainsFunc(plugin.Load().Plugins, func(e plugin.Entry) bool { return plugin.PackageName(e.Spec) == pkg })
+}
+
+// keepOrder lists the accounts moved as the built-in had them: the one in
+// use first, the rest on or off. What the user had signed in to through
+// the plugin already keeps its place.
+func keepOrder(pp plugin.Provider, accts []Moving, moved []movedAccount) error {
+	agent := pluginAgent(pp)
+	loginsMu.Lock()
+	defer loginsMu.Unlock()
+	ls := readLogins()
+	first := ""
+	for i, a := range accts {
+		if a.First && moved[i].Was == nil {
+			first = moved[i].Key
+		}
+	}
+	for i, a := range accts {
+		ma := moved[i]
+		if ma.Was != nil {
+			continue
+		}
+		ls = slices.DeleteFunc(ls, func(l savedLogin) bool { return l.Agent == agent && l.Home == ma.Key })
+		l := savedLogin{Agent: agent, User: a.User, Plan: a.Plan, Home: ma.Key, On: a.On || a.First, First: ma.Key == first, Seen: time.Now().UTC().Truncate(time.Second)}
+		if a.Lapsed {
+			l.Lapsed = lapsedText(pp, a.User)
+		}
+		ls = append(ls, l)
+	}
+	if first != "" {
+		for i := range ls {
+			if ls[i].Agent == agent && ls[i].Home != first {
+				ls[i].First = false
+			}
+		}
+	}
+	return writeLogins(ls)
+}
+
+// commitMove hands the id over: the built-in's accounts go aside.
+func commitMove(id string, mv *mover, moved []movedAccount, installed bool, host string) error {
+	if r := renewedSince(mv, moved); len(r) > 0 {
+		var users []string
+		for _, ma := range r {
+			users = append(users, ma.User)
+		}
+		return fmt.Errorf("%s renewed while moving; tried again later", strings.Join(users, ", "))
+	}
+	var kept json.RawMessage
+	if mv.take != nil {
+		k, err := mv.take()
+		if err != nil {
+			return err
+		}
+		kept = k
+	}
+	loginsMu.Lock()
+	var backup []savedLogin
+	for _, l := range readLogins() {
+		if slices.Contains(mv.agents, l.Agent) {
+			backup = append(backup, l)
+		}
+	}
+	loginsMu.Unlock()
+	if err := setMigration(id, func(m *Migration) {
+		*m = Migration{State: MovePlugin, Package: mv.pkg, At: time.Now().UTC().Truncate(time.Second), Accounts: moved, Backup: backup, Kept: kept, Installed: installed, Host: host}
+	}); err != nil {
+		if mv.give != nil {
+			_ = mv.give(kept)
+		}
+		return err
+	}
+	tidyMoved(id)
+	return nil
+}
+
+// tidyMoved takes a moved built-in's accounts out of logins.json (into its
+// backup, if one was left behind when a uni-switch stopped between the two).
+func tidyMoved(id string) {
+	mv := movers[id]
+	if mv == nil || !Moved(id) {
+		return
+	}
+	loginsMu.Lock()
+	ls := readLogins()
+	var left []savedLogin
+	ls = slices.DeleteFunc(ls, func(l savedLogin) bool {
+		if slices.Contains(mv.agents, l.Agent) {
+			left = append(left, l)
+			return true
+		}
+		return false
+	})
+	if len(left) > 0 {
+		_ = writeLogins(ls)
+	}
+	loginsMu.Unlock()
+	if len(left) == 0 {
+		return
+	}
+	_ = setMigration(id, func(m *Migration) {
+		for _, l := range left {
+			if !slices.ContainsFunc(m.Backup, func(b savedLogin) bool { return sameMoved(b, l) }) {
+				m.Backup = append(m.Backup, l)
+			}
+		}
+	})
+}
+
+func sameMoved(a, b savedLogin) bool {
+	return a.Agent == b.Agent && strings.EqualFold(a.User, b.User) && a.Home == b.Home
+}
+
+// putBack undoes a move cut short: the plugin's sign-ins go back into the
+// built-in's accounts (its newer tokens with them), then out of the
+// plugin — but for one the user had there already, which gets back what
+// it had.
+func putBack(ctx context.Context, id string, mv *mover, why string) {
+	m, _ := MigrationOf(id)
+	var keys []string
+	for _, ma := range m.Accounts {
+		keys = append(keys, ma.Key)
+	}
+	renewed := renewedSince(mv, m.Accounts)
+	skip := func(ma movedAccount, a map[string]any) bool {
+		return signinHash(a) == ma.Sent || slices.ContainsFunc(renewed, func(r movedAccount) bool { return r.Key == ma.Key })
+	}
+	_, _, _ = handBack(ctx, id, mv, m.Accounts, keys, skip, nil, func(ls []savedLogin, _ map[string]string) []savedLogin { return ls })
+	for _, ma := range m.Accounts {
+		if ma.Was != nil {
+			_ = plugin.Restore(ctx, id, ma.Key, ma.Was)
+		}
+	}
+	// the plugin's rows keepOrder wrote go with its accounts, but for one
+	// the user had there before
+	loginsMu.Lock()
+	ls := readLogins()
+	if n := len(ls); n > 0 {
+		ls = slices.DeleteFunc(ls, func(l savedLogin) bool {
+			return l.Agent == "plugin:"+id && slices.ContainsFunc(m.Accounts, func(ma movedAccount) bool { return ma.Key == l.Home && ma.Was == nil })
+		})
+		if len(ls) != n {
+			_ = writeLogins(ls)
+		}
+	}
+	loginsMu.Unlock()
+	_ = setMigration(id, func(m *Migration) {
+		*m = Migration{State: MoveFailed, Package: mv.pkg, At: time.Now().UTC().Truncate(time.Second), Err: why}
+	})
+}
+
+// handBack writes the plugin's accounts keys back into the built-in's
+// saved accounts, then takes them out of the plugin. They are written
+// before they are taken, so a uni-switch stopped between the two loses no
+// sign-in; one the plugin renewed in between is written again. arrange
+// finishes the accounts written (given each key's user). An account that
+// can't go back stops it all before anything is written.
+func handBack(ctx context.Context, id string, mv *mover, accts []movedAccount, keys []string, skip func(movedAccount, map[string]any) bool, prep, arrange func([]savedLogin, map[string]string) []savedLogin) (map[string]string, []error, error) {
+	var stays []string
+	byKey := map[string]movedAccount{}
+	for _, ma := range accts {
+		byKey[ma.Key] = ma
+	}
+	write := func(auths map[string]map[string]any) (map[string]string, []error, error) {
+		loginsMu.Lock()
+		defer loginsMu.Unlock()
+		ls := readLogins()
+		if prep != nil {
+			ls = prep(ls, nil)
+		}
+		users := map[string]string{}
+		var errs []error
+		stays = nil
+		for _, k := range keys {
+			ma := byKey[k]
+			if ma.Own {
+				users[k] = ma.User
+				continue
+			}
+			a := auths[k]
+			if a == nil {
+				continue
+			}
+			if skip != nil && skip(ma, a) {
+				users[k] = ma.User
+				continue
+			}
+			next, u, err := mv.back(ls, ma.User, a)
+			if errors.Is(err, errStays) {
+				stays = append(stays, k)
+				continue
+			}
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			ls, users[k] = next, u
+		}
+		if len(errs) > 0 {
+			return users, errs, nil
+		}
+		return users, nil, writeLogins(arrange(ls, users))
+	}
+	settle := func(auths map[string]map[string]any) error {
+		if mv.settle == nil {
+			return nil
+		}
+		mine := map[string]map[string]any{}
+		for _, k := range keys {
+			if a := auths[k]; a != nil && !byKey[k].Own {
+				mine[k] = a
+			}
+		}
+		return mv.settle(mine)
+	}
+	seen := plugin.Auths(id)
+	users, errs, err := write(seen)
+	if err == nil && len(errs) == 0 {
+		err = settle(seen)
+	}
+	if err != nil || len(errs) > 0 {
+		return users, errs, err
+	}
+	keys = slices.DeleteFunc(slices.Clone(keys), func(k string) bool { return slices.Contains(stays, k) })
+	if len(keys) == 0 {
+		return users, nil, nil
+	}
+	taken, err := plugin.Take(ctx, id, keys)
+	if err != nil {
+		return users, nil, err
+	}
+	for _, k := range keys {
+		if t := taken[k]; t != nil && jsonText(t) != jsonText(seen[k]) {
+			users, errs, err := write(taken)
+			if err == nil && len(errs) == 0 {
+				err = settle(taken)
+			}
+			return users, errs, err
+		}
+	}
+	return users, nil, nil
+}
+
+// MoveRetiring moves the built-ins being retired that have accounts, at
+// start-up: once, or again retryWait after one failed. One an older uni-switch
+// moved back is moved again: there is no way back, as the built-in is
+// going. One whose plugin the user removed waits for them to install it.
+func MoveRetiring(ctx context.Context) map[string]error {
+	if settings.AccountDiscoveryOff() {
+		return nil
+	}
+	out := map[string]error{}
+	for _, id := range retiring() {
+		m, ok := MigrationOf(id)
+		switch {
+		case ok && m.State == MovePlugin:
+			tidyMoved(id)
+			continue
+		case ok && m.State == MoveRemoved:
+			continue
+		case ok && m.State == MoveFailed && !retryDue(id, m.At):
+			continue
+		}
+		if accts, err := movers[id].out(); err != nil || len(accts) == 0 {
+			continue
+		}
+		out[id] = Move(ctx, id)
+	}
+	return out
+}
+
+// HandOver gives each deprecated built-in whose plugin the user has
+// installed, at the version its move needs, and which that plugin serves,
+// its id, so one subscription is never listed twice: the built-in, and the
+// plugin's under "<id>-plugin" (ARNO on Discord: Qoder CN twice once the
+// Qoder plugin's 0.2.0 served it, as nothing gave it the id). One with no
+// accounts is the plugin's at once, as Adopt makes it; with accounts too,
+// one that has some is moved (Move: each tried through the plugin, all put
+// back on any failure, the built-in carrying on). One the plugin has
+// accounts of its own for already is left as it is, since its models are
+// in use as <id>-plugin's and the id changing would leave agents asking
+// for a provider gone; the add sheet lists it once regardless. One moved
+// whose plugin the user removed is the plugin's again once they install it,
+// its accounts still with the plugin, and a failed move waits retryWait. No
+// plugin is installed for it: the user's own install is what says to.
+func HandOver(ctx context.Context, accounts bool) map[string]error {
+	if settings.AccountDiscoveryOff() {
+		return nil
+	}
+	out := map[string]error{}
+	var pps []plugin.Provider
+	asked := false
+	for _, id := range MovableIDs() {
+		mv := movers[id]
+		m, ok := MigrationOf(id)
+		if ok && m.State == MoveRemoved {
+			if pluginReady(mv) {
+				out[id] = setMigration(id, func(m *Migration) {
+					m.State, m.At, m.Installed = MovePlugin, time.Now().UTC().Truncate(time.Second), false
+				})
+			}
+			continue
+		}
+		if ok && (m.State != MoveFailed || !retryDue(id, m.At)) {
+			continue
+		}
+		if !pluginReady(mv) {
+			continue
+		}
+		if !asked {
+			var err error
+			if pps, err = pluginProviders(ctx); err != nil {
+				return out
+			}
+			asked = true
+		}
+		i := slices.IndexFunc(pps, func(p plugin.Provider) bool { return p.ID == id && plugin.PackageName(p.Spec) == mv.pkg })
+		if i < 0 || pps[i].SignedIn || len(pps[i].Accounts) > 0 {
+			continue
+		}
+		accts, err := mv.out()
+		switch {
+		case err != nil:
+		case len(accts) == 0:
+			out[id] = Adopt(ctx, id)
+		case accounts:
+			out[id] = Move(ctx, id)
+		}
+	}
+	return out
+}
+
+// pluginReady is whether the mover's plugin is installed, switched on and
+// at the version its move needs.
+func pluginReady(mv *mover) bool {
+	for _, e := range plugin.Load().Plugins {
+		if plugin.PackageName(e.Spec) == mv.pkg {
+			return !e.Off && (mv.min == "" || !update.Newer(mv.min, plugin.Version(e.Spec)))
+		}
+	}
+	return false
+}
+
+// keepMovedCurrent updates the plugin of each built-in moved onto one to
+// the version its move needs, when older: a built-in came up to date with
+// uni-switch, and its plugin does too. One turned off or run from a folder is
+// left as it is.
+func keepMovedCurrent(ctx context.Context) {
+	for _, id := range OnPlugins() {
+		mv := movers[id]
+		if mv.min == "" {
+			continue
+		}
+		if err := installPlugin(ctx, mv.pkg, mv.min); err != nil {
+			log.Printf("updating %s's plugin: %s", id, err)
+		}
+	}
+}
+
+// KeepRetiringMoved moves the built-ins being retired, and hands over
+// those whose plugin the user installed (HandOver), run by the uni-switch
+// serving the gateway (one uni-switch, never two at once): a little after it
+// starts, then every hour, so a failed move is tried again once retryWait
+// has gone; a retired built-in's failed move brings the next run forward
+// to when it is due. It also keeps each moved built-in's plugin up to date.
+func KeepRetiringMoved(ctx context.Context) {
+	t := time.NewTimer(20 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		if settings.AccountDiscoveryOff() {
+			t.Reset(time.Hour)
+			continue
+		}
+		keepMovedCurrent(ctx)
+		moves := MoveRetiring(ctx)
+		maps.Copy(moves, HandOver(ctx, true))
+		for id, err := range moves {
+			if err != nil {
+				log.Printf("moving %s to its plugin: %s (nothing serves it until it moves)", id, err)
+			} else {
+				log.Printf("moved %s to its plugin, %s", id, MovePackage(id))
+			}
+		}
+		t.Reset(nextRetiringRun())
+	}
+}
+
+// nextRetiringRun is how long KeepRetiringMoved waits before it runs
+// again: an hour, or less when a retired built-in's failed move is due
+// sooner.
+func nextRetiringRun() time.Duration {
+	next := time.Hour
+	for _, id := range MovableIDs() {
+		if m, ok := MigrationOf(id); ok && m.State == MoveFailed && BuiltinRetired(id) {
+			next = min(next, max(time.Until(m.At.Add(retiredRetry)), time.Minute))
+		}
+	}
+	return next
+}
+
+// MovedOnto are the built-ins moved onto the plugin named (its spec or
+// package name).
+func MovedOnto(name string) []string {
+	var out []string
+	for _, e := range plugin.Load().Plugins {
+		if plugin.Name(e.Spec) != name && e.Spec != name {
+			continue
+		}
+		pkg := plugin.PackageName(e.Spec)
+		for _, id := range OnPlugins() {
+			if m, _ := MigrationOf(id); m.Package == pkg && !slices.Contains(out, id) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// PluginAgentGoing, set by internal/agent, takes uni-switch out of the config
+// of the agent the plugin spec adds and puts back what the user had, as
+// `uni-switch <agent> default` does. It runs before the plugin is turned off
+// or removed, while uni-switch still knows the agent: after, nothing could
+// (#3810).
+var PluginAgentGoing func(spec string) error
+
+// agentGoing runs PluginAgentGoing for the installed plugin named; an
+// error keeps the plugin as it is.
+func agentGoing(name, left string) error {
+	spec := installedSpec(name)
+	if spec == "" || PluginAgentGoing == nil {
+		return nil
+	}
+	if err := PluginAgentGoing(spec); err != nil {
+		return fmt.Errorf("%s is left %s: uni-switch couldn't put back its agent's config as it was (%w); switch the agent off uni-switch first", name, left, err)
+	}
+	return nil
+}
+
+// RemovePlugin removes the plugin named and sets aside the model picks of
+// its providers it leaves in providers.json (plugin_left.go). A built-in
+// moved onto it isn't moved back, as the built-in is going: it is
+// MoveRemoved, its accounts kept with the plugin's sign-ins for when the
+// plugin is installed again. The agent it adds is taken off uni-switch first
+// (PluginAgentGoing).
+func RemovePlugin(ctx context.Context, name string) error {
+	if err := agentGoing(name, "installed"); err != nil {
+		return err
+	}
+	// what it served is read while it is still on the list
+	moved := MovedOnto(name)
+	spec := installedSpec(name)
+	ids, known := pluginRecordIDs(spec)
+	pkg := plugin.PackageName(spec)
+	if err := plugin.Remove(ctx, name); err != nil {
+		return err
+	}
+	for _, id := range moved {
+		if err := setMigration(id, func(m *Migration) {
+			m.State, m.At = MoveRemoved, time.Now().UTC().Truncate(time.Second)
+		}); err != nil {
+			return fmt.Errorf("%s is removed; %s still reads as on it: %w", name, id, err)
+		}
+	}
+	if spec == "" || !known {
+		return nil
+	}
+	if err := setAside(pkg, ids); err != nil {
+		return fmt.Errorf("%s is removed; its model picks were left in providers.json: %w", name, err)
+	}
+	return nil
+}
+
+// SetPluginOff turns the plugin named off, or back on. A built-in moved
+// onto it stays moved, off with it: nothing moves it back, as the built-in
+// is going. The agent it adds is taken off uni-switch before it is off
+// (PluginAgentGoing), and stays off when it is on again: the agent's
+// switch puts back the model it was on.
+func SetPluginOff(_ context.Context, name string, off bool) error {
+	if off {
+		if err := agentGoing(name, "on"); err != nil {
+			return err
+		}
+	}
+	return plugin.SetOff(name, off)
+}

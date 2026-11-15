@@ -1,0 +1,276 @@
+// Run with Node's test runner and Playwright on the module path; see README.md.
+// #741: on Windows, Library → RTK → Upgrade showed only a red, cut-short
+// "winget upgrade --id rtk-ai.rtk --exact --silent ..." in the status pill —
+// no result, no exit code, no version. While it runs, the card now says what
+// it runs; a failure stays on the card with the tool's exit code and what it
+// said (the backend's message, faked here), and the card is read again for
+// the version it left; a success says the new version, which the card
+// shows. In English and Chinese. No backend: the API is faked here.
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const { test } = require("node:test");
+const { chromium, webkit } = require("playwright");
+
+const assets = path.resolve(__dirname, "../assets");
+const HOME = "C:/Users/aimer";
+const UPGRADE = "winget upgrade --id rtk-ai.rtk --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity";
+const WHY = "winget failed (exit code 0x8A150101): RTK is in use — close the agents running it and try again";
+const agent = (id, name) => ({ id, name, icon: "", skills: `${HOME}/.${id}/skills`, mcp: `${HOME}/.${id}/mcp.json` });
+const lib = () => ({
+  dir: `${HOME}/.uni-switch/library`, backups: `${HOME}/.uni-switch/backups`, home: HOME,
+  agents: [agent("codex", "Codex")],
+  instructions: { agents: [], sets: [] }, foundServers: [], projects: [], foundSkills: [], skills: [], servers: [],
+});
+const rtkView = (version) => ({
+  path: `${HOME}/AppData/Local/Microsoft/WinGet/Links/rtk.exe`, version, latest: "0.51.0", upgrade: UPGRADE, url: "https://www.rtk-ai.app",
+  agents: [{ id: "codex", name: "Codex", icon: "", on: true }],
+});
+
+function server(lang, state) {
+  return async (route) => {
+    const req = route.request(), url = new URL(req.url());
+    if (url.pathname === "/boot.js") return route.fulfill({ contentType: "text/javascript", body: `window.bootPrefs = {lang:"${lang}",theme:"light",web:true};` });
+    if (url.pathname === "/wails/runtime.js") return route.fulfill({ contentType: "text/javascript", body: "export const Window = {};" });
+    if (url.pathname === "/api/state") return route.fulfill({ json: { agents: [], profiles: [], settings: { lang, theme: "light" } } });
+    if (url.pathname === "/api/plugins") return route.fulfill({ json: { plugins: [] } });
+    if (url.pathname === "/api/library") return route.fulfill({ json: lib() });
+    if (url.pathname === "/api/library/rtk") { state.reads++; return route.fulfill({ json: rtkView(state.version) }); }
+    if (url.pathname === "/api/library/rtk/upgrade") {
+      await state.gate;
+      if (state.fail) return route.fulfill({ status: 400, json: { error: WHY } });
+      state.version = "0.51.0";
+      return route.fulfill({ json: rtkView(state.version) });
+    }
+    if (url.pathname === "/api/usage/quotas") return route.fulfill({ json: [] });
+    if (url.pathname === "/api/groups") return route.fulfill({ json: { groups: [] } });
+    if (url.pathname === "/api/providers") return route.fulfill({ json: { providers: [], gateway: { running: true } } });
+    if (url.pathname.startsWith("/api/")) return route.fulfill({ json: {} });
+    const file = path.join(assets, url.pathname === "/" ? "index.html" : url.pathname);
+    const contentType = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" }[path.extname(file)];
+    await route.fulfill({ body: await fs.readFile(file), contentType });
+  };
+}
+
+const words = {
+  en: { button: "Upgrade", running: `Running ${UPGRADE} — this can take a few minutes.`, failed: `The upgrade failed: ${WHY}`, pill: "RTK's upgrade failed — the RTK card says why", done: "RTK is now 0.51.0" },
+  zh: { button: "升级", running: `正在运行 ${UPGRADE}，可能需要几分钟。`, failed: `升级失败：${WHY}`, pill: "RTK 升级失败，原因见 RTK 卡片", done: "RTK 已升级到 0.51.0" },
+};
+
+for (const engine of (process.env.BROWSER ? [process.env.BROWSER] : ["chromium", "webkit"])) {
+  test(engine + ": an RTK upgrade says how it went", async (t) => {
+    assert(["chromium", "webkit"].includes(engine), "BROWSER must be chromium or webkit");
+    const browser = await (engine === "webkit" ? webkit.launch() : chromium.launch({ channel: "chromium" }));
+    const errors = [];
+    t.after(async () => {
+      if (errors.length) console.log(errors);
+      await browser.close();
+    });
+    for (const lang of ["en", "zh"]) {
+      await t.test(lang, async () => {
+        const w = words[lang];
+        let open;
+        const state = { version: "0.43.0", fail: true, reads: 0, gate: new Promise((r) => { open = r; }) };
+        const ctx = await browser.newContext({ viewport: { width: 980, height: 800 } });
+        await ctx.addInitScript(() => { try { localStorage.setItem("uni-switch.libTab", "rtk"); } catch {} });
+        const page = await ctx.newPage();
+        page.setDefaultTimeout(5000);
+        page.setDefaultNavigationTimeout(60000);
+        page.on("pageerror", (e) => errors.push(e.message));
+        await page.route("**/*", server(lang, state));
+        await page.goto("http://uni-switch.test/");
+        await page.locator('button[data-view="library"]').click();
+        const v = page.locator("#view-library");
+        const button = v.locator(".lib-cardhead button");
+        await button.waitFor();
+        assert.equal(await button.textContent(), w.button);
+
+        // while it runs: what it runs, on the card
+        await button.click();
+        const running = v.locator(".lib-card p", { hasText: UPGRADE });
+        await running.waitFor();
+        assert.equal(await running.textContent(), w.running);
+
+        // it fails: why, on the card, kept past the pill; the card read again
+        const reads = state.reads;
+        open();
+        const err = v.locator(".lib-rtk-err");
+        await err.waitFor();
+        assert.equal(await err.textContent(), w.failed);
+        assert.equal(await page.locator("#status").textContent(), w.pill);
+        for (let i = 0; i < 50 && state.reads === reads; i++) await page.waitForTimeout(20);
+        assert(state.reads > reads, "the card wasn't read again after the failure");
+        assert.equal(await running.count(), 0);
+
+        // again, and it works: the error goes, the new version is shown
+        state.fail = false;
+        await v.locator(".lib-cardhead button").click();
+        await page.waitForFunction((want) => document.querySelector("#status").textContent === want, w.done).catch(() => {});
+        assert.equal(await page.locator("#status").textContent(), w.done);
+        assert.equal(await err.count(), 0);
+        assert.equal(await v.locator(".lib-cardhead .note").first().textContent(), "v0.51.0");
+        await ctx.close();
+      });
+    }
+    assert.deepEqual(errors, []);
+  });
+}
+
+// #1025 (Fermin214): RTK 0.51.0 was out on GitHub while winget had 0.50.0,
+// the one installed. Upgrade ran winget upgrade, which said so, and the card
+// went back to "v0.51.0 is out" with Upgrade. Now the card says the release
+// is out and waits for winget, with no Upgrade button — from the upgrade's
+// answer and when the card is read again — and offers Upgrade again once
+// winget has it. In every language, at 440px.
+const waitWords = {
+  en: { out: "v0.51.0 is out", waiting: "v0.51.0 is out · waiting for winget", button: "Upgrade" },
+  zh: { out: "v0.51.0 可升级", waiting: "v0.51.0 已发布 · 等待 winget", button: "升级" },
+  ja: { out: "v0.51.0 公開済み", waiting: "v0.51.0 公開済み · winget 待ち", button: "アップグレード" },
+  de: { out: "v0.51.0 ist da", waiting: "v0.51.0 ist da · wartet auf winget", button: "Aktualisieren" },
+};
+const NOTE = "winget's RTK is 0.50.0 so far; RTK 0.51.0 is out, and winget usually has it within a few days";
+
+function waitServer(lang, state) {
+  const base = server(lang, state);
+  return async (route) => {
+    const url = new URL(route.request().url());
+    const view = () => ({ ...rtkView("0.50.0"), ...(state.wingetHas ? {} : { waiting: "winget", waitingHas: "0.50.0" }) });
+    if (url.pathname === "/api/library/rtk") { state.reads++; return route.fulfill({ json: state.checked ? view() : rtkView("0.50.0") }); }
+    if (url.pathname === "/api/library/rtk/upgrade") { state.checked = true; return route.fulfill({ json: { ...view(), note: NOTE } }); }
+    return base(route);
+  };
+}
+
+for (const engine of (process.env.BROWSER ? [process.env.BROWSER] : ["chromium", "webkit"])) {
+  test(engine + ": RTK waits for winget to have its release", async (t) => {
+    const browser = await (engine === "webkit" ? webkit.launch() : chromium.launch({ channel: "chromium" }));
+    const errors = [];
+    t.after(async () => {
+      if (errors.length) console.log(errors);
+      await browser.close();
+    });
+    for (const lang of ["en", "zh", "ja", "de"]) {
+      await t.test(lang, async () => {
+        const w = waitWords[lang];
+        const state = { reads: 0, checked: false, wingetHas: false };
+        const ctx = await browser.newContext({ viewport: { width: 440, height: 800 } });
+        await ctx.addInitScript(() => { try { localStorage.setItem("uni-switch.libTab", "rtk"); } catch {} });
+        const page = await ctx.newPage();
+        page.setDefaultTimeout(5000);
+        page.setDefaultNavigationTimeout(60000);
+        page.on("pageerror", (e) => errors.push(e.message));
+        await page.route("**/*", waitServer(lang, state));
+        const open = async () => {
+          await page.goto("http://uni-switch.test/");
+          await page.locator('button[data-view="library"]').click();
+          await page.locator("#view-library .lib-cardhead .lib-tag").waitFor();
+        };
+        const head = page.locator("#view-library .lib-cardhead").first();
+        const fits = async () => {
+          const box = await head.evaluate((h) => ({ sw: h.scrollWidth, cw: h.clientWidth, doc: document.documentElement.scrollWidth, vw: innerWidth }));
+          assert(box.sw <= box.cw + 1, `card head overflows: ${JSON.stringify(box)}`);
+          assert(box.doc <= box.vw, `page scrolls sideways: ${JSON.stringify(box)}`);
+        };
+
+        // before any check: out, with Upgrade
+        await open();
+        assert.equal(await head.locator(".lib-tag").textContent(), w.out);
+        assert.equal(await head.locator("button").textContent(), w.button);
+
+        // the upgrade finds winget has nothing newer: waiting, no button
+        await head.locator("button").click();
+        await page.waitForFunction((want) => document.querySelector("#view-library .lib-cardhead .lib-tag")?.textContent === want, w.waiting);
+        assert.equal(await head.locator("button").count(), 0);
+        await page.locator("#view-library .lib-rtk-note", { hasText: NOTE }).waitFor();
+        await fits();
+
+        // the card read again (a new page) still waits
+        const reads = state.reads;
+        await open();
+        assert(state.reads > reads);
+        assert.equal(await head.locator(".lib-tag").textContent(), w.waiting);
+        assert.equal(await head.locator("button").count(), 0);
+        await fits();
+
+        // winget has 0.51.0 now: Upgrade is back
+        state.wingetHas = true;
+        await open();
+        assert.equal(await head.locator(".lib-tag").textContent(), w.out);
+        assert.equal(await head.locator("button").textContent(), w.button);
+        await fits();
+        await ctx.close();
+      });
+    }
+    assert.deepEqual(errors, []);
+  });
+}
+
+// 新v学员 (10-27): on Windows, an RTK cargo installed had a newer release
+// and a greyed Upgrade that did nothing — uni-switch found no cargo, and only
+// the button's tooltip, which a click never shows, said anything. Now the
+// card says it: for cargo's RTK, what to install or run; for one uni-switch
+// can't place, to update it the way it was installed. In every language,
+// at 440px.
+const CARGO = "cargo install --git https://github.com/rtk-ai/rtk --branch master rtk --force";
+const noUpgradeWords = {
+  en: { cargo: `RTK was installed with cargo, but uni-switch can't find cargo to upgrade it. Install Rust from rustup.rs, or run ${CARGO} in a terminal.`, other: "uni-switch can't tell how this RTK was installed — update it the way you installed it" },
+  zh: { cargo: `RTK 是用 cargo 安装的，但 uni-switch 找不到 cargo 来升级它。请从 rustup.rs 安装 Rust，或在终端里运行 ${CARGO}。`, other: "无法判断 RTK 的安装方式，请按原安装方式更新" },
+  "zh-TW": { cargo: `RTK 是用 cargo 安裝的，但 uni-switch 找不到 cargo 來升級它。請從 rustup.rs 安裝 Rust，或在終端機裡執行 ${CARGO}。`, other: "無法判斷 RTK 的安裝方式，請按原安裝方式更新" },
+  ja: { cargo: `RTK は cargo でインストールされていますが、uni-switch は更新に使う cargo を見つけられません。rustup.rs から Rust をインストールするか、ターミナルで ${CARGO} を実行してください。`, other: "uni-switch はこの RTK のインストール方法を判別できません — インストールしたのと同じ方法で更新してください" },
+  de: { cargo: `RTK wurde mit cargo installiert, aber uni-switch findet kein cargo, um es zu aktualisieren. Installieren Sie Rust von rustup.rs, oder führen Sie ${CARGO} in einem Terminal aus.`, other: "uni-switch kann nicht erkennen, wie dieses RTK installiert wurde – aktualisieren Sie es auf dem Weg, auf dem Sie es installiert haben" },
+};
+
+function noUpgradeServer(lang, state) {
+  const base = server(lang, state);
+  return async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/library/rtk") {
+      const v = { ...rtkView("1.0.0"), path: `${HOME}/.cargo/bin/rtk.exe`, latest: "1.1.0", upgrade: "" };
+      return route.fulfill({ json: state.cargo ? { ...v, noUpgrade: "cargo", manual: CARGO } : v });
+    }
+    if (url.pathname === "/api/library/rtk/upgrade") { state.upgrades++; return route.fulfill({ status: 400, json: { error: "no" } }); }
+    return base(route);
+  };
+}
+
+for (const engine of (process.env.BROWSER ? [process.env.BROWSER] : ["chromium", "webkit"])) {
+  test(engine + ": an RTK uni-switch can't upgrade says why on the card", async (t) => {
+    const browser = await (engine === "webkit" ? webkit.launch() : chromium.launch({ channel: "chromium" }));
+    const errors = [];
+    t.after(async () => {
+      if (errors.length) console.log(errors);
+      await browser.close();
+    });
+    for (const lang of Object.keys(noUpgradeWords)) {
+      for (const cargo of [true, false]) {
+        await t.test(`${lang} ${cargo ? "cargo" : "unknown"}`, async () => {
+          const want = noUpgradeWords[lang][cargo ? "cargo" : "other"];
+          const state = { cargo, upgrades: 0, reads: 0 };
+          const ctx = await browser.newContext({ viewport: { width: 440, height: 800 } });
+          await ctx.addInitScript(() => { try { localStorage.setItem("uni-switch.libTab", "rtk"); } catch {} });
+          const page = await ctx.newPage();
+          page.setDefaultTimeout(5000);
+          page.setDefaultNavigationTimeout(60000);
+          page.on("pageerror", (e) => errors.push(e.message));
+          await page.route("**/*", noUpgradeServer(lang, state));
+          await page.goto("http://uni-switch.test/");
+          await page.locator('button[data-view="library"]').click();
+          const v = page.locator("#view-library");
+          const note = v.locator(".lib-rtk-noupgrade");
+          await note.waitFor();
+          assert.equal(await note.textContent(), want);
+          assert(await note.isVisible());
+          const button = v.locator(".lib-cardhead button");
+          assert(await button.isDisabled());
+          assert.equal(await button.getAttribute("title"), want);
+          await button.click({ force: true });
+          assert.equal(state.upgrades, 0);
+          const box = await v.evaluate(() => ({ doc: document.documentElement.scrollWidth, vw: innerWidth }));
+          assert(box.doc <= box.vw, `page scrolls sideways: ${JSON.stringify(box)}`);
+          await ctx.close();
+        });
+      }
+    }
+    assert.deepEqual(errors, []);
+  });
+}

@@ -1,0 +1,204 @@
+package provider
+
+import (
+	"errors"
+	"net"
+	"net/url"
+	"strings"
+	"unicode/utf8"
+)
+
+// Import links let a vendor or a relay hand its users a ready-made provider:
+//
+//	uni-switch://import?preset=dieqiyun&key=sk-…
+//	uni-switch://import?name=My%20Relay&chat=https://relay.example/v1&key=sk-…
+//
+// Parameters (every value URL-encoded):
+//
+//	preset     a preset id (uni-switch presets); the preset's endpoints are used.
+//	region     with a preset that has regions, which one
+//	name       the provider's name; required without a preset
+//	id         its id; derived from the name when absent
+//	key        the API key; the user can paste one when absent
+//	chat       OpenAI Chat Completions base URL (…/v1)
+//	responses  OpenAI Responses base URL (…/v1)
+//	anthropic  Anthropic Messages base URL (the root)
+//	gemini     Google Gemini API base URL (…/v1beta), as the app's editor
+//	           and the TUI take one (#1346, #2201)
+//	models     model ids to show agents, comma separated
+//	catalog    models.dev provider id, for names and reasoning levels
+//	website    the vendor's site; keys: where keys are made
+//	icon       an https picture of the vendor's own, fetched only after the
+//	           user confirms; falls back to the generic mark when absent
+//
+// A link never saves anything by itself: the app shows what it would add
+// and the user says yes.
+
+// Scheme is the URL scheme uni-switch registers with the system.
+const Scheme = "uni-switch"
+
+// ParseImport reads an import link into the provider it describes.
+func ParseImport(link string) (Provider, error) {
+	u, err := url.Parse(strings.TrimSpace(link))
+	if err != nil || !strings.EqualFold(u.Scheme, Scheme) {
+		return Provider{}, errors.New("not a uni-switch:// link")
+	}
+	action := u.Host
+	if action == "" { // uni-switch:import?… or uni-switch:///import?…
+		action = strings.Trim(u.Opaque+u.Path, "/")
+	}
+	if action != "import" {
+		return Provider{}, errorf("uni-switch://%s is not something uni-switch knows; links start uni-switch://import?", action)
+	}
+	q := u.Query()
+	get := func(k string) string { return strings.TrimSpace(q.Get(k)) }
+
+	var p Provider
+	if id := get("preset"); id != "" {
+		if p, err = FromPreset(strings.ToLower(id)); err != nil {
+			return Provider{}, err
+		}
+		if r := get("region"); r != "" {
+			found := false
+			pr := Preset(p.Preset)
+			for _, reg := range pr.Regions {
+				if reg.ID == r {
+					// atRegionOf is where a region's endpoints land: chat,
+					// responses, anthropic and a decision host of its own,
+					// plus that region's key page, docs and catalog
+					p.atRegionOf(pr, reg)
+					found = true
+				}
+			}
+			if !found {
+				return Provider{}, errorf("%s has no region %q", p.Name, r)
+			}
+		}
+		if n := get("name"); n != "" {
+			p.Name = n
+		}
+	} else {
+		p = Provider{Name: get("name"), Catalog: strings.ToLower(get("catalog"))}
+		if p.Name == "" {
+			return Provider{}, errors.New("the link names no provider: it needs preset= or name=")
+		}
+		for k, dst := range map[string]*string{"chat": &p.Chat, "responses": &p.Responses, "anthropic": &p.Anthropic, "gemini": &p.Gemini} {
+			if *dst, err = endpoint(k, get(k)); err != nil {
+				return Provider{}, err
+			}
+		}
+		if p.Chat == "" && p.Responses == "" && p.Anthropic == "" && p.Gemini == "" {
+			return Provider{}, errors.New("the link gives no base URL: it needs chat=, responses=, anthropic= or gemini=")
+		}
+		if p.Catalog != "" && p.Catalog != Slug(p.Catalog) {
+			p.Catalog = ""
+		}
+		if p.Catalog != "" {
+			p.Icon = IconForCatalog(p.Catalog)
+		}
+		p.Website = page(get("website"))
+		p.KeysURL = page(get("keys"))
+	}
+	if raw := get("icon"); raw != "" {
+		u, err := iconURL(raw)
+		if err != nil {
+			return Provider{}, err
+		}
+		p.IconURL = u
+	}
+
+	if id := get("id"); id != "" {
+		p.ID = Slug(id)
+	} else if get("preset") == "" {
+		p.ID = Slug(p.Name)
+	}
+	if p.ID == "" {
+		return Provider{}, errors.New("the link's name has no letters or digits to make an id from")
+	}
+	if p.ID == "uni-switch" {
+		return Provider{}, errors.New(`"uni-switch" is what agents call the gateway itself; the link needs another id`)
+	}
+	if subscriptionID(p.ID) {
+		// named as a subscription is (claude, kiro): a provider of its own
+		// beside it, never in its place, where the subscription's sign-in
+		// would be lost, or Kiro's take the link's key to its own host
+		// (#1487)
+		p.ID = freeID(p.ID)
+	}
+	if len(p.Name) > 80 {
+		// 80 bytes at most, cut where a character begins: a name in
+		// Chinese reaches 80 bytes at 27 characters (#2416)
+		cut := 80
+		for cut > 0 && !utf8.RuneStart(p.Name[cut]) {
+			cut--
+		}
+		p.Name = p.Name[:cut]
+	}
+
+	p.Key = get("key")
+	if len(p.Key) > 4096 || strings.ContainsFunc(p.Key, func(r rune) bool { return r < ' ' || r == 0x7f }) {
+		return Provider{}, errors.New("the link's key is not a key")
+	}
+	for _, m := range strings.Split(q.Get("models"), ",") {
+		if m = strings.TrimSpace(m); m != "" && len(p.Models) < 200 {
+			p.Models = append(p.Models, m)
+		}
+	}
+	return p, nil
+}
+
+// endpoint accepts an https base URL, or plain http to this machine or the
+// local network, where model servers usually run without TLS.
+func endpoint(name, raw string) (string, error) {
+	if raw == "" {
+		return "", nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", errorf("the link's %s= is not a base URL: %q", name, raw)
+	}
+	switch u.Scheme {
+	case "https":
+	case "http":
+		if !local(u.Hostname()) {
+			return "", errorf("the link's %s= must use https: %q", name, raw)
+		}
+	default:
+		return "", errorf("the link's %s= must use https: %q", name, raw)
+	}
+	return strings.TrimRight(u.String(), "/"), nil
+}
+
+func local(host string) bool {
+	if host == "localhost" || strings.HasSuffix(host, ".local") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && (ip.IsLoopback() || ip.IsPrivate())
+}
+
+// page keeps a web page link only when it is https.
+func page(raw string) string {
+	if u, err := url.Parse(raw); err == nil && u.Scheme == "https" && u.Host != "" && u.User == nil {
+		return u.String()
+	}
+	return ""
+}
+
+// iconURL accepts the picture a link names: an https URL on a public host,
+// which the app fetches only after the user confirms the import. A plain
+// http or a bare host is rejected rather than guessed at, since this is the
+// one parameter that makes uni-switch reach out on the link's behalf.
+func iconURL(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || u.User != nil || u.Fragment != "" {
+		return "", errorf("the link's icon= is not a picture URL: %q", raw)
+	}
+	if u.Scheme != "https" {
+		return "", errorf("the link's icon= must use https: %q", raw)
+	}
+	if local(u.Hostname()) {
+		return "", errorf("the link's icon= must be on a public host: %q", raw)
+	}
+	return u.String(), nil
+}

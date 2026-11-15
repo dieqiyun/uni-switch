@@ -4,9 +4,14 @@ fn main() {
         println!("cargo:rerun-if-changed=../scripts/build-go.mjs");
         println!("cargo:rerun-if-env-changed=UNI_SWITCH_GO");
         let target = std::env::var("TARGET").expect("TARGET");
-        let status = std::process::Command::new("node")
+        let mut command = std::process::Command::new("node");
+        command
             .arg("../scripts/build-go.mjs")
-            .args(["--target", &target])
+            .args(["--target", &target]);
+        if std::env::var_os("CARGO_FEATURE_QA_WEBVIEW").is_some() {
+            command.arg("--qa");
+        }
+        let status = command
             .status()
             .expect("Node.js and Go >= 1.26 are required to build the Go core");
         assert!(status.success(), "Go core build failed");

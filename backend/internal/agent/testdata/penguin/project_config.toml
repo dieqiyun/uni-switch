@@ -1,0 +1,52 @@
+default_model = { provider = "custom", model_id = "my-own" }
+[[command_policy.rules]]
+name = "rm-recursive-force"
+pattern = "(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?rm(?=(?:\\s[^;&|]*)?\\s-(?:[a-zA-Z]*[rR][a-zA-Z]*|-recursive)(?:\\s|$))(?=(?:\\s[^;&|]*)?\\s-(?:[a-zA-Z]*[fF][a-zA-Z]*|-force)(?:\\s|$))"
+description = "rm with recursive + force flags in one command (rm -rf and friends)"
+
+[[command_policy.rules]]
+name = "mkfs"
+pattern = "(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?mkfs(?:\\.[a-zA-Z0-9]+)?(?![a-zA-Z0-9])"
+description = "mkfs — formatting a filesystem destroys it wholesale"
+
+[[command_policy.rules]]
+name = "dd-to-block-device"
+pattern = "(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?dd\\s[^;&|]*\\bof=[\"']?/dev/(?:sd|hd|vd|xvd|nvme|mmcblk|loop|disk|rdisk)[a-zA-Z0-9]*"
+description = "dd writing directly to a block device (of=/dev/null stays allowed)"
+
+[[command_policy.rules]]
+name = "fork-bomb"
+pattern = ":\\s*\\(\\s*\\)\\s*\\{\\s*:\\s*\\|\\s*:\\s*&\\s*\\}\\s*;\\s*:"
+description = "the classic fork bomb — exhausts the process table in seconds"
+
+[[command_policy.rules]]
+name = "overwrite-block-device"
+pattern = ">\\s*[\"']?/dev/(?:sd|hd|vd|xvd|nvme|mmcblk|loop|disk|rdisk)[a-zA-Z0-9]*"
+description = "shell redirection onto a block device (/dev/null stays allowed)"
+
+[[command_policy.rules]]
+name = "windows-recursive-delete"
+pattern = "(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?(?i:remove-item)(?![a-zA-Z0-9])(?=(?:\\s[^;&|]*)?\\s-(?i:rec[a-z]*|r)(?:\\s|$))(?=(?:\\s[^;&|]*)?\\s-(?i:force|f)(?:\\s|$))|(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?(?i:rmdir|rd|del|erase)(?![a-zA-Z0-9])(?=[^;&|]*/(?i:s)(?![a-zA-Z]))(?=[^;&|]*/(?i:q)(?![a-zA-Z]))"
+description = "Windows recursive force delete (Remove-Item -Recurse -Force, rd /s /q)"
+
+[[command_policy.rules]]
+name = "windows-format-volume"
+pattern = "(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?(?i:format)(?![a-zA-Z0-9-])(?=[^;&|]*\\s[a-zA-Z]:(?![a-zA-Z0-9]))|(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?(?i:format-volume)(?![a-zA-Z0-9])"
+description = "Windows volume format (format C:, Format-Volume) — destroys it wholesale"
+
+[[command_policy.rules]]
+name = "windows-disk-overwrite"
+pattern = "\\\\\\\\\\.\\\\(?i:physicaldrive)[0-9]+|(?:^|[\\s;&|(])(?:[^\\s;&|]*/)?(?i:clear-disk)(?![a-zA-Z0-9])"
+description = "Windows raw disk overwrite (\\\\.\\PhysicalDriveN, Clear-Disk)"
+
+[[command_policy.rules]]
+name = "windows-fork-bomb"
+pattern = "%0\\s*\\|\\s*%0"
+description = "the cmd fork bomb (%0|%0) — exhausts the process table in seconds"
+[providers]
+[[models]]
+provider = "custom"
+model_id = "my-own"
+client_type = "openai-chat"
+api_key = "k1"
+base_url = "http://127.0.0.1:1/v1"

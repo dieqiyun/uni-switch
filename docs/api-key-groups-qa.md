@@ -1,0 +1,253 @@
+# API Key 分组验证记录
+
+验证日期：2026-11-14 至 2026-11-15。候选版本：0.5.29。
+
+当前候选源码包含此前工作区的 Go 源码整合和已记录的功能移除。
+分组专项检查和完整 Windows Go 回归已通过；Linux race 检查发现的后续问题已修复，
+正在验证新的三平台候选，尚不符合正式发布条件。
+不应把本记录解读为三平台 Release 已通过验收。
+
+## Codex 登录与请求错误修复
+
+- 新增回归先在旧代码上实际失败：无登录、API Key 登录和强制 API 登录仍写入
+  `requires_openai_auth = true`；四协议解析器接受部分非对象输入或透出 Go 解析错误。
+- 认证开关改为读取实际 Codex 配置目录中的已知登录态，覆盖自定义 CODEX_HOME、
+  登录、登出、失效和无法读取的状态；自动修复采用同一个预期值。
+- 四协议解析器与实际 HTTP 路由统一检查空请求、截断 JSON、尾随数据和类型错误。
+  Gemini 保留数字错误码和状态，Anthropic 保留外层错误类型；流式入口在开始流之前
+  返回 JSON 400。Gemini 下划线字段转换不再掩盖无效尾随数据。
+- Chat 工具格式转换也增加同样的完整 JSON 检查：新增用例在修复前实际以
+  `invalid envelope accepted: <nil>` 失败，修复后通过，正常工具格式转换继续通过。
+- `scripts/qa-source-key-groups.mjs` 增加编译后核心的未登录配置检查，以及各协议的
+  空请求错误和不发送上游请求检查，继续使用隔离目录和合成凭据。
+- Windows 工作流原来的多命令步骤可能由最后一个成功命令掩盖前一个失败退出码，
+  已把 Go 测试、vet、源码审计、文档检查和类型检查拆开。此前 Windows 的绿色结果
+  不能视为全量 Go 测试已通过；Linux 和 macOS 原生构建均因回归失败而停止。
+- 认证、桌面配置保留、失效登录、请求解析/HTTP 错误和 Key 分组的组合回归在
+  `internal/agent`、`internal/gateway`、`internal/provider`、`internal/gui` 四个包通过。
+- 更新后的编译核心浏览器验证全部通过：Chromium/WebKit × 五种语言，共 10 组。
+  实际生成的未登录 Codex 配置写入 `requires_openai_auth = false`，实际推理仅使用
+  选中分组 Key；Chat、Responses、Messages、count_tokens 与 Gemini 流式入口的
+  空请求均返回结构化 JSON 400，且未发送上游请求。该轮检查配置与网关，CLI 检查见下。
+- 另外通过 `scripts/qa-codex-key-groups.mjs --codex <CLI 程序路径>` 启动实际安装的
+  Codex CLI，新进程使用全新的 HOME/CODEX_HOME、文件型凭据存储和本地拒绝外连代理。
+  没有 `auth.json`，也不继承真实 API Key。实际 `codex exec` 成功结束并收到预期回复，
+  本地模拟上游恰好收到一次请求，Key 为选中分组的合成凭据，模型为原始上游 ID。
+  测试前后均未生成登录态；现有 Codex 桌面进程和配置不参与该检查。
+
+## 分组功能
+
+- `node scripts/test-go.mjs -run TestAPIKeyGroup -count=1 -timeout=5m -p=2` 通过。
+  覆盖每个 Key 独立模型目录、空目录、命名、稳定标识、刷新、停用、未知 Key、
+  普通模型标识兼容，以及限流时不跨组重试。
+- `TestAPIKeyGroupsSaveCustomAndPreset` 通过自定义供应商和预设供应商的实际保存接口，
+  验证首个分组名称、分组开关，以及随后普通保存对它们的保留。
+  临时去掉预设字段复制后，该测试以 `saved provider lost named key group` 失败；恢复后通过。
+- 临时去掉 `KeysFor` 的分组 Key 过滤后，网关回归实际记录到跨组凭据请求而失败；
+  恢复过滤后，供应商、网关和保存接口的分组专项测试重新通过。
+- `node scripts/qa-source-key-groups.mjs` 在 Chromium 和 WebKit 下，
+  分别通过简体中文、繁体中文、英文、日文、德文，共 10 组检查。
+  使用编译后的 Go 核心、合成 Key、本地模拟供应商和隔离客户端目录。
+  检查实际生成的 Codex `config.toml` 和 `uni-switch-models.json`，
+  确认选中模型使用分组标识、显示名称一致，且模型目录不包含 API Key。
+  新增分组表单的 Axe 标签与 ARIA 检查通过。
+- 相同的 10 组浏览器检查还从写入 Codex 配置的真实网关地址发起推理请求，
+  确认本地模拟上游仅收到所选分组的 Key、原始模型 ID 和一条对应请求，
+  客户端收到该分组的成功回复。没有真实付费请求。
+
+## 构建与源码
+
+- `pnpm typecheck`、`pnpm build`、`node --test scripts/tests/*.test.mjs` 通过，
+  前端及源码边界测试共 21 项。
+- `node scripts/check-upstream-source.mjs --index` 通过，核对原始源码、
+  已记录修改、移除项及 Git 源码归档覆盖范围。
+- `python scripts/audit-source.py` 未发现未豁免凭据或私有路径。
+  上游合成测试资料按固定内容哈希审查；测试目录、缓存、生成的程序和用户客户端配置不进入源码。
+- Windows `go vet` 和 `GOOS=linux CGO_ENABLED=0` 的交叉 `go vet -tags=nogui` 通过。
+- `GOOS=darwin GOARCH=arm64 CGO_ENABLED=0` 的交叉 `go vet -tags=nogui` 通过。
+  检查先发现一个旧 AppKit 托盘测试缺少与渲染器一致的 `darwin && cgo` 编译条件，
+  导致禁用 CGO 时引用不存在的 `trayImagePNG`；补齐条件后通过，原生 CGO 测试保留。
+- Windows Rust 无桌面特性的测试命令编译成功；该目标当前没有运行时测试，不能代替桌面检查。
+- Windows Tauri 生产安装包构建成功，Go 核心构建记录为 `qa:false`。
+- Windows 桌面 Clippy `--all-targets -- -D warnings` 通过。
+
+## 2026-11-15 整合回归修复
+
+本轮对齐旧测试与当前保留契约：未配置窗口仍为 256000，测试需要特定窗口时显式配置；
+已移除预设、路由组和远程共享不再作为协议测试的隐含前提。协议路径、模型、凭据隔离、
+客户端配置保留和显式自定义端点的断言仍保留。
+
+真实行为修复覆盖普通供应商回退、已撤销命名 Key、MCP 权限和会话隔离、
+Windows HTTP/2 大上传重试、MiniMax YAML 同步幂等、原生程序归属和 Windows 路径。
+终端残留用量报表按既有移除边界清理，保留账号额度和会话管理。
+
+截至本轮提交：分组推理及未登录/无效请求浏览器检查 10 组通过，品牌检查 10 组通过，
+无用量报表浏览器检查 10 组通过；源码边界 Node 测试 22 项通过，源码审计 findings 为空。
+Windows 和 macOS arm64 交叉 vet 通过。完整 Go 回归正在执行，已完成的 agent、CLI、
+Claude 终端和基础包通过；必须以完整回归与新三平台 CI 的最终结果确认发布资格。
+
+## 历史发布阻塞与修复过程
+
+Windows 旧候选后续日志还暴露 Niri 假服务清理挂起：关闭监听器不会关闭已接收连接，
+Scanner 仍等待读取，清理的 WaitGroup 一直不结束。夹具现追踪并关闭活动连接，
+同步停止状态和接收过程，并保留等待协程退出及目录清理。新回归主动保持客户端连接，
+旧清理以 `fake Niri stop waited for the client to close its accepted connection` 失败
+（`niri-before-round132.log`）；修复后该回归及面板位置检查在普通模式和 race 模式
+各连续通过 100 次（`niri-ordinary-round133.log`、`niri-fixed-round133.log`）。
+该修改仅限测试；正式版仍等待包含它的新提交全部门槛通过。
+
+Linux 候选 `bbb49e6` 的普通完整测试发现 `TestUnroutedUnknownHoldAnsweredSooner`：
+观察记录可能在读取模型名之前显示，之后保存 504 报告时仍是空模型名；
+按模型查询只看到处理取消的另一条 499 记录。`noteAsked` 现在在同一观察记录上补齐模型，
+使超时及报告仍可按模型找到。测试通过管道先阻止请求体、明确显示观察记录再发送模型，
+稳定复现先显示后解析的顺序：旧实现以 `the held request's report was never saved` 失败
+（`unrouted-model-before-round129.log`），修复后三项超时/报告/慢请求体检查通过
+`-race -count=20`（`unrouted-model-fixed-round130.log`）。
+重新编译核心后，Chromium/WebKit × 五语言分组推理、未登录配置和无效请求检查共 10 组通过；
+真实隔离 Codex CLI 无登录、外连被阻断，恰好使用选中分组的合成 Key 请求一次本地上游。
+
+Windows 原生候选 `6d331db` 的普通完整测试发现四项夹具失败：WSL 测试只写内存记录，
+后续枚举会按宿主机器的安装列表移除虚构发行版；两项 Codex 缓存测试依赖连续请求之间
+至少经过 1 纳秒；本机 TLS 握手耗时可能被 Windows 时钟量化成 0。
+WSL 用例改为通过完整 FakeWSL 发现、停止发行版，并断言停止后的读取不启动它；
+缓存用例在锁内明确老化实际取回的记录；TLS 用例在测试握手中等待 30 ms。
+原有缓存刷新、401 传递、新连接 TLS、连接复用和时间分段断言继续保留。
+相关五项检查通过 `-race -count=20`（`windows-fixture-round126.log`）。
+修改仅涉及测试，运行时行为不变；新提交仍需完整回归和三平台原生门槛通过后才可发布。
+
+最新完整 Windows 回归 `full-round77.log` 全包通过；Linux 原生普通全量测试和 vet
+也通过。随后 Linux 全量 race 检查暴露信号处理后台协程生命周期、两个假 HTTP 服务
+计数器和测试修改不可变会话缓存的竞争，以及两个分配测量夹具问题。
+信号处理现在捕获启动时的 hook，取消监听时关闭并等待协程退出；测试计数器使用原子
+读写，会话测试修改前复制缓存条目。Alma 的大响应在测量前构造，模型索引测试按分配
+次数检查，避免 race runtime 丢弃 regexp 池导致字节测量波动。
+
+修复前在本机 `-race -count=20` 复现 Alma、模型索引、账号导入与会话缓存失败；
+修复后相关五包、七项检查连续 20 次通过（`race-fixed-round82.log`）。
+强制绕过索引缓存后两个索引测试分别以每次 64405 / 10117 次分配失败；把信号处理
+改回读取可变 hook 后，新测试以 `started=0 changed=1` 失败，证明改后的断言仍能抓住回归。
+完整 Windows 测试正在重跑；Unix 真实信号与新的三平台原生构建结果待 CI 确认。
+
+全量运行还发现 Go 结果缓存本身的开销：一个测试包生成约 890 MB 的缓存输入日志，
+测试进程退出后 Go 仍持续解析缓存记录。测试入口每次都创建不同的 HOME，结果缓存
+不能有效复用，因此默认添加 `-count=1`，实际执行所有测试；显式的重复次数继续保留，
+编译缓存仍按原规则固定。该调整不跳过测试，不增加超时，也不隐藏失败退出码。
+
+`c80b4f8` 的 Windows 完整本机重跑已通过：74 个有测试的包、退出码 0。
+新的 Linux 原生完整测试、vet 和完整 race 检查通过；macOS PR 检查全部通过。
+Windows CI 随后发现 `RUNNER~1` 与 `runneradmin` 长短路径导致的资源库目录身份和
+快捷方式幂等失败。新增真实 8.3 别名回归在旧代码均实际失败；现在资源库统一长路径，
+快捷方式比较同一路径的已有别名，仍区分不同硬链接路径和迁移后的程序位置。
+
+本机完整 race 还暴露两个进程测试的夹具问题：固定等待 cmd/ping 启动，以及把计时器
+精确边界当作无调度余量的上限。改用带父子就绪握手的独立测试程序，验证实际父子进程
+退出和退出码；取消等待边界保留总截止检查，并增加显式挂起 kill 完成阶段的回归。
+路径和进程相关三包专项 `-race -count=20` 全通过（`windows-fixes-round93.log`）。
+新的完整运行和原生构建仍须在最终提交上通过。
+
+`f60b587` 本机完整 Windows race 的其他包全部通过，CLI 最后报告一个时间全局变量
+竞争：会话夹具恢复 `time.Local`，与较早请求建立的 HTTP/2 后台健康检查读时钟冲突。
+新增并发时钟读取回归先在旧代码实际报告 race；CLI 测试现在只在 TestMain 启动工作
+协程前设置一次 UTC，会话夹具不再替换进程时区。产品运行时的本地时区行为不变。
+
+同一提交的 Windows、macOS 原生打包、隔离启动和附件校验已通过；Linux 原生普通
+测试通过，完整 race 的进程级流式堆测量报告 170 MB。该测试现在用同一个测试程序的
+隔离子进程执行原有八请求测量，保持每请求三倍正文的上限；race 程序启动的子进程
+也带 race 检查，避免把整套测试后台任务的堆变化归给这八个请求。临时禁止
+`provider.LetGo` 释放已发送正文后，隔离测试仍必须超过原上限而失败。
+
+Windows PR 另外暴露流式思考测试的固定时间差断言受忙碌 runner 调度影响。
+改为客户端实际收到思考事件后才允许模拟上游发送正文，覆盖六种上游与两种客户端
+协议，继续检查思考和正文存在且顺序正确。强制网关缓存全部思考后，测试实际以
+`no thinking or no text reached the client` 失败；正常路径的 12 种组合连续 20 次
+race 运行通过。上述两类流式检查和时区检查仍须由新提交的完整三平台回归确认。
+
+后续完整 Windows race 在 `TestPoolCmd` 结束时报告临时配置目录非空；测试直接调用
+内部命令，绕过正式 CLI `run` 的后台模型目录同步等待。补齐测试清理阶段的等待，
+之后该用例连续 100 次 race 通过。Linux 完整 race 的网关包已通过，剩余会话日志
+哈希分配检查失败：race runtime 可随时丢弃池，原来的 24 KB 平均阈值不涵盖一次
+合法的 64 KB 冷缓冲分配。检查现在同时限制冷调用字节数及分配次数，恢复逐段
+`io.CopyN` 的旧实现后明确以 60 次分配失败，保持哈希值、边界与缺失尾部检查。
+正常实现连续 100 次 race 通过，完全不复用缓冲的冷池路径另行验证。
+
+该轮 Windows 完整 race 最终另外记录到
+`TestCodexModelEffortLetsUnrelatedCallsGo` 的分配断言失败。测量混入了会话测试文件
+解码器的冷缓冲开销；现在先读取真实会话 fixture，测量仍逐次重新构建账本过滤，
+对 50 次构建取平均，原来的每条无关请求一份 packed row 的字节上限保持不变。
+修复后连续 20 次 race 通过；临时取消无关请求过滤后，每次分配约 11 MB，测试
+明确失败。产品运行逻辑及已移除的用量报表边界保持原样。
+
+完整 Windows 回归 `full-regression-round30.log` 已执行完，剩余六项失败。
+其中四项为已撤销本机 Key 和本机图像链接的旧状态码/共享断言；更新后仍验证
+401 拒绝无效命名 Key、404 隐藏失效图像链接，以及远程访问 403。
+设置合并已停止接受已移除的路由组首 Token/耐心/兜底字段，保留旧文件原值。
+Windows 并发替换账号文件的失败通过为已成功读取文件提供有界重试修复；
+首次查找缺失文件仍使用短等待，真正删除仍返回缺失。
+上述专项通过，账号文件双写压力测试连续五次通过。新完整回归和三平台 CI 尚待最终结果。
+
+首轮新 CI 的 Unix 日志还发现 CLI 帮助续行错位、旧分组保存用例、服务通配监听用例、
+Pi 模型图标字段预期及 Linux Grok 更新后验证假程序不可执行。已修复帮助文本对齐，
+其余用例改为保留的供应商异步保存、本机监听、实际模型图标和可执行隔离脚本。
+Windows 上帮助文本及相关专项再次通过；Unix 专属路径由下一轮原生 CI 验证。
+
+后续 Windows 全量执行完成，除修复前编译的三项 CLI 帮助断言外所有包通过；
+帮助修复后的 CLI 全包单独重跑通过。已知文件读取、并发替换和真正删除检查通过，
+账号双写压力再连续三次通过。新回归在短等待和嵌套重试的旧行为覆盖下分别确实失败，
+修复后通过。缺失与共享错误共用一次有界重试，避免交替错误反复延长等待。
+Windows QA 临时目录清理增加占用重试，完整保留测试退出码和清理失败检查。
+
+最终 Windows 完整回归 `full-final-round62.log` 全部通过，完整 vet、真实 Codex CLI、
+10 组分组浏览器检查和 22 项 Node 测试通过。Linux 原生完整测试其余包通过，
+网关仍失败：恢复的测试入口漏设 `claudeTUIRuns=false`，使仅支持 stream-json 的
+假程序被当成交互程序运行并重新执行测试套件。补回测试模式并增加入口断言；
+只读迁移用例按本机信任模型检查无效命名 Key，订阅凭据 fixture 写入后显式失效缓存。
+相关 Windows 专项通过；Linux/macOS 原生验证继续等待后续 CI。
+
+未解决的完整回归与发布条件跟踪于
+[GitHub #13](https://github.com/dieqiyun/uni-switch/issues/13)。
+
+继续检查回归后修复了以下测试整合问题：
+
+- `internal/gateway` 的隔离初始化函数已存在但没有 `TestMain` 调用。
+  补回入口并注册保留的轮换、搜索、限额服务；没有恢复已移除的扩展运行时。
+  `TestRunsAsAnIsolatedTestBinary` 原先报告 `UNI_SWITCH_TEST_SANDBOX unset`，
+  Codex HTTP 桩收到压缩数据，轮换和限额回归失败；修复后五项代表性测试通过。
+- 旧图像目录测试还引用已移除的 `auto/` 路由分组并发生越界崩溃。
+  改为验证保留的 API Key 分组图像能力在 OpenCode、Pi、Codex 目录中的传递，
+  并在缺少条目时给出明确断言；分组专项测试通过。
+- GLM 协议测试对已移除预设的空指针崩溃，改为显式自定义端点，保留 Responses、
+  Chat、Messages 各走原生协议、对应路径和上游模型 ID 的断言；测试通过。
+- 模块导入边界接受真正的核心程序入口，并只要求运行时源码模块注册，
+  不再要求历史测试资料目录作为模块导入；`internal/pluginrt` 全包通过。
+- 修复旧图像测试崩溃后，`internal/agent` 全包能够执行完成，仍有 84 项顶层失败，
+  大多涉及已调整的上下文默认值和已移除路由分组等旧预期，尚未完成契约对齐。
+- 恢复隔离入口并修复 GLM 协议测试后，`internal/gateway` 再次全包执行，在
+  `TestZhipuCodingSearchAddress` 对已移除预设解引用时停止，之前记录到 108 项顶层失败。
+  该包仍未通过；不能把修复前后不同停止位置的失败数量当作通过率。
+
+在认证与请求错误修复提交 `764d7fc` 上重新执行完整命令
+`node scripts/test-go.mjs -timeout=20m -p=2`，退出码仍为 1，
+18 个包失败，输出 350 个顶层失败测试记录。
+历史导入的完整浏览器测试套件尚未通过验收；当前浏览器通过范围仅为上面列出的专项检查。
+已确认的例子包括：
+
+- `internal/agent/TestAlmaToldReasoning` 等测试仍预期原来的模型上下文，当前整合源码默认使用 256000。
+- `internal/cli/TestAgentFieldNameShowsIt` 等测试仍调用已经移除的 `group add`。
+- `internal/gui/TestZenAddAnotherKeyEmptyAddsPublic` 等测试仍依赖已经移除的供应商预设。
+- `internal/browsermcp/TestImageFromLeavesTheRest` 存在 Windows 路径预期失败。
+- `internal/claudetui/TestShimFirstMessageWaitsForTools` 未在等待期限内收到测试消息。
+
+本机生产桌面隔离启动检查提前退出，尚未通过。机器上有用户正在使用的同标识应用实例，
+不能为测试停止或重启它；需要在干净的 CI 环境再次验证。
+
+未使用真实付费 Key 或真实订阅进行请求，未对外公布候选版本。
+必须先解决完整回归，再通过 `.github/workflows/build-desktop.yml` 的 Windows、Linux、
+macOS 原生构建、隔离启动和附件校验，最后生成对应源码、使用指南和校验和并公开 Release。
+
+## GitHub 推送保护
+
+首次推送被 GitHub 拦截：导入源码仍携带两组第三方 Google OAuth 注册常量，
+此前凭据审计的上游内容豁免未将它们拒绝。已删除运行时常量和相应豁免，
+收紧审计规则，要求生产源码中的 Google OAuth 凭据始终报告为发现。
+用户提供的 OAuth 配置和新账号续期保留行为见 [说明](google-oauth.md)。
+相关 provider Google、Gemini、Antigravity 测试在本地模拟服务下通过。

@@ -1,0 +1,14 @@
+{
+  "id": "msg_0001",
+  "sessionID": "ses_1a2b3c4d5e6fAAAAAAAAAAAAAA",
+  "role": "user",
+  "time": {
+    "created": 1790416805000
+  },
+  "agent": "build",
+  "model": {
+    "providerID": "openai",
+    "modelID": "gpt-6-astra",
+    "variant": "high"
+  }
+}

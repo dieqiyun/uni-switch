@@ -1,0 +1,3 @@
+{"type":"metadata","protocol_version":"1.5","created_at":1790830444486}
+{"type":"llm.request","agentId":"main","kind":"loop","provider":"openai","model":"mistral/zai-glm-5-3","modelAlias":"magpie/mistral/zai-glm-5-3","thinkingEffort":"max","thinkingKeep":"all","maxTokens":1000000,"toolSelect":false,"systemPromptHash":"ad571d7df7e3e53b2ced6258ef0db4c8c34bd06f60abfdaa4ea8a6a190b1096d","toolsHash":"[redacted]","messageCount":2,"turnStep":"[redacted]","time":1790830444556}
+{"type":"context.append_loop_event","agentId":"main","event":{"type":"step.end","uuid":"49fd6cf7-94b4-4050-b78f-f5348291cc69","turnId":"0","step":1,"finishReason":"error"},"time":1790830445331}

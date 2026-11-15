@@ -1,0 +1,161 @@
+{
+  "source": "WorkBuddy DeepSeek v4.1 flash; 2026-10-10; translated Chat reasoning_content",
+  "first_reasoning_ms": 6787,
+  "events": [
+    {
+      "at_ms": 6789,
+      "delta": "We"
+    },
+    {
+      "at_ms": 6831,
+      "delta": " need"
+    },
+    {
+      "at_ms": 6841,
+      "delta": " answer"
+    },
+    {
+      "at_ms": 6841,
+      "delta": "."
+    },
+    {
+      "at_ms": 6851,
+      "delta": " Need"
+    },
+    {
+      "at_ms": 6852,
+      "delta": " compute"
+    },
+    {
+      "at_ms": 6877,
+      "delta": " "
+    },
+    {
+      "at_ms": 6877,
+      "delta": "17"
+    },
+    {
+      "at_ms": 6877,
+      "delta": "*"
+    },
+    {
+      "at_ms": 6877,
+      "delta": "23"
+    },
+    {
+      "at_ms": 6877,
+      "delta": "="
+    },
+    {
+      "at_ms": 6877,
+      "delta": "391"
+    },
+    {
+      "at_ms": 6883,
+      "delta": ","
+    },
+    {
+      "at_ms": 6883,
+      "delta": " "
+    },
+    {
+      "at_ms": 6883,
+      "delta": "29"
+    },
+    {
+      "at_ms": 6883,
+      "delta": "*"
+    },
+    {
+      "at_ms": 6883,
+      "delta": "31"
+    },
+    {
+      "at_ms": 6888,
+      "delta": "="
+    },
+    {
+      "at_ms": 6888,
+      "delta": "899"
+    },
+    {
+      "at_ms": 6888,
+      "delta": ","
+    },
+    {
+      "at_ms": 6888,
+      "delta": " sum"
+    },
+    {
+      "at_ms": 6888,
+      "delta": " "
+    },
+    {
+      "at_ms": 6888,
+      "delta": "129"
+    },
+    {
+      "at_ms": 7002,
+      "delta": "0"
+    },
+    {
+      "at_ms": 7002,
+      "delta": "."
+    },
+    {
+      "at_ms": 7002,
+      "delta": " Call"
+    },
+    {
+      "at_ms": 7002,
+      "delta": " check"
+    },
+    {
+      "at_ms": 7002,
+      "delta": "_value"
+    },
+    {
+      "at_ms": 7002,
+      "delta": " with"
+    },
+    {
+      "at_ms": 7002,
+      "delta": " "
+    },
+    {
+      "at_ms": 7002,
+      "delta": "129"
+    },
+    {
+      "at_ms": 7002,
+      "delta": "0"
+    },
+    {
+      "at_ms": 7002,
+      "delta": "."
+    },
+    {
+      "at_ms": 7002,
+      "delta": " Then"
+    },
+    {
+      "at_ms": 7002,
+      "delta": " final"
+    },
+    {
+      "at_ms": 7002,
+      "delta": " concise"
+    },
+    {
+      "at_ms": 7002,
+      "delta": "."
+    }
+  ],
+  "record": {
+    "out": 76,
+    "reasoning": 37,
+    "ms": 7518,
+    "ttft_ms": 6787,
+    "flow_ms": 187
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "turnCount": 2,
+  "modelsUsed": [
+    "grok-4.7-build"
+  ],
+  "primaryModelId": "grok-4.7-build",
+  "sessionDurationSeconds": 130
+}

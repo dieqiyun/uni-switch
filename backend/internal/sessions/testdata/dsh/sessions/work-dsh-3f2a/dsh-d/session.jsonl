@@ -1,0 +1,4 @@
+{"type":"session","version":0,"id":"dsh-d","cwd":"/work/dsh","createdAt":1790510400000,"seedLength":2}
+{"type":"user/message","seq":0,"time":1790503201000,"data":{"content":"Tidy the build script","source":{"kind":"user"}}}
+{"type":"assistant/message","seq":1,"time":1790503205000,"data":{"message":{"role":"assistant","source":{"model":"deepseek-v4-pro"}},"usage":{"inputTokens":100,"outputTokens":20,"cacheReadTokens":1000,"cacheWriteTokens":0,"reasoningTokens":1}}}
+{"type":"assistant/message","seq":2,"time":1790510410000,"data":{"message":{"role":"assistant","source":{"model":"deepseek-v4-pro"}},"usage":{"inputTokens":1,"outputTokens":2,"cacheReadTokens":0,"cacheWriteTokens":0,"reasoningTokens":1}}}

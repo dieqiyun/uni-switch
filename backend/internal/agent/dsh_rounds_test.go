@@ -1,0 +1,129 @@
+package agent
+
+import (
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/provider"
+	"github.com/dieqiyun/uni-switch/backend/internal/settings"
+)
+
+// dshSettled is a profile with uni-switch's route, and keepDshWired's rounds
+// once the route is what uni-switch writes: the first round writes it, the
+// second finds nothing to write.
+func dshSettled(t *testing.T) (r *dshRounds, web string) {
+	t.Helper()
+	_, dir, web := dshRouteHome(t)
+	dshKeyFixture(dir)
+	os.WriteFile(web, []byte("# Your patch layer for this dsh profile.\n"+
+		dshRouteFixture("deepseek/pro")+
+		"- id: agent-default-model\n  config:\n    provider: uni-switch\n    model: deepseek/flash\n"), 0o644)
+	r = &dshRounds{}
+	r.once()
+	r.once()
+	if !r.done {
+		t.Fatal("a round with nothing to write is not kept")
+	}
+	if !dshListed(web, "deepseek/pro") || !dshListed(web, "deepseek/flash") {
+		b, _ := os.ReadFile(web)
+		t.Fatalf("the route is not what uni-switch writes:\n%s", b)
+	}
+	return r, web
+}
+
+// dshListed reports whether the route in a patch list lists model.
+func dshListed(web, model string) bool {
+	b, _ := os.ReadFile(web)
+	return strings.Contains(string(b), "- id: "+model+"\n")
+}
+
+// A user's uni-switch allocated 35.7 GB in 48 minutes with ~157 MB live, its
+// heap peaking near 885 MB; 12 GB of it was keepDshWired's round, every 30
+// seconds building uni-switch's whole catalog and every route again to write
+// nothing. A round with nothing changed since does nothing of that.
+func TestDshRoundWithNothingChangedBuildsNothing(t *testing.T) {
+	r, web := dshSettled(t)
+	before, _ := os.ReadFile(web)
+	if n := testing.AllocsPerRun(10, func() { r.once() }); n > 300 {
+		t.Fatalf("a round with nothing changed made %.0f allocations", n)
+	}
+	if after, _ := os.ReadFile(web); string(after) != string(before) {
+		t.Fatalf("a round with nothing changed wrote:\n%s", after)
+	}
+}
+
+// What a round goes by changing has the next round write the route again:
+// a provider saved, a setting saved, the patch list written over by dsh,
+// and the providers' file written by another uni-switch (the CLI).
+func TestDshRoundAfterAChangeWritesAgain(t *testing.T) {
+	t.Run("provider", func(t *testing.T) {
+		r, web := dshSettled(t)
+		if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash", "max"}}); err != nil {
+			t.Fatal(err)
+		}
+		r.once()
+		if !dshListed(web, "deepseek/max") {
+			t.Fatal("a model added to a provider is not in dsh's route after the next round")
+		}
+	})
+	t.Run("setting", func(t *testing.T) {
+		r, web := dshSettled(t)
+		s := settings.Load()
+		s.HiddenModels = map[string][]string{"dsh": {"deepseek/pro"}}
+		if err := settings.Save(s); err != nil {
+			t.Fatal(err)
+		}
+		r.once()
+		if dshListed(web, "deepseek/pro") {
+			t.Fatal("a model hidden from dsh is still in its route after the next round")
+		}
+	})
+	t.Run("patch list", func(t *testing.T) {
+		r, web := dshSettled(t)
+		os.WriteFile(web, []byte("# Your patch layer for this dsh profile.\n"+
+			dshRouteFixture("deepseek/pro")+
+			"- id: agent-default-model\n  config:\n    provider: uni-switch\n    model: deepseek/flash\n"), 0o644)
+		r.once()
+		if !dshListed(web, "deepseek/flash") {
+			t.Fatal("a route dsh wrote over is not written again by the next round")
+		}
+	})
+	t.Run("another uni-switch", func(t *testing.T) {
+		r, web := dshSettled(t)
+		b, err := os.ReadFile(provider.Path())
+		if err != nil {
+			t.Fatal(err)
+		}
+		s := strings.Replace(string(b), `"flash"`, `"flash", "max"`, 1)
+		if s == string(b) {
+			t.Fatalf("no model list in the providers' file:\n%s", b)
+		}
+		if err := os.WriteFile(provider.Path(), []byte(s), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		r.once()
+		if !dshListed(web, "deepseek/max") {
+			t.Fatal("a provider another uni-switch saved is not in dsh's route after the next round")
+		}
+	})
+	// what the stamp can't see (another app's account file, a date) is
+	// written by a round once the models are dshModelsFor old
+	t.Run("unseen", func(t *testing.T) {
+		r, web := dshSettled(t)
+		if err := provider.Save(provider.Provider{ID: "deepseek", Name: "DeepSeek", Chat: "https://api.deepseek.com/v1", Key: "k", Models: []string{"pro", "flash", "max"}}); err != nil {
+			t.Fatal(err)
+		}
+		r.stamp = provider.StampNow() // as if the stamp hadn't moved
+		r.once()
+		if dshListed(web, "deepseek/max") {
+			t.Fatal("a round with its stamp unmoved built the models again: the test sees no skip")
+		}
+		r.at = time.Now().Add(-dshModelsFor)
+		r.once()
+		if !dshListed(web, "deepseek/max") {
+			t.Fatal("models dshModelsFor old are not built again")
+		}
+	})
+}

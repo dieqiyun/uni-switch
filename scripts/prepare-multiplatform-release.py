@@ -35,7 +35,7 @@ def verify_file(path):
     if path.suffix == ".dmg" and data[-512:-508] != b"koly":
         raise RuntimeError("Invalid UDIF disk image")
     if path.name.endswith("-portable.zip"):
-        allowed = {"uni-switch.exe", "使用说明.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "licenses/codex-LICENSE", "licenses/dependency-licenses.txt"}
+        allowed = {"uni-switch.exe", "使用说明.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "licenses/codex-LICENSE", "licenses/dependency-licenses.txt", "licenses/backend-LICENSE", "licenses/backend-THIRD_PARTY_NOTICES"}
         with zipfile.ZipFile(path) as archive:
             if set(archive.namelist()) != allowed or len(archive.namelist()) != len(allowed) or archive.testzip() is not None:
                 raise RuntimeError("Unexpected portable archive content")
@@ -77,9 +77,16 @@ def prepare(artifacts):
         prefix = f"uni-switch-{VERSION}/"
         names = archive.namelist()
         forbidden = r"(^|/)(\.git|\.qa|\.tools|node_modules|target|release|output|\.codex|\.claude)(/|$)|(^|/)\.env|\.(exe|db|pem|pfx|p12)$"
-        if any(not n.startswith(prefix) or re.search(forbidden, n) for n in names):
-            raise RuntimeError("Private or generated files in source archive")
-        for name in ["LICENSE", "NOTICE", "package.json", "pnpm-lock.yaml", "src/App.tsx", "src-tauri/Cargo.toml", "src-tauri/Cargo.lock", ".github/workflows/build-desktop.yml", "scripts/collect-platform-assets.py"]:
+        reviewed = {x["file"]: x for x in json.loads((ROOT / "docs/upstream-source-audit.json").read_text(encoding="utf-8"))}
+        for name in names:
+            relative = name.removeprefix(prefix)
+            if not name.startswith(prefix):
+                raise RuntimeError("Unexpected source archive prefix")
+            if re.search(forbidden, name):
+                fixture = reviewed.get(relative, {})
+                if "private_or_generated_path" not in fixture.get("types", []) or hashlib.sha256(archive.read(name)).hexdigest() != fixture.get("sha256"):
+                    raise RuntimeError("Private or generated files in source archive: " + relative)
+        for name in ["LICENSE", "NOTICE", "package.json", "pnpm-lock.yaml", "src/main.ts", "backend/go.mod", "backend/go.sum", "backend/LICENSE", "backend/THIRD_PARTY_NOTICES", "docs/upstream-source.json", "docs/source-integration.md", "src-tauri/Cargo.toml", "src-tauri/Cargo.lock", ".github/workflows/build-desktop.yml", "scripts/collect-platform-assets.py"]:
             if prefix + name not in names:
                 raise RuntimeError(f"Incomplete source archive: {name}")
     assets += [source_name, "README-zh-CN.md"]

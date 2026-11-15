@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>uni-switch key</title>
+<style>
+:root {
+  --bg: #f5f5f7; --card: #fff; --text: #1d1d1f; --sub: #6e6e73; --line: #d2d2d7;
+  --soft: #f0f0f2; --accent: #0071e3; --accent-text: #fff; --bad: #d70015; --warn: #b25000;
+  --bar: #e3e3e8; --code: #f5f5f7;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --sub: #98989d; --line: #38383a;
+    --soft: #2c2c2e; --accent: #0a84ff; --accent-text: #fff; --bad: #ff453a; --warn: #ff9f0a;
+    --bar: #3a3a3c; --code: #2c2c2e;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", "PingFang SC", "Hiragino Sans", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+h2 { font-size: 13px; font-weight: 600; color: var(--sub); margin: 28px 4px 8px; text-transform: none; }
+p { margin: 0; }
+.sub { color: var(--sub); }
+.card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 0 0 0.5px var(--line); }
+.card + .card { margin-top: 10px; }
+.head { display: flex; align-items: flex-start; gap: 12px; }
+.head .grow { flex: 1; min-width: 0; }
+.row { display: flex; align-items: center; gap: 10px; }
+.grow { flex: 1; min-width: 0; }
+label.field { display: block; font-weight: 500; margin: 18px 0 6px; }
+input[type=password], input[type=text], input[type=search] { width: 100%; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; outline: none; }
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+button { font: inherit; cursor: pointer; border: 0; border-radius: 8px; padding: 8px 14px; background: var(--soft); color: var(--text); }
+button.primary { background: var(--accent); color: var(--accent-text); font-weight: 500; }
+button.link { background: none; color: var(--accent); padding: 4px 6px; }
+button:disabled { opacity: 0.5; cursor: default; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.form-row { display: flex; gap: 8px; }
+.form-row input { flex: 1; min-width: 0; }
+.note { color: var(--sub); font-size: 12px; margin-top: 8px; }
+.error { color: var(--bad); margin-top: 10px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat .k { color: var(--sub); font-size: 12px; }
+.stat .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat .s { color: var(--sub); font-size: 12px; font-variant-numeric: tabular-nums; }
+.limit + .limit { margin-top: 14px; }
+.bar { height: 6px; border-radius: 3px; background: var(--bar); overflow: hidden; margin: 6px 0 4px; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.bar.full > i { background: var(--bad); }
+.num { font-variant-numeric: tabular-nums; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--soft); color: var(--sub); white-space: nowrap; }
+.tag.bad { color: var(--bad); }
+.list { margin: 0; padding: 0; list-style: none; }
+.list li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; }
+.list li + li { border-top: 0.5px solid var(--line); }
+.mono, code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+.list .mono { overflow-wrap: anywhere; }
+.segs { display: inline-flex; background: var(--soft); border-radius: 8px; padding: 2px; gap: 2px; flex-wrap: wrap; }
+.segs button { padding: 5px 12px; background: none; border-radius: 6px; font-size: 13px; }
+.segs button[aria-selected=true] { background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,0.12); font-weight: 500; }
+.snip { position: relative; margin-top: 12px; }
+.snip .file { color: var(--sub); font-size: 12px; margin-bottom: 4px; }
+pre { margin: 0; background: var(--code); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; line-height: 1.5; }
+.kv { display: grid; grid-template-columns: max-content 1fr auto; gap: 8px 12px; align-items: center; margin-top: 12px; }
+.kv code { background: var(--code); border-radius: 6px; padding: 4px 8px; overflow-wrap: anywhere; }
+.copy { padding: 4px 10px; font-size: 12px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; cursor: pointer; user-select: none; }
+.switch input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+.models { max-height: 280px; overflow-y: auto; margin-top: 8px; border-radius: 8px; }
+.models button { display: flex; width: 100%; text-align: left; gap: 10px; align-items: baseline; background: none; border-radius: 6px; padding: 7px 8px; }
+.models button:hover { background: var(--soft); }
+.models button .chk { width: 14px; flex: none; color: var(--accent); font-weight: 700; }
+.models button .lbl { color: var(--sub); font-size: 12px; overflow-wrap: anywhere; }
+.models button .mono { overflow-wrap: anywhere; }
+.models button[aria-checked=true] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.empty { color: var(--sub); padding: 6px 2px; }
+[hidden] { display: none !important; }
+@media (max-width: 480px) {
+  main { padding-top: 24px; }
+  .stats { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .stat .v { font-size: 17px; }
+  .kv { grid-template-columns: 1fr auto; }
+  .kv .k { grid-column: 1 / -1; margin-bottom: -4px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <section id="signin">
+    <h1 data-t="title">Your gateway key</h1>
+    <p class="sub" data-t="intro">Enter the gateway key you were given to see what it has used, what it may use and how to set up your agents.</p>
+    <form id="form" autocomplete="off">
+      <label class="field" for="key" data-t="keyLabel">Gateway key</label>
+      <div class="form-row">
+        <input id="key" type="password" spellcheck="false" autocapitalize="off" autocomplete="off">
+        <button class="primary" id="go" type="submit" data-t="go">Continue</button>
+      </div>
+      <p class="error" id="err" role="alert" hidden></p>
+      <p class="note" data-t="kept">The key stays in this tab and is sent to this gateway alone.</p>
+    </form>
+  </section>
+
+  <section id="info" hidden>
+    <div class="head">
+      <div class="grow">
+        <p class="sub" data-t="keyLabel">Gateway key</p>
+        <h1 id="name"></h1>
+      </div>
+      <button class="link" id="refresh" type="button" data-t="refresh">Refresh</button>
+      <button class="link" id="forget" type="button" data-t="forget">Forget key</button>
+    </div>
+    <p class="error" id="err2" role="alert" hidden></p>
+
+    <h2 data-t="limits">Limits</h2>
+    <div class="card" id="limits"></div>
+
+    <h2 data-t="usage">Usage</h2>
+    <div class="card">
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="card" id="topCard">
+      <p class="sub" data-t="top">Most used, last 30 days</p>
+      <ul class="list" id="top"></ul>
+    </div>
+
+    <div id="setupBlock">
+      <h2 data-t="setup">Set up</h2>
+      <div class="card">
+        <div class="segs" role="tablist" id="tabs"></div>
+        <p class="note" id="tabNote"></p>
+        <div id="snip"></div>
+        <label class="switch"><input type="checkbox" id="withKey"><span data-t="withKey">Put my key in the setup</span></label>
+      </div>
+
+      <h2 data-t="models">Models this key can use</h2>
+      <div class="card">
+        <input type="search" id="filter" spellcheck="false">
+        <div class="models" id="models" role="radiogroup"></div>
+      </div>
+    </div>
+    <div class="card" id="readOnly" hidden><p data-t="readOnly">This key reads its usage only; it can't call models.</p></div>
+  </section>
+</main>
+<script>
+"use strict";
+const STR = {
+  en: {
+    title: "Your gateway key", intro: "Enter the gateway key you were given to see what it has used, what it may use and how to set up your agents.",
+    keyLabel: "Gateway key", go: "Continue", kept: "The key stays in this tab and is sent to this gateway alone.",
+    bad: "This isn't an enabled gateway key here. Check it with whoever gave it to you.", net: "The gateway didn't answer. Check the address and try again.",
+    many: "Too many tries. Wait a minute and try again.", notShared: "This gateway isn't shared right now.",
+    refresh: "Refresh", forget: "Forget key", limits: "Limits", noLimit: "No limit on this key.",
+    day: "Daily", week: "Weekly", month: "Monthly", days: "Every {n} days", hours: "Every {n} hours",
+    tokensOf: "{a} of {b} tokens", costOf: "{a} of {b}", resets: "Resets {t}", spent: "Used up until it resets",
+    usage: "Usage", today: "Today", d7: "7 days", d30: "30 days", calls: "{n} requests", tokens: "tokens", cost: "≈ {c}",
+    top: "Most used, last 30 days", none: "Nothing yet.",
+    setup: "Set up", withKey: "Put my key in the setup", models: "Models this key can use", filter: "Filter models",
+    noModels: "This key can't use any model.", readOnly: "This key reads its usage only; it can't call models.",
+    copy: "Copy", copied: "Copied",
+    claudeNote: "Add this to ~/.claude/settings.json, then start claude.",
+    codexNote: "Add this to ~/.codex/config.toml, then start codex.",
+    oaiNote: "For any app or SDK that takes an OpenAI-compatible endpoint.",
+    curlNote: "Run this in a terminal to check the key works.",
+    base: "Base URL", apiKey: "API key", model: "Model", test: "Test", other: "OpenAI-compatible",
+    pick: "The model is the one picked below.",
+  },
+  zh: {
+    title: "你的网关密钥", intro: "输入你拿到的网关密钥，查看它的用量、可用的模型，以及怎样配置你的智能体。",
+    keyLabel: "网关密钥", go: "继续", kept: "密钥只保存在这个标签页里，只会发给这个网关。",
+    bad: "这不是此处可用的网关密钥。请向给你密钥的人确认。", net: "网关没有响应。请检查地址后重试。",
+    many: "尝试次数过多。请等一分钟再试。", notShared: "这个网关目前没有共享。",
+    refresh: "刷新", forget: "忘记密钥", limits: "额度", noLimit: "这个密钥没有额度限制。",
+    day: "每天", week: "每周", month: "每月", days: "每 {n} 天", hours: "每 {n} 小时",
+    tokensOf: "已用 {a} / {b} tokens", costOf: "已用 {a} / {b}", resets: "{t} 重置", spent: "已用完，重置后恢复",
+    usage: "用量", today: "今天", d7: "7 天", d30: "30 天", calls: "{n} 次请求", tokens: "tokens", cost: "约 {c}",
+    top: "最近 30 天最常用", none: "还没有用量。",
+    setup: "配置", withKey: "在配置里填入我的密钥", models: "这个密钥可用的模型", filter: "筛选模型",
+    noModels: "这个密钥不能使用任何模型。", readOnly: "这个密钥只能查看用量，不能调用模型。",
+    copy: "复制", copied: "已复制",
+    claudeNote: "加到 ~/.claude/settings.json 里，然后启动 claude。",
+    codexNote: "加到 ~/.codex/config.toml 里，然后启动 codex。",
+    oaiNote: "适用于任何支持 OpenAI 兼容接口的应用或 SDK。",
+    curlNote: "在终端里运行，检查密钥能否使用。",
+    base: "Base URL", apiKey: "API Key", model: "模型", test: "测试", other: "OpenAI 兼容",
+    pick: "模型为下方选中的那个。",
+  },
+  "zh-TW": {
+    title: "你的閘道金鑰", intro: "輸入你拿到的閘道金鑰，查看它的用量、可用的模型，以及如何設定你的代理程式。",
+    keyLabel: "閘道金鑰", go: "繼續", kept: "金鑰只保存在這個分頁中，只會傳給這個閘道。",
+    bad: "這不是此處可用的閘道金鑰。請向提供金鑰的人確認。", net: "閘道沒有回應。請檢查位址後再試。",
+    many: "嘗試次數過多。請等一分鐘再試。", notShared: "這個閘道目前沒有共用。",
+    refresh: "重新整理", forget: "忘記金鑰", limits: "額度", noLimit: "這個金鑰沒有額度限制。",
+    day: "每天", week: "每週", month: "每月", days: "每 {n} 天", hours: "每 {n} 小時",
+    tokensOf: "已用 {a} / {b} tokens", costOf: "已用 {a} / {b}", resets: "{t} 重設", spent: "已用完，重設後恢復",
+    usage: "用量", today: "今天", d7: "7 天", d30: "30 天", calls: "{n} 次請求", tokens: "tokens", cost: "約 {c}",
+    top: "最近 30 天最常用", none: "還沒有用量。",
+    setup: "設定", withKey: "在設定中填入我的金鑰", models: "這個金鑰可用的模型", filter: "篩選模型",
+    noModels: "這個金鑰不能使用任何模型。", readOnly: "這個金鑰只能查看用量，不能呼叫模型。",
+    copy: "複製", copied: "已複製",
+    claudeNote: "加到 ~/.claude/settings.json 中，然後啟動 claude。",
+    codexNote: "加到 ~/.codex/config.toml 中，然後啟動 codex。",
+    oaiNote: "適用於任何支援 OpenAI 相容介面的應用程式或 SDK。",
+    curlNote: "在終端機中執行，檢查金鑰是否可用。",
+    base: "Base URL", apiKey: "API Key", model: "模型", test: "測試", other: "OpenAI 相容",
+    pick: "模型為下方選取的那個。",
+  },
+  ja: {
+    title: "あなたのゲートウェイキー", intro: "受け取ったゲートウェイキーを入力すると、使用量、使えるモデル、エージェントの設定方法が表示されます。",
+    keyLabel: "ゲートウェイキー", go: "続ける", kept: "キーはこのタブにだけ保存され、このゲートウェイにだけ送られます。",
+    bad: "ここで有効なゲートウェイキーではありません。キーをくれた人に確認してください。", net: "ゲートウェイから応答がありません。アドレスを確認して、もう一度お試しください。",
+    many: "試行回数が多すぎます。1 分待ってからお試しください。", notShared: "このゲートウェイは現在共有されていません。",
+    refresh: "更新", forget: "キーを消去", limits: "上限", noLimit: "このキーに上限はありません。",
+    day: "毎日", week: "毎週", month: "毎月", days: "{n} 日ごと", hours: "{n} 時間ごと",
+    tokensOf: "{b} トークン中 {a}", costOf: "{b} 中 {a}", resets: "{t} にリセット", spent: "リセットまで使い切りました",
+    usage: "使用量", today: "今日", d7: "7 日間", d30: "30 日間", calls: "{n} リクエスト", tokens: "トークン", cost: "約 {c}",
+    top: "直近 30 日でよく使ったモデル", none: "まだありません。",
+    setup: "設定", withKey: "設定にキーを入れる", models: "このキーで使えるモデル", filter: "モデルを絞り込む",
+    noModels: "このキーで使えるモデルはありません。", readOnly: "このキーは使用量の閲覧専用で、モデルは呼び出せません。",
+    copy: "コピー", copied: "コピーしました",
+    claudeNote: "~/.claude/settings.json に追加してから claude を起動します。",
+    codexNote: "~/.codex/config.toml に追加してから codex を起動します。",
+    oaiNote: "OpenAI 互換のエンドポイントを使えるアプリや SDK 向けです。",
+    curlNote: "ターミナルで実行して、キーが使えるか確かめます。",
+    base: "Base URL", apiKey: "API キー", model: "モデル", test: "テスト", other: "OpenAI 互換",
+    pick: "モデルは下で選んだものです。",
+  },
+  de: {
+    title: "Ihr Zugangsschlüssel", intro: "Geben Sie den Zugangsschlüssel ein, den Sie bekommen haben, um seine Nutzung, die erlaubten Modelle und die Einrichtung Ihrer Agenten zu sehen.",
+    keyLabel: "Zugangsschlüssel", go: "Weiter", kept: "Der Schlüssel bleibt in diesem Tab und wird nur an dieses Gateway gesendet.",
+    bad: "Das ist hier kein aktiver Zugangsschlüssel. Fragen Sie, wer ihn Ihnen gegeben hat.", net: "Das Gateway antwortet nicht. Prüfen Sie die Adresse und versuchen Sie es erneut.",
+    many: "Zu viele Versuche. Warten Sie eine Minute.", notShared: "Dieses Gateway ist gerade nicht freigegeben.",
+    refresh: "Aktualisieren", forget: "Schlüssel vergessen", limits: "Limits", noLimit: "Dieser Schlüssel hat kein Limit.",
+    day: "Täglich", week: "Wöchentlich", month: "Monatlich", days: "Alle {n} Tage", hours: "Alle {n} Stunden",
+    tokensOf: "{a} von {b} Tokens", costOf: "{a} von {b}", resets: "Zurückgesetzt {t}", spent: "Aufgebraucht bis zum Zurücksetzen",
+    usage: "Nutzung", today: "Heute", d7: "7 Tage", d30: "30 Tage", calls: "{n} Anfragen", tokens: "Tokens", cost: "≈ {c}",
+    top: "Am meisten genutzt, letzte 30 Tage", none: "Noch nichts.",
+    setup: "Einrichten", withKey: "Meinen Schlüssel einsetzen", models: "Modelle für diesen Schlüssel", filter: "Modelle filtern",
+    noModels: "Dieser Schlüssel kann kein Modell nutzen.", readOnly: "Dieser Schlüssel liest nur seine Nutzung; er kann keine Modelle aufrufen.",
+    copy: "Kopieren", copied: "Kopiert",
+    claudeNote: "In ~/.claude/settings.json einfügen, dann claude starten.",
+    codexNote: "In ~/.codex/config.toml einfügen, dann codex starten.",
+    oaiNote: "Für jede App oder jedes SDK mit OpenAI-kompatiblem Endpunkt.",
+    curlNote: "Im Terminal ausführen, um den Schlüssel zu prüfen.",
+    base: "Base URL", apiKey: "API-Schlüssel", model: "Modell", test: "Test", other: "OpenAI-kompatibel",
+    pick: "Das Modell ist das unten gewählte.",
+  },
+};
+const LANG = (() => {
+  for (const l of navigator.languages || [navigator.language || "en"]) {
+    const s = String(l).toLowerCase();
+    if (s.startsWith("zh")) return /hant|tw|hk|mo/.test(s) ? "zh-TW" : "zh";
+    if (s.startsWith("ja")) return "ja";
+    if (s.startsWith("de")) return "de";
+    if (s.startsWith("en")) return "en";
+  }
+  return "en";
+})();
+const t = (k, v) => String(STR[LANG][k] ?? STR.en[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => (v && n in v ? v[n] : ""));
+document.documentElement.lang = LANG;
+document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = t(e.dataset.t); });
+document.title = t("title") + " · uni-switch";
+const $ = (id) => document.getElementById(id);
+$("filter").placeholder = t("filter");
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// the gateway's address is where this page was opened, less "/me": a
+// reverse proxy that serves uni-switch under a path keeps it
+const BASE = location.origin + location.pathname.replace(/\/me\/?$/, "");
+const PLACEHOLDER = "YOUR_GATEWAY_KEY";
+const STORE = "uni-switch-key";
+let key = "", data = null, model = "", tab = "claude";
+const store = {
+  get() { try { return sessionStorage.getItem(STORE) || ""; } catch { return ""; } },
+  set(v) { try { v ? sessionStorage.setItem(STORE, v) : sessionStorage.removeItem(STORE); } catch {} },
+};
+
+const nf = new Intl.NumberFormat(LANG, { notation: "compact", maximumFractionDigits: 1 });
+const usd = (n) => "$" + (n >= 100 ? n.toFixed(0) : n.toFixed(2));
+const total = (u) => (u.input || 0) + (u.output || 0) + (u.cache_read || 0) + (u.cache_write || 0);
+const when = (s) => new Date(s).toLocaleString(LANG, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+async function load(k) {
+  const res = await fetch(BASE + "/v1/uni-switch/me", { headers: { Authorization: "Bearer " + k }, cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer" });
+  if (res.ok) return { ok: true, body: await res.json() };
+  return { ok: false, status: res.status };
+}
+function why(status) {
+  if (status === 401) return t("bad");
+  if (status === 429) return t("many");
+  if (status === 403) return t("notShared");
+  return t("net");
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const k = $("key").value.trim();
+  if (!k) return $("key").focus();
+  $("go").disabled = true;
+  $("err").hidden = true;
+  try {
+    const r = await load(k);
+    if (!r.ok) { $("err").textContent = why(r.status); $("err").hidden = false; return; }
+    key = k; store.set(k); $("key").value = "";
+    show(r.body);
+  } catch { $("err").textContent = t("net"); $("err").hidden = false; }
+  finally { $("go").disabled = false; }
+});
+$("forget").onclick = () => {
+  key = ""; data = null; store.set("");
+  $("info").hidden = true; $("signin").hidden = false; $("key").focus();
+};
+$("refresh").onclick = async () => {
+  $("err2").hidden = true;
+  try {
+    const r = await load(key);
+    if (r.ok) return show(r.body);
+    if (r.status === 401) return $("forget").onclick();
+    $("err2").textContent = why(r.status); $("err2").hidden = false;
+  } catch { $("err2").textContent = t("net"); $("err2").hidden = false; }
+};
+$("withKey").onchange = () => drawSetup();
+$("filter").oninput = () => drawModels();
+
+function show(d) {
+  data = d;
+  $("signin").hidden = true; $("info").hidden = false;
+  $("name").textContent = d.name || "—";
+  drawLimits(); drawUsage();
+  const ids = (d.models || []).map((m) => m.id);
+  // the one it called most (its vendor's name for it) is picked first
+  const used = (d.topModels || []).map((s) => ids.find((id) => id === s.id || id.endsWith("/" + s.id))).find(Boolean);
+  if (!ids.includes(model)) model = used || ids[0] || "";
+  $("setupBlock").hidden = !!d.readOnly; $("readOnly").hidden = !d.readOnly;
+  drawTabs(); drawSetup(); drawModels();
+}
+
+function drawLimits() {
+  const box = $("limits");
+  box.replaceChildren();
+  const ls = data.limits || [];
+  if (!ls.length) return box.append(el("p", "sub", t("noLimit")));
+  for (const l of ls) {
+    const row = el("div", "limit");
+    const head = el("div", "row");
+    const name = l.period === "days" ? t("days", { n: l.days }) : l.period === "hours" ? t("hours", { n: l.hours }) : t(l.period);
+    head.append(el("strong", "grow", name));
+    if (l.spent) head.append(el("span", "tag bad", t("spent")));
+    row.append(head);
+    const caps = [];
+    if (l.tokenLimit) caps.push([l.tokens / l.tokenLimit, t("tokensOf", { a: nf.format(l.tokens), b: nf.format(l.tokenLimit) })]);
+    if (l.costLimit) caps.push([l.cost / l.costLimit, t("costOf", { a: usd(l.cost), b: usd(l.costLimit) })]);
+    for (const [f, text] of caps) {
+      const bar = el("div", "bar" + (f >= 1 ? " full" : ""));
+      const fill = el("i");
+      fill.style.width = Math.min(100, Math.max(0, f * 100)).toFixed(1) + "%";
+      bar.append(fill);
+      bar.setAttribute("role", "progressbar");
+      bar.setAttribute("aria-valuenow", String(Math.round(Math.min(1, f) * 100)));
+      row.append(bar, el("div", "sub num", text));
+    }
+    if (l.reset && !l.reset.startsWith("0001")) row.append(el("div", "note", t("resets", { t: when(l.reset) })));
+    box.append(row);
+  }
+}
+
+function drawUsage() {
+  const box = $("stats");
+  box.replaceChildren();
+  const u = data.usage || {};
+  for (const [p, k] of [["today", "today"], ["7d", "d7"], ["30d", "d30"]]) {
+    const s = u[p] || {};
+    const c = el("div", "stat");
+    c.append(el("div", "k", t(k)), el("div", "v", nf.format(total(s))), el("div", "s", t("tokens") + " · " + t("calls", { n: nf.format(s.calls || 0) })));
+    if (s.cost) c.append(el("div", "s", t("cost", { c: usd(s.cost) })));
+    box.append(c);
+  }
+  const top = $("top");
+  top.replaceChildren();
+  for (const s of data.topModels || []) {
+    const li = el("li");
+    li.append(el("span", "mono grow", s.id), el("span", "sub num", nf.format(total(s)) + " " + t("tokens")));
+    top.append(li);
+  }
+  if (!top.children.length) top.append(el("li", "empty", t("none")));
+}
+
+const TABS = [["claude", "Claude Code"], ["codex", "Codex"], ["openai", null], ["curl", null]];
+function drawTabs() {
+  const box = $("tabs");
+  box.replaceChildren();
+  for (const [id, name] of TABS) {
+    const b = el("button", "", name || t(id === "openai" ? "other" : "test"));
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.dataset.tab = id;
+    b.setAttribute("aria-selected", String(id === tab));
+    b.onclick = () => { tab = id; drawTabs(); drawSetup(); };
+    box.append(b);
+  }
+}
+
+function copyBtn(text) {
+  const b = el("button", "copy", t("copy"));
+  b.type = "button";
+  b.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const a = el("textarea"); a.value = text; document.body.append(a); a.select();
+      try { document.execCommand("copy"); } catch {}
+      a.remove();
+    }
+    b.textContent = t("copied");
+    setTimeout(() => { b.textContent = t("copy"); }, 1500);
+  };
+  return b;
+}
+
+const q = (s) => JSON.stringify(s);
+function drawSetup() {
+  const box = $("snip");
+  box.replaceChildren();
+  const k = $("withKey").checked ? key : PLACEHOLDER;
+  const m = model || "MODEL_ID";
+  const v1 = BASE + "/v1";
+  const block = (file, text) => {
+    const s = el("div", "snip");
+    const h = el("div", "row");
+    h.append(el("div", "file mono grow", file || ""), copyBtn(text));
+    s.append(h, el("pre", "", text));
+    box.append(s);
+  };
+  if (tab === "claude") {
+    $("tabNote").textContent = t("claudeNote") + " " + t("pick");
+    block("~/.claude/settings.json", JSON.stringify({ env: {
+      ANTHROPIC_BASE_URL: BASE, ANTHROPIC_AUTH_TOKEN: k, ANTHROPIC_MODEL: m,
+      ANTHROPIC_DEFAULT_OPUS_MODEL: m, ANTHROPIC_DEFAULT_SONNET_MODEL: m, ANTHROPIC_DEFAULT_HAIKU_MODEL: m,
+    } }, null, 2));
+  } else if (tab === "codex") {
+    $("tabNote").textContent = t("codexNote") + " " + t("pick");
+    block("~/.codex/config.toml", [
+      "model = " + q(m), 'model_provider = "uni-switch"', "",
+      "[model_providers.uni-switch]", 'name = "uni-switch"', "base_url = " + q(v1), 'wire_api = "responses"', "experimental_bearer_token = " + q(k),
+    ].join("\n"));
+  } else if (tab === "openai") {
+    $("tabNote").textContent = t("oaiNote");
+    const kv = el("div", "kv");
+    for (const [name, v] of [[t("base"), v1], [t("apiKey"), k], [t("model"), m]]) kv.append(el("span", "k sub", name), el("code", "", v), copyBtn(v));
+    box.append(kv);
+  } else {
+    $("tabNote").textContent = t("curlNote");
+    const body = JSON.stringify({ model: m, messages: [{ role: "user", content: "Say hi" }] });
+    block("", "curl " + v1 + "/chat/completions \\\n  -H " + sh("Authorization: Bearer " + k) + " \\\n  -H 'Content-Type: application/json' \\\n  -d " + sh(body));
+  }
+}
+const sh = (s) => "'" + s.replace(/'/g, "'\\''") + "'";
+
+function drawModels() {
+  const box = $("models");
+  box.replaceChildren();
+  const all = data?.models || [];
+  if (!all.length) return box.append(el("div", "empty", t("noModels")));
+  const f = $("filter").value.trim().toLowerCase();
+  for (const mo of all) {
+    if (f && !mo.id.toLowerCase().includes(f) && !(mo.label || "").toLowerCase().includes(f)) continue;
+    const b = el("button");
+    b.type = "button";
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", String(mo.id === model));
+    b.dataset.id = mo.id;
+    const txt = el("span", "grow");
+    txt.append(el("div", "mono", mo.id));
+    if (mo.label && mo.label !== mo.id) txt.append(el("div", "lbl", mo.label));
+    b.append(el("span", "chk", mo.id === model ? "✓" : ""), txt);
+    b.onclick = () => { model = mo.id; drawModels(); drawSetup(); };
+    box.append(b);
+  }
+}
+
+(async () => {
+  const k = store.get();
+  if (!k) return $("key").focus();
+  try {
+    const r = await load(k);
+    if (r.ok) { key = k; return show(r.body); }
+    if (r.status === 401) store.set("");
+  } catch {}
+  $("key").focus();
+})();
+</script>
+</body>
+</html>

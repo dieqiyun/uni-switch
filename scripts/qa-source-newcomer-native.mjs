@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import {resolve} from 'node:path';
+import {writeFileSync,readFileSync,readdirSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {createServer} from 'node:net';
+import {chromium} from 'playwright';
+import {startIsolated} from './qa-source-core.mjs';
+const root=resolve(import.meta.dirname,'..');
+const reservation=createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));
+const port=reservation.address().port;await new Promise(r=>reservation.close(r));
+const endpoint='http://127.0.0.1:'+port;
+const open=async()=>{try{return(await fetch(endpoint+'/json/version',{signal:AbortSignal.timeout(500)})).ok;}catch{return false;}};
+assert.equal(await open(),false,'Native QA port must be unused');
+process.env.UNI_SWITCH_QA_DEBUG_PORT=String(port);
+const app=await startIsolated(resolve(root,'.qa/uni-switch-newcomer-qa.exe'));
+delete process.env.UNI_SWITCH_QA_DEBUG_PORT;
+let browser,page;
+try {
+ await app.wait(()=>existsSync(resolve(app.home,'uni-switch/runtime')));
+ const coreHash=createHash('sha256').update(readFileSync(resolve(root,'src-tauri/binaries/uni-switch-core-x86_64-pc-windows-msvc.exe'))).digest('hex');
+ assert.ok(readdirSync(resolve(app.home,'uni-switch/runtime')).includes(coreHash),'Native binary must embed the current source core');
+ console.log('Current source core confirmed');
+ const end=Date.now()+120000;while(!await open()){assert.ok(Date.now()<end,'Native debugging startup timed out');await new Promise(r=>setTimeout(r,100));}
+ browser=await chromium.connectOverCDP(endpoint);page=browser.contexts()[0].pages()[0];page.setDefaultTimeout(15000);
+ console.log('Native page: '+page.url());
+ const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('Page error: '+e.message);});
+ await page.reload();
+ await page.waitForFunction(()=>!!window.bootPrefs?.uniSwitch&&typeof openSettings==='function'&&!!window.__TAURI__,null,{timeout:60000});
+ console.log(await page.evaluate(()=>({body:document.body.className,mode,prefsButton:document.querySelector('#prefs').outerHTML,style:getComputedStyle(document.querySelector('#prefs')).display,newcomer:!!document.querySelector('.newcomer-basics'),state:!!state,prefs:!!prefs,loaded:load.done,scripts:[...document.scripts].map(s=>s.src.split('/').at(-1))})));
+ await page.evaluate(()=>openSettings());await page.locator('#setTab-general').click();
+ await page.locator('#loginSegs button').first().waitFor();
+ assert.equal(await page.locator('.newcomer-basics > .row:visible').count(),4);
+ assert.equal(await page.locator('#generalAdvanced').evaluate(e=>e.open),false);
+ const autostart=await page.evaluate(()=>__TAURI__.core.invoke('plugin:autostart|is_enabled'));
+ assert.equal(await page.locator('#loginSegs button.on').textContent(),await page.evaluate(on=>t(on?'On':'Off'),autostart));
+ const initial=await page.evaluate(()=>({dpr:devicePixelRatio,size:textSize}));
+ await page.locator('#textSizeSegs').getByRole('button',{name:'125%',exact:true}).click();
+ await page.waitForFunction(v=>textSize===125&&Math.abs(devicePixelRatio/v.dpr-125/v.size)<0.02,initial);
+ assert.equal(JSON.parse(readFileSync(resolve(app.home,'uni-switch/settings.json'),'utf8')).textSize,125);
+ await page.locator('#textSizeSegs').getByRole('button',{name:'100%',exact:true}).click();
+ await page.waitForFunction(v=>textSize===100&&Math.abs(devicePixelRatio/v.dpr-100/v.size)<0.02,initial);
+ await page.screenshot({path:resolve(root,'.qa/newcomer-native-general.png'),scale:'css'});
+ assert.equal(await page.evaluate(()=>__TAURI__.core.invoke('plugin:autostart|is_enabled')),autostart);
+ assert.equal(readFileSync(resolve(app.home,'.codex/config.toml'),'utf8'),'# isolated QA; disconnected client\n');
+ assert.deepEqual(errors,[]);
+ const result={passed:true,basicSettingsVisible:4,nativeTextZoom:true,autostartStateReadOnly:true,isolatedHome:true,clientConfigUnchanged:true};
+ writeFileSync(resolve(root,'.qa/newcomer-native-verification.json'),JSON.stringify(result,null,2)+'\n','utf8');console.log(JSON.stringify(result));
+}finally{await browser?.close();await app.stop();}

@@ -33,7 +33,7 @@ jobs:
             targets: aarch64-apple-darwin,x86_64-apple-darwin
             build_args: --target universal-apple-darwin --bundles app,dmg
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       CARGO_TERM_COLOR: always
       APPIMAGE_EXTRACT_AND_RUN: '1'
@@ -52,13 +52,13 @@ jobs:
         with:
           go-version: '1.26.8'
           cache: false
-      - name: Go core tests and vet
-        run: |
-          go -C backend test ./...
-          go -C backend vet ./...
+      - name: Go core tests
+        run: node scripts/test-go.mjs -timeout=20m -p=2
+      - name: Go core vet
+        run: node scripts/test-go.mjs vet
       - name: Go race detector
         if: runner.os == 'Linux'
-        run: go -C backend test -race ./...
+        run: node scripts/test-go.mjs -race -timeout=30m -p=2
       - name: Build own Go core
         run: node scripts/build-go.mjs
       - name: Linux desktop dependencies
@@ -70,20 +70,19 @@ jobs:
         run: |
           corepack enable
           corepack pnpm install --frozen-lockfile
-      - name: Verify source and documentation
-        run: |
-          python scripts/audit-source.py
-          corepack pnpm docs:check
-          corepack pnpm typecheck
+      - name: Audit release source
+        run: python scripts/audit-source.py
+      - name: Verify documentation
+        run: corepack pnpm docs:check
+      - name: Frontend typecheck
+        run: corepack pnpm typecheck
       - name: Frontend tests
         if: runner.os == 'Linux'
         run: corepack pnpm test
       - name: Rust tests
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
-      - name: Rust to Go isolated contract
-        run: |
-          cargo build --locked --manifest-path src-tauri/Cargo.toml --no-default-features --example go_core_fixture
-          python scripts/test-go-bridge.py
+      - name: Embedded core management contract
+        run: node scripts/qa-source-core.mjs
       - name: Clippy
         run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - name: Build native packages

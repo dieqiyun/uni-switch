@@ -1,0 +1,24 @@
+{
+  "info": {
+    "id": "01a1826b-d49a-76b0-acf7-0a7a5a0a4dca",
+    "cwd": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/proj"
+  },
+  "agent_id": "ag1.e1d45854a5a9475da338af8a5f3f6c6c",
+  "attempt_id": "at1.3fc42ba3902e4331931baca11948159d",
+  "session_summary": "",
+  "created_at": "2026-10-28T12:11:07.300112Z",
+  "updated_at": "2026-10-28T12:11:11.428145Z",
+  "num_messages": 3,
+  "num_chat_messages": 7,
+  "current_model_id": "grok-4.7",
+  "next_trace_turn": 1,
+  "chat_format_version": 1,
+  "session_kind": "headless",
+  "git_root_dir": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/proj/",
+  "request_id": "e4baa3d2-7bdf-4820-ac7b-8883fbc5df2b",
+  "grok_home": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/grokhome/.grok",
+  "last_active_at": "2026-10-28T12:11:11.428145Z",
+  "agent_name": "grok-build-plan",
+  "sandbox_profile": "off",
+  "reasoning_effort": "high"
+}

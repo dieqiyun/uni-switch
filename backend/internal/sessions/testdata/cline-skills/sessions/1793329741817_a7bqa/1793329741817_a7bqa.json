@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "session_id": "1793329741817_a7bqa",
+  "source": "cli",
+  "pid": 81712,
+  "started_at": "2026-10-30T03:09:01.819Z",
+  "ended_at": "2026-10-30T03:09:04.692Z",
+  "exit_code": 0,
+  "status": "completed",
+  "interactive": false,
+  "provider": "openai-compatible",
+  "model": "auto/claude-haiku-4-5",
+  "cwd": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/cap/cline/work",
+  "workspace_root": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/cap/cline/work",
+  "team_name": "team-PtzAz",
+  "enable_tools": true,
+  "enable_spawn": true,
+  "enable_teams": true,
+  "prompt": "First run `cat notes.txt`, then greet me using the greet-user skill.",
+  "metadata": {
+    "sessionHistoryOrigin": {
+      "mode": "user",
+      "version": "3.0.70"
+    },
+    "title": "First run `cat notes.txt`, then greet me using the greet-user skill.",
+    "totalCost": 0,
+    "aggregatedAgentsCost": 0,
+    "usage": {
+      "inputTokens": 21159,
+      "outputTokens": 80,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "totalCost": 0
+    },
+    "aggregateUsage": {
+      "inputTokens": 21159,
+      "outputTokens": 80,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "totalCost": 0
+    }
+  },
+  "messages_path": "/private/tmp/claude-501/-Users-yetone-workspace-projects-uni-switch/4c056ab3-f2e6-4918-b774-da5c713ce1e3/scratchpad/cap/cline/home/.cline/data/sessions/1793329741817_a7bqa/1793329741817_a7bqa.messages.json"
+}

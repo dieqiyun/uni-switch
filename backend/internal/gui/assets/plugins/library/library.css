@@ -1,0 +1,848 @@
+/* Library: instructions, MCP servers and skills for every agent. */
+#view-library { gap: 0; }
+/* The tabs stay at the top while the page scrolls under them, on a frosted
+   strip as wide as the view; a hairline shows once something is beneath.
+   The strip's own box keeps to the view's content box and its ::before
+   reaches out over the view's padding (--bleed-l/-r): a box that ran past
+   the content's end edge, by a negative margin, was 16px of sideways
+   scroll in macOS 15's WebKit, which leaves a negative margin-end out of
+   a flex scroller's scrollable width (#1236). */
+.lib-head {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: 8px; flex: none;
+  margin: 0; padding: 6px 0 4px;
+  --bleed-l: 12px; --bleed-r: 12px;
+}
+.lib-head::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  top: 0; bottom: 0; left: calc(-1 * var(--bleed-l)); right: calc(var(--bar, 0px) - var(--bleed-r)); /* the bar's room is out of the padding */
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+  box-shadow: 0 1px 0 transparent; transition: box-shadow .18s var(--ease);
+}
+/* the window's view is padded 2px at the top: the strip reaches over it */
+body.window .lib-head { top: -2px; margin: -2px 0 0; padding: 8px 0 4px; --bleed-l: 16px; --bleed-r: 16px; }
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1024px) {
+  body.web .lib-head {
+    flex-wrap: wrap;
+    margin: -2px 0 0; padding: 8px 0 4px;
+    --bleed-l: var(--view-left); --bleed-r: var(--view-right);
+  }
+  body.web .lib-tabs { max-width: 100%; flex-wrap: wrap; }
+  body.web .lib-more, body.web .lib-discover, body.web .lib-backups { flex: none; }
+  /* a phone's inputs are 44pt with 16px text: the search box grows round it */
+  body.web .editor.lib-hubsheet label.lib-hubsearch { height: 44px; border-radius: 10px; }
+  /* the card's × as big to tap as the buttons beside it */
+  body.web .lib-problems-head .lib-x { width: 44px; }
+}
+/* a window too narrow for the tabs and the buttons beside them (Discover,
+   Library folder, Backups) on one line has the buttons on a line of their own, at
+   its end */
+.lib-head { flex-wrap: wrap; row-gap: 4px; }
+/* eight tabs (Subagents, #2283) outgrow a narrow window in German: the
+   tabs wrap onto a second line rather than scroll the view sideways */
+.lib-tabs { max-width: 100%; flex-wrap: wrap; }
+.lib-headacts { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+.lib-head.stuck::before { box-shadow: 0 1px 0 var(--line-2); }
+.lib-tabs .opt { height: 24px; padding: 0 12px; font-size: 12.5px; }
+.lib-more, .lib-discover, .lib-backups { display: inline-flex; align-items: center; gap: 5px; }
+.lib-mini { display: inline-grid; place-items: center; color: var(--muted); }
+.lib-mini svg { width: 13px; height: 13px; }
+.lib-body { display: flex; flex-direction: column; flex: none; }
+.lib-body.enter { animation: content-in .22s var(--ease); }
+/* as wide as the cards under it: held to 640px it broke off mid-sentence with
+   the cards running on past it (#2319); pretty keeps a last word from
+   standing alone on its line */
+.lib-intro { margin: 8px 2px 10px; font-size: 12px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.lib-aside { margin: 8px 4px 0; font-size: 11.5px; line-height: 1.5; color: var(--faint); }
+.lib-aside.center { text-align: center; margin-top: 14px; }
+/* the MCP hub's switch, under the servers (#2679) */
+.lib-hublist { margin-top: 16px; }
+.lib-hub .lib-switch { align-self: center; }
+/* its switch stays beside its text in a narrow window, as a setting's does */
+.lib-list .row.lib-hub { flex-wrap: nowrap; }
+.lib-hub .name { white-space: normal; }
+.lib-hub .lib-hubstats { margin-top: 4px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* the address any other app connects at, under the switch */
+.lib-list .row.lib-hubat { flex-wrap: nowrap; align-items: center; }
+.lib-hubat > .lib-glyph { align-self: center; margin-top: 0; }
+.lib-hubat .who { min-width: 0; }
+.lib-hubat .lib-hubURL { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; }
+.lib-hubat .lib-hubconnect { flex: none; }
+.lib-list .row.lib-hubnoterow { flex-wrap: nowrap; align-items: center; }
+.lib-hubnoterow > .lib-glyph { align-self: center; margin-top: 0; }
+.lib-hubnoterow .who { min-width: 0; }
+.lib-hubnoterow .lib-hubname { flex: 0 1 200px; min-width: 96px; margin: 0; }
+/* Connect an app: Agents | Other apps, as System Settings draws a pane:
+   one line of where things stand, then inset groups with hairlines */
+/* one column: the dialog's body (.ebody) is the editor's label/field grid */
+.modal .editor.lib-hubsheet > .ebody { grid-template-columns: minmax(0, 1fr); grid-auto-rows: max-content; gap: 16px; }
+.lib-hubsheet .ebody > * { min-width: 0; margin-top: 0; margin-bottom: 0; }
+.lib-hubsheet .ebody > .segs { justify-self: center; max-width: 100%; }
+.lib-hubsheet .segs .opt { flex: none; }
+.lib-hubpane { display: flex; flex-direction: column; gap: 18px; min-width: 0; min-height: 240px; }
+/* agents → uni-switch → servers */
+.lib-hubflow { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 2px; text-align: center; }
+.lib-hubroute { display: flex; align-items: center; width: 100%; max-width: 320px; margin-bottom: 10px; }
+.lib-hubstack { display: inline-flex; align-items: center; flex: none; }
+.lib-hubstack > * { flex: none; box-shadow: 0 0 0 2px var(--card); border-radius: 7px; background: var(--card); }
+.lib-hubstack > * + * { margin-left: -7px; }
+.lib-hubroute .lib-hubstack > :is(.ic, .lib-glyph, .lib-logo) { width: 24px; height: 24px; }
+.lib-hubmore { display: grid; place-items: center; min-width: 24px; padding: 0 5px; border-radius: 7px; background: var(--pill); color: var(--muted); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lib-hubwire { flex: 1; min-width: 12px; height: 1px; margin: 0 8px; background: linear-gradient(90deg, var(--line), var(--faint), var(--line)); }
+.lib-hubnode { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; color: var(--fg); background: var(--card); box-shadow: 0 0 0 0.5px var(--line), 0 1px 2px rgb(0 0 0 / 6%), 0 4px 12px -4px rgb(0 0 0 / 12%); }
+.lib-hubsheet .lib-hublead { margin: 0; font-size: 13px; font-weight: 500; color: var(--fg); text-wrap: balance; font-variant-numeric: tabular-nums; }
+.lib-hubsheet .lib-hubapps { align-self: center; text-align: center; font-weight: 400; color: var(--fg-2); }
+.lib-hubsub { margin: 0; font-size: 12px; color: var(--muted); text-wrap: balance; }
+.lib-hubsub > span { display: inline-block; }
+/* a label in an .editor: its form rows' padding-top, right-aligned 12px
+   text (more under body.web) would push the glass and the text off the
+   middle, so the box says its own */
+.editor.lib-hubsheet label.lib-hubsearch { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border-radius: 7px; background: var(--pill); color: var(--muted); text-align: left; font-size: 13px; }
+.editor.lib-hubsheet .lib-hubsearch input { flex: 1; min-width: 0; height: 100%; min-height: 0; margin: 0; border: 0; padding: 0; background: transparent; font: inherit; font-size: 13px; color: var(--fg); outline: none; box-shadow: none; }
+.lib-hubsheet .lib-hubsearch input:is(:focus, :focus-visible) { border: 0; box-shadow: none; outline: none; }
+.lib-hubsearch input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.lib-hubsearch:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+/* a group: a quiet heading, its count, a fold; then its inset list */
+.lib-hubgrp { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lib-hubsheet .lib-hubsec { display: flex; align-items: baseline; gap: 6px; padding: 0 12px; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.lib-hubn { color: var(--faint); font-variant-numeric: tabular-nums; }
+.lib-hubsec .lib-hubfold { margin-left: auto; height: auto; padding: 0; border: 0; background: none; color: var(--accent); font-size: 11.5px; }
+.lib-hubsheet .lib-list .row { min-height: 40px; padding: 6px 12px; gap: 10px; flex-wrap: nowrap; }
+.lib-hubsheet .lib-list .row + .row { border-top: 0; box-shadow: inset 44px 0 0 var(--card), inset 0 1px 0 var(--line-2); }
+.lib-hubsheet .lib-list .row > .ic { width: 22px; height: 22px; flex: none; }
+.lib-hubagent .name, .lib-hubapp .name { font-weight: 400; }
+.lib-hubagent .sub { white-space: normal; text-wrap: pretty; }
+.lib-hubkept .name { color: var(--muted); }
+.lib-hubkept > .ic { opacity: .7; }
+.lib-hubtag { flex: none; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.lib-hubinfo { flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--faint); }
+.lib-hubinfo:hover, .lib-hubinfo[aria-expanded="true"] { color: var(--accent); }
+.lib-hubwhy { margin: 0; padding: 0 12px 10px 44px; margin-top: -4px; font-size: 12px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+button.row.lib-hubfolded { width: 100%; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.row.lib-hubfolded:hover { background: var(--pill); }
+.lib-hubfolded .lib-hubstack > * { width: 18px; height: 18px; border-radius: 5px; box-shadow: 0 0 0 1.5px var(--card); }
+.lib-hubfolded .lib-hubstack > * + * { margin-left: -5px; }
+.lib-hubfolded .name { flex: 1; min-width: 0; }
+.lib-hubfolded > svg { flex: none; color: var(--faint); }
+.lib-hubnone { margin: 16px 0; text-align: center; color: var(--muted); }
+/* other apps */
+.lib-hubaddr { display: flex; align-items: center; gap: 6px; min-width: 0; height: 36px; padding: 0 6px 0 12px; border-radius: 9px; background: var(--card); border: 1px solid var(--line); }
+.lib-hubaddr code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-2); user-select: all; }
+.lib-hubcap { margin: -10px 12px 0; font-size: 12px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.lib-hubapp .sub { white-space: normal; text-wrap: pretty; }
+.lib-hubpill { flex: none; height: 24px; padding: 0 11px; border: 0; border-radius: 12px; background: var(--pill); color: var(--fg); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.lib-hubpill:hover { background: var(--pill-hover); }
+.lib-hubpill.lib-hubadd { background: var(--accent-soft); color: var(--accent); }
+.lib-hubpill.quiet { background: none; color: var(--muted); padding: 0 6px; }
+.lib-hubpill.quiet:hover { color: var(--fg); background: var(--pill); }
+.lib-hubsheet .bar .lib-hubnote { font-size: 12px; color: var(--muted); }
+@media (max-width: 560px) {
+  .lib-hubsheet .lib-list .row { flex-wrap: nowrap; }
+  .lib-hubtag { display: none; }
+}
+
+/* the glyph at the front of a row: drawn, in the text colour */
+.lib-glyph { flex: none; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--fg-2); background: var(--pill); }
+.lib-glyph svg { width: 15px; height: 15px; }
+/* the hub's mark: uni-switch's bird on the glyph's tile */
+.lib-glyph.lib-hubmark { color: var(--fg); }
+.lib-glyph.lib-hubmark svg { width: 17px; height: 17px; }
+.lib-rtk-logo .mask { width: 20px; height: 20px; background: currentColor; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
+.mk-icon.lib-logo { flex: none; width: 26px; height: 26px; border-radius: 7px; }
+.lib-editor .ehead .mk-icon.lib-logo { width: 24px; height: 24px; }
+
+/* cards: the shared text, the skill finder */
+.lib-card { display: flex; flex-direction: column; }
+.lib-cardhead { display: flex; align-items: center; gap: 9px; padding: 9px 12px 0; }
+.lib-cardhead b { font-weight: 600; font-size: 13px; }
+.lib-cardhead .note { font-size: 11px; color: var(--faint); }
+.lib-text {
+  display: block; width: 100%; box-sizing: border-box; resize: none; border: 0; outline: none; background: none; color: var(--fg);
+  padding: 10px 14px 14px; font: var(--code-style, normal) var(--code-weight, 400) 12.5px/1.6 var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); tab-size: 2; min-height: 150px;
+}
+.lib-text::placeholder { color: var(--faint); font-family: var(--ui-font, var(--font)); font-size: 12.5px; }
+:where(html[data-fonts]) .lib-text::placeholder { font-style: var(--ui-style, inherit); font-weight: var(--ui-weight, inherit); font-stretch: var(--ui-stretch, 100%); }
+.lib-text.small { min-height: 64px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); transition: border-color .12s, box-shadow .12s; }
+.lib-text.small:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* unsaved text: a bar that stays in view at the bottom until it's saved */
+.lib-savebar {
+  position: sticky; bottom: 8px; z-index: 3; margin-top: 12px; display: flex; align-items: center; gap: 6px;
+  padding: 7px 8px 7px 14px; border-radius: 11px; background: var(--pop-bg); box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); animation: lib-rise .22s var(--ease);
+}
+.lib-savebar[hidden] { display: none; }
+.lib-savebar .note { font-size: 12px; color: var(--fg-2); display: inline-flex; align-items: center; gap: 7px; }
+.lib-savebar .note::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--fg); }
+@keyframes lib-rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* rows */
+.lib-list .row { min-height: 50px; padding: 7px 10px 7px 12px; gap: 11px; }
+.lib-row.click { cursor: default; transition: background .14s var(--ease); }
+.lib-row.click:hover { background: var(--card-2); }
+/* a long name, link or description breaks anywhere rather than pushing
+   the row wider than the list (#257) */
+.lib-row .who { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+/* and beside a hand of many agents' chips it keeps room to be read (#936) */
+.lib-row.with-agents > .who { min-width: min(140px, 32%); }
+/* a server's or skill's picture sits level with the top of its name */
+.lib-row > .lib-logo, .lib-row > .lib-glyph { align-self: flex-start; margin-top: 1px; }
+.lib-row .name.mono, .lib-pick .name.mono { font: var(--code-style, normal) 500 12.5px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); }
+.lib-row .sub { max-width: 100%; }
+.lib-row .sub.mono, .lib-pick .sub.mono { font: var(--code-style, normal) var(--code-weight, 400) 11px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--muted); }
+.lib-row .chev { flex: none; color: var(--faint); transition: transform .2s var(--ease); display: grid; place-items: center; }
+.lib-row.open .chev { transform: rotate(90deg); }
+.lib-row.open { background: var(--card-2); }
+.lib-skill .sub { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
+.lib-skill.missing .name { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+.lib-skill.missing .sub { color: var(--amber); }
+/* off on this computer: its agents' ticks are the other computers', shown faded and not to be changed here */
+.lib-skill.offhere > .lib-glyph, .lib-skill.offhere > .lib-logo, .lib-skill.offhere .sub { opacity: .55; }
+.lib-skill.offhere > .lib-agents { opacity: .4; pointer-events: none; }
+.lib-hereline { display: flex; margin-top: 3px; min-width: 0; }
+.lib-hereline > .lib-tag.lib-offhere { cursor: pointer; margin-left: 0; flex: 0 1 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.lib-tag.lib-offhere:hover { color: var(--fg); }
+.lib-icon.lib-here.on { color: var(--accent); }
+.lib-src { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 11px; color: var(--faint); min-width: 0; }
+/* "linked from" stays whole, one line, and the path beside it gives way:
+   CJK can break after any character, so the label shrank to a column of
+   them and the row, a fixed height in a long list, lost its name (#257) */
+.lib-src > span { flex: none; white-space: nowrap; }
+.lib-src > .lib-path, .lib-src > .lib-srclink { flex: 0 1 auto; min-width: 0; }
+.lib-srclink { font: var(--code-style, normal) var(--code-weight, 400) 11px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-srclink:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
+/* kept in ~/.agents/skills: moved into the library on a click (tnt1223) */
+.lib-src > .lib-handover { flex: 0 2 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; height: auto; border: 0; background: none; font-size: 11px; color: var(--accent); padding: 0 2px; margin-left: 4px; border-radius: 3px; white-space: nowrap; }
+.lib-src > .lib-handover:hover { text-decoration: underline; text-underline-offset: 2px; }
+.lib-confirm.lib-muted { color: var(--muted); }
+
+/* a path: shown in the file manager on a click */
+.lib-path { font: var(--code-style, normal) var(--code-weight, 400) 11px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--muted); padding: 0; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; border-radius: 3px; }
+.lib-path:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
+
+/* tags beside a name */
+.lib-tags { display: flex; gap: 5px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.lib-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; color: var(--fg-2); background: var(--pill); white-space: nowrap; }
+.lib-tag.warn { color: var(--amber); background: var(--amber-soft); }
+.lib-tag.warn::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+/* what a check for updates found, beside a skill's name */
+.lib-row .name .lib-tag { height: 17px; padding: 0 6px; margin-left: 7px; font-size: 10.5px; font-weight: 500; vertical-align: 1px; }
+.lib-tag.lib-new { color: var(--accent); background: var(--accent-soft); }
+.lib-tag.lib-new::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.lib-tag.lib-new.link { cursor: pointer; }
+.lib-tag.lib-new.link:hover { background: color-mix(in srgb, var(--accent) 22%, var(--accent-soft)); }
+.lib-tag.lib-unchecked { color: var(--faint); font-weight: 400; }
+.lib-tag.lib-signed { color: var(--green); background: var(--green-soft); }
+.lib-tag.lib-signed::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* uni-switch's sign-in to a remote server, in its editor (#615) */
+.lib-signin-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 28px; }
+.lib-signin-line .note { font-size: 12px; color: var(--fg-2); }
+.lib-app { display: flex; gap: 6px; width: 100%; align-items: center; flex-wrap: wrap; }
+.lib-app input { flex: 1 1 9em; min-width: 0; font-family: var(--code-font, var(--code)); font-size: 12px; }
+.lib-app input.port { flex: 0 1 7.5em; }
+.lib-editor input.lib-startup { max-width: 140px; }
+.lib-signin-err { margin-top: 6px; font-size: 12px; color: var(--red); line-height: 1.45; overflow-wrap: anywhere; }
+.lib-signin-link { display: flex; align-items: center; gap: 4px; margin-top: 5px; min-width: 0; }
+.lib-signin-link code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--code-style, normal) var(--code-weight, 400) 11px/1.3 var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--fg-2); padding: 4px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); user-select: all; -webkit-user-select: all; cursor: text; }
+
+/* the switch */
+.lib-switch { flex: none; position: relative; width: 32px; height: 19px; border-radius: 10px; background: var(--line); transition: background .2s var(--ease); }
+.lib-switch i { position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .22s var(--ease); }
+.lib-switch.on { background: var(--fg); }
+.lib-switch.on i { transform: translateX(13px); background: var(--card); }
+:root[data-theme="dark"] .lib-switch.on i { background: var(--bg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lib-switch.on i { background: var(--bg); } }
+
+/* the sets of shared instructions: a radio picks the one the agents read */
+.lib-sets .lib-cardhead { padding-bottom: 8px; }
+.lib-radio { flex: none; width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--faint); display: grid; place-items: center; transition: border-color .14s; }
+.lib-radio:hover { border-color: var(--fg-2); }
+.lib-radio.on { border-color: var(--fg); }
+.lib-radio.on::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fg); }
+.lib-set.on .name { font-weight: 600; }
+.lib-sets .lib-detail { padding-left: 40px; }
+.lib-sets > .lib-cardhead + .row, .lib-sets .lib-detail + .row, .lib-sets .lib-detail + .lib-setadd, .lib-sets .row + .lib-setadd { border-top: 1px solid var(--line-2); }
+.lib-setadd { padding: 8px 10px 10px; }
+input.lib-setname { height: 28px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); font-size: 12.5px; outline: none; max-width: 280px; transition: border-color .12s, box-shadow .12s; }
+input.lib-setname.grow { flex: 1 1 auto; max-width: none; }
+.lib-setnew { flex-wrap: wrap; row-gap: 8px; }
+input.lib-setname.lib-setfile-in { flex: 2 1 220px; font-size: 12px; }
+.lib-setfile { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; min-width: 0; }
+input.lib-setname:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* an agent's instructions, opened */
+.lib-detail { padding: 4px 14px 14px 50px; background: var(--card-2); display: flex; flex-direction: column; gap: 8px; border-top: 0 !important; animation: content-in .2s var(--ease); }
+.lib-lab { font-size: 11.5px; color: var(--muted); }
+.lib-detail .lib-aside { margin: 0; }
+.lib-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-warn { font-size: 12px; line-height: 1.5; color: var(--fg); background: var(--amber-soft); border-radius: 8px; padding: 8px 10px; }
+.lib-warn .lib-path { display: inline; }
+/* what the last change couldn't write: for which agent, and why */
+.lib-problems { flex: none; margin: 8px 0 6px; padding: 9px 12px 10px; border-radius: 10px; background: var(--amber-soft); color: var(--fg); font-size: 12px; line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+/* the title keeps its words whole: with less than 10em left beside it,
+   Try again and the × go to a line of their own, at its end (German on a
+   320px phone broke "Bibliothek" with the × beside it) */
+.lib-problems-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.lib-problems-head b { flex: 1 1 10em; font-weight: 600; min-width: 0; overflow-wrap: break-word; }
+.lib-problems-head .action { flex: none; margin-left: auto; }
+.lib-problems-head .lib-x { margin: -4px -6px -4px -2px; color: var(--muted); }
+.lib-problems-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+.lib-problems ul { list-style: none; margin: 6px 0 0; padding: 0 0 0 15px; display: grid; gap: 4px; }
+.lib-problems li { min-width: 0; }
+.lib-problems-sep { color: var(--muted); }
+.lib-problems-err { display: block; color: var(--fg-2); font: var(--code-style, normal) var(--code-weight, 400) 11px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); margin-top: 1px; }
+.lib-problems-fix { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.lib-problems-away { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0 15px; }
+
+/* agents a server or skill is given to: an icon each, lit when it has it */
+.lib-agents { display: flex; flex-wrap: wrap; gap: 3px; flex: none; justify-content: flex-end; max-width: 50%; }
+.lib-ag {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 26px; min-width: 26px; padding: 0 5px; border-radius: 7px;
+  border: 1px solid transparent; font-size: 12px; color: var(--muted); transition: background .14s, border-color .14s, color .14s, transform .14s var(--ease);
+}
+.lib-ag .ic { width: 15px; height: 15px; filter: grayscale(1); opacity: .35; transition: filter .14s, opacity .14s; }
+.lib-ag:hover { background: var(--pill); }
+.lib-ag:hover .ic { opacity: .7; }
+.lib-ag.on { background: var(--card); border-color: var(--line); color: var(--fg); box-shadow: 0 1px 1px rgba(0, 0, 0, .05); }
+.lib-ag.on .ic { filter: none; opacity: 1; }
+/* an icon made grey once rather than through the filter on every paint
+   (library.js, greyIcon): a picture's grey copy stands in for it, and one
+   drawn in the text's colour takes that colour grey — the same pixels.
+   The copy is hidden wherever the icon goes, not only in a chip: an
+   agent's icon is copied from one made once (agentIcon), grey copy and
+   all, into the rows of what agents have of their own too */
+.ic > img.grey { display: none; }
+.lib-ag:not(.on) .ic.baked { filter: none; }
+.lib-ag:not(.on) .ic.baked > img:not(.grey) { display: none; }
+.lib-ag:not(.on) .ic.baked > img.grey { display: block; }
+@supports (color: rgb(from currentColor r g b)) {
+  .lib-ag:not(.on) .ic.flat { filter: none; color: rgb(from currentColor calc(r * .2126 + g * .7152 + b * .0722) calc(r * .2126 + g * .7152 + b * .0722) calc(r * .2126 + g * .7152 + b * .0722)); }
+}
+.lib-ag.via { border: 1px dashed var(--line); }
+.lib-ag.via .ic { opacity: .6; }
+.lib-ag.warn::after { content: ""; position: absolute; top: -2px; right: -2px; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px var(--card); }
+.lib-ag.blocked { opacity: .35; }
+.lib-ag.blocked:hover { background: none; }
+/* a stopped WSL distro's agent: shown as last seen, quietly greyer */
+.lib-ag.asleep .ic, .lib-row.asleep > .ic { opacity: .55; filter: grayscale(1); }
+.lib-row.asleep .lib-path:hover { color: var(--muted); text-decoration: none; }
+.lib-row.asleep .lib-switch[aria-disabled="true"] { opacity: .35; cursor: default; }
+.lib-localbox .lib-switch[aria-disabled="true"] { opacity: .35; cursor: default; }
+.lib-ag:active:not(.blocked) { transform: scale(.92); }
+.editor .lib-agents { max-width: none; justify-content: flex-start; gap: 5px; }
+.editor .lib-ag { padding: 0 9px 0 6px; border-color: var(--line); }
+.editor .lib-ag.on { background: var(--accent-soft); border-color: color-mix(in srgb, var(--fg) 30%, transparent); }
+.lib-probefoot .lib-agents { max-width: none; justify-content: flex-start; }
+/* All, ahead of a picker's chips (#1531): a word, set a little apart */
+.lib-agents > .lib-ag.all { padding: 0 8px; margin-right: 4px; font-weight: 500; }
+.lib-agents > .lib-ag.all.on { color: var(--fg); }
+
+/* in a list row they sit stacked like a hand of cards, on one line, and fan
+   out when the pointer or focus comes to them */
+.lib-row > .lib-agents { flex-wrap: nowrap; gap: 0; max-width: none; padding-left: 4px; --lib-stack: -7px; --lib-fan: 3px; }
+/* The chips are laid out fanned, always, and the hand is drawn by sliding
+   each one right onto the last: --k is how many chips it has to its right
+   (agentChips), so it slides k times the difference. Fanning moves only
+   translate, which the compositor does on its own, never margins, which
+   lay the row out again on every frame; the strip, All and the name beside
+   it never move. The cards are dealt out one after another, the one with
+   the furthest to go first, so none passes over another, and go back
+   together, quicker. Transform stays free for the press. */
+.lib-row > .lib-agents .lib-ag[data-agent] { translate: calc(var(--k, 0) * (var(--lib-fan) - var(--lib-stack))) 0; }
+.lib-row > .lib-agents:hover .lib-ag[data-agent], .lib-row > .lib-agents:focus-within .lib-ag[data-agent] { translate: 0 0; transition-delay: 0s, 0s, 0s, 0s, 0s, calc((var(--lib-agent-count, 1) - 1 - var(--k, 0)) * var(--lib-step)); }
+.lib-row > .lib-agents .lib-ag { flex: none; width: 24px; min-width: 0; height: 24px; padding: 0 0 0 4px; justify-content: flex-start; background: var(--card); border-color: var(--line-2); box-shadow: none; transition: background .14s, border-color .14s, transform .14s var(--ease), outline-color .2s, box-shadow .2s, translate .22s cubic-bezier(.32, .72, 0, 1); }
+.lib-row > .lib-agents:hover .lib-ag, .lib-row > .lib-agents:focus-within .lib-ag { transition-duration: .14s, .14s, .14s, .2s, .2s, .3s; transition-timing-function: ease, ease, var(--ease), ease, ease, cubic-bezier(.23, 1, .32, 1); }
+.lib-row > .lib-agents { --lib-step: min(16ms, calc(120ms / max(1, var(--lib-agent-count, 1) - 1))); }
+@media (prefers-reduced-motion: reduce) {
+  .lib-row > .lib-agents .lib-ag[data-agent], .lib-row > .lib-agents:hover .lib-ag[data-agent], .lib-row > .lib-agents:focus-within .lib-ag[data-agent] { transition-duration: .14s, .14s, .14s, .2s, .2s, 0s; transition-delay: 0s; }
+}
+.lib-row > .lib-agents .lib-ag .ic { width: 14px; height: 14px; }
+/* the ring in the card's colour that cuts each chip out of the one under
+   it: an outline rather than a spread shadow, the same ring cheaper to
+   paint; a chip with the focus shows the focus ring instead */
+.lib-row > .lib-agents .lib-ag:not(:focus-visible) { outline: 1.5px solid var(--card); outline-offset: 0; }
+.lib-row > .lib-agents .lib-ag + .lib-ag { margin-left: var(--lib-fan); }
+/* With many agents the chips close up, each further under the one before
+   (#936), so the hand stays in about half the row and the name beside it
+   keeps its room: --lib-stack is how far a chip goes under the one before,
+   -7px while they fit, --lib-fan the same fanned out, 3px while they fit.
+   A WebKit without container units keeps -7px and 3px. */
+@supports (width: 1cqw) {
+  .lib-row.with-agents { container-type: inline-size; }
+  .lib-row > .lib-agents {
+    --lib-n: var(--lib-agent-count, 1);
+    --lib-gap: calc((48cqw - 60px - var(--lib-n) * 24px) / max(1, var(--lib-n) - 1));
+    --lib-stack: clamp(-19px, var(--lib-gap), -7px);
+    --lib-fan: clamp(var(--lib-stack), var(--lib-gap), 3px);
+  }
+}
+.lib-row > .lib-agents .lib-ag.on { border-color: var(--line); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.lib-row > .lib-agents .lib-ag.via { border-style: dashed; }
+.lib-row > .lib-agents:hover .lib-ag, .lib-row > .lib-agents:focus-within .lib-ag { box-shadow: none; }
+.lib-row > .lib-agents:hover .lib-ag:not(:focus-visible), .lib-row > .lib-agents:focus-within .lib-ag:not(:focus-visible) { outline-color: transparent; }
+.lib-row > .lib-agents .lib-ag:hover { background: var(--pill); z-index: 1; }
+.lib-row.click:hover > .lib-agents .lib-ag { box-shadow: none; }
+.lib-row.click:hover > .lib-agents .lib-ag:not(:focus-visible) { outline-color: var(--card-2); }
+.lib-row.click:hover > .lib-agents:hover .lib-ag:not(:focus-visible) { outline-color: transparent; }
+/* All, ahead of the hand: a word, apart from the chips it lights */
+.lib-row > .lib-agents .lib-ag.all { width: auto; padding: 0 7px; margin-right: 6px; justify-content: center; font-size: 11px; font-weight: 500; color: var(--muted); }
+.lib-row > .lib-agents .lib-ag.all.on { color: var(--fg); }
+.lib-row > .lib-agents .lib-ag.all + .lib-ag { margin-left: 0; }
+
+/* agents that have one of their own, not in the library */
+.lib-have { display: flex; gap: 4px; flex: none; }
+.lib-have .ic { width: 15px; height: 15px; }
+
+/* a skill's actions show on hover */
+.lib-rowacts { display: flex; gap: 2px; flex: none; opacity: 0; transition: opacity .14s; }
+.lib-row:hover .lib-rowacts, .lib-rowacts:focus-within { opacity: 1; }
+.lib-icon { width: 26px; height: 26px; padding: 0; display: inline-grid; place-items: center; }
+.lib-icon.busy svg { animation: lib-bob .8s var(--ease) infinite alternate; }
+@keyframes lib-bob { to { transform: translateY(-2px); } }
+
+/* the skill finder */
+.lib-install { margin-bottom: 4px; }
+.lib-find { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; }
+.lib-find input { flex: 1; min-width: 0; height: 28px; border: 0; outline: none; background: none; font-size: 13px; color: var(--fg); }
+.lib-find input::placeholder { color: var(--faint); }
+.lib-find .text.busy { color: var(--muted); }
+.lib-err { padding: 0 14px 10px 36px; font-size: 12px; color: var(--red); line-height: 1.45; overflow-wrap: anywhere; }
+.lib-probe { border-top: 1px solid var(--line-2); padding: 8px 8px 8px; display: flex; flex-direction: column; gap: 6px; animation: content-in .22s var(--ease); }
+.lib-probehead { display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.lib-probehead .note { font-size: 11.5px; color: var(--muted); }
+.lib-filter { height: 26px; margin: 0 4px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font-size: 12px; outline: none; }
+.lib-filter:focus { border-color: var(--accent); }
+.lib-picks { display: flex; flex-direction: column; max-height: 300px; overflow-y: auto; }
+.lib-pick { display: flex; align-items: flex-start; gap: 10px; padding: 7px 6px; border-radius: 8px; cursor: default; }
+.lib-pick:hover:not(.dim) { background: var(--pill); }
+.lib-pick.dim { opacity: .55; }
+.lib-pick input { margin: 2px 0 0; accent-color: var(--fg); flex: none; }
+.lib-pick .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lib-pick .name { font-size: 13px; font-weight: 500; }
+.lib-pick .sub { font-size: 11.5px; color: var(--muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* "adds as skill-creator-openai": a name can be 64 letters long, so the
+   tag gives way to the skill's own name and is cut short, its title whole */
+.lib-pick > .lib-tag { flex: 0 1 auto; min-width: 0; max-width: 45%; display: block; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
+.lib-probefoot { display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--line-2); flex-wrap: wrap; }
+.lib-probefoot .note { font-size: 12px; color: var(--muted); }
+
+/* nothing yet */
+.lib-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 34px 20px 30px; text-align: center; background: var(--card); border: 1px dashed var(--line); border-radius: 12px; }
+.lib-empty b { font-weight: 600; font-size: 13px; }
+.lib-empty p { margin: 0 0 8px; font-size: 12px; color: var(--muted); max-width: 380px; line-height: 1.5; }
+.lib-none { padding: 14px; font-size: 12px; color: var(--muted); }
+.lib-none.lib-left { padding: 4px 4px 2px; overflow-wrap: anywhere; }
+/* the page in outline while the library loads: it comes in only after a
+   moment, so a quick load goes straight to the page; one sweep of light
+   runs across every bar at once */
+.lib-skel { animation: lib-skel-in .3s var(--ease) .18s backwards; }
+@keyframes lib-skel-in { from { opacity: 0; } }
+.lib-skel .skeleton { background-color: var(--skel, var(--pill)); background-attachment: fixed; background-size: 200vw 100%; background-repeat: no-repeat; background-position: 20vw 0; animation-name: lib-skel-shift; animation-duration: 1.8s; }
+@keyframes lib-skel-shift { from { background-position: 20vw 0; } to { background-position: -100vw 0; } }
+.lib-skel .who { display: flex; flex-direction: column; gap: 7px; }
+.lib-skel .lib-sk-icon { flex: none; border-radius: 7px; }
+.lib-skel .lib-sk-switch { flex: none; border-radius: 10px; margin-right: 22px; } /* the chevron after it */
+.lib-skel .lib-sk-intro { height: 18px; display: flex; align-items: center; }
+.lib-skel .row-head .skeleton { border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { .lib-skel, .lib-skel .skeleton { animation: none; } }
+
+/* the dialog */
+.lib-editor .ehead .lib-glyph { width: 24px; height: 24px; }
+.lib-editor .ehead .note { font-size: 11.5px; color: var(--faint); margin-left: auto; }
+.lib-editor .lib-slot { display: contents; }
+.lib-editor .lib-grid { display: contents; }
+.lib-editor input.mono { font-family: var(--code-font, var(--code)); font-size: 12px; }
+:where(html[data-fonts]) .lib-editor input.mono { font-style: var(--code-style, inherit); font-weight: var(--code-weight, inherit); font-stretch: var(--code-stretch, 100%); }
+.lib-pairs { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.lib-pair { display: flex; gap: 6px; width: 100%; align-items: center; }
+.lib-pair input { flex: 1; min-width: 0; font-family: var(--code-font, var(--code)); font-size: 12px; }
+:where(html[data-fonts]) .lib-pair input { font-style: var(--code-style, inherit); font-weight: var(--code-weight, inherit); font-stretch: var(--code-stretch, 100%); }
+.lib-pair input:first-child { flex: .8; }
+.lib-x { width: 24px; height: 24px; padding: 0; display: inline-grid; place-items: center; flex: none; }
+.lib-addpair { padding-left: 0; }
+.lib-addpair:hover { background: none; }
+.lib-editor .lib-picks { grid-column: 1 / -1; max-height: 320px; }
+.lib-editor .lib-keep { grid-column: 1 / -1; margin: 0 -6px; }
+.lib-confirm { grid-column: 1 / -1; margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--fg-2); }
+/* the skills a Clean up takes out, by name; one changed here says so */
+.lib-gonelist { grid-column: 1 / -1; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 40vh; overflow-y: auto; }
+.lib-gonelist li { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; font-family: var(--code-font, var(--code)); font-size: 12.5px; color: var(--fg); overflow-wrap: anywhere; }
+.text.danger-fill { background: var(--red); color: #fff; }
+/* one agent's skills or servers on or off at once (#475) */
+.lib-byagent-sheet .lib-byagent-list { grid-column: 1 / -1; max-height: min(52vh, 420px); overflow: auto; }
+.lib-byagent-row { gap: 10px; }
+.lib-byagent-row > .ic { width: 20px; height: 20px; flex: none; }
+.lib-byagent-row .who { flex: 1; min-width: 0; }
+.lib-byagent-row .name { display: flex; align-items: center; gap: 6px; }
+.lib-byagent-row .lib-updall { height: 24px; padding: 0 9px; font-size: 12px; flex: none; }
+.lib-byagent-row .lib-updall:disabled { color: var(--faint); cursor: default; }
+/* how the agents are given their skills (#896) */
+.lib-skillhow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 14px; }
+.lib-skillhow .label { font-size: 12px; color: var(--fg-2); }
+.lib-skillhow .segs { align-self: center; }
+.lib-skillhow .lib-updall { height: 24px; padding: 0 9px; font-size: 12px; }
+.lib-skillhow .note { font-size: 11px; color: var(--faint); line-height: 1.45; min-width: 0; flex: 1 0 100%; margin-top: -4px; }
+.lib-how-row .segs { flex: none; align-self: center; }
+.lib-reader { grid-template-columns: minmax(0, 1fr); }
+.lib-md { margin: 0; max-height: min(60vh, 520px); overflow: auto; font: var(--code-style, normal) var(--code-weight, 400) 12px/1.6 var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--fg-2); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card-2); border-radius: 8px; padding: 12px 14px; user-select: text; -webkit-user-select: text; }
+.lib-reader .bar .lib-path { max-width: 70%; }
+/* a skill's files: Markdown as it reads, its front matter as rows, edited in place */
+.lib-skillfile .ehead { min-width: 0; }
+.lib-filepick { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 50%; height: 24px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg-2); font: inherit; font-size: 12px; cursor: pointer; }
+.lib-filepick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-filepick:hover { color: var(--fg); border-color: var(--line-2); }
+.lib-mdview { max-height: min(60vh, 520px); overflow: auto; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); user-select: text; -webkit-user-select: text; }
+.lib-fm { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0 0 12px; padding: 0 0 10px; border-bottom: 1px solid var(--line-2); font-size: 12px; line-height: 1.5; }
+.lib-fm dt { color: var(--faint); }
+.lib-fm dd { margin: 0; color: var(--fg-2); overflow-wrap: anywhere; }
+.lib-text.lib-skilltext { height: min(60vh, 520px); min-height: 200px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+.lib-text.lib-skilltext:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.lib-skillfile .bar .lib-reaches { min-width: 0; flex: 0 1 auto; font-size: 11.5px; }
+.editor .editor-error:empty { display: none; }
+
+@media (max-width: 560px) {
+  .lib-list .row { flex-wrap: wrap; }
+  /* a long command ellipsizes beside the row's picture rather than taking
+     the name to a line under it (tao0194) */
+  .lib-list .lib-row > .lib-glyph + .who, .lib-list .lib-row > .lib-logo + .who { max-width: calc(100% - var(--lib-indent)); }
+  .lib-skillfile .bar { flex-wrap: wrap; }
+  .lib-skillfile .bar .lib-reaches { flex-basis: 100%; }
+  .lib-agents { max-width: 100%; }
+}
+
+/* a list's heading: its label, and a quiet line of what it does */
+#view-library .row-head { height: auto; min-height: 26px; margin: 18px 0 6px; padding: 0 2px; gap: 12px; }
+#view-library .row-head .note { min-width: 0; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#view-library .row-head .lib-updall { height: 24px; padding: 0 9px; font-size: 12px; }
+/* every skill out of the library at once (#449): red from the start */
+#view-library .row-head .lib-everyrm { color: var(--red); }
+#view-library .row-head .lib-everyrm:hover { background: var(--red-soft); }
+.lib-pickbar .lib-pickrm { color: var(--red); }
+.lib-pickbar .lib-pickrm:hover { background: var(--red-soft); }
+
+/* the market: servers and skills to add, each with its own picture */
+.mk { display: flex; flex-direction: column; }
+.mk-find { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; margin-bottom: 10px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); transition: border-color .14s, box-shadow .14s; }
+.mk-find:focus-within { border-color: color-mix(in srgb, var(--fg) 35%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fg) 7%, transparent); }
+.mk-find input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: none; font-size: 13px; color: var(--fg); }
+.mk-find input::placeholder { color: var(--faint); }
+.mk-find input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.mk-spin { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line); border-top-color: var(--fg-2); opacity: 0; transition: opacity .15s; }
+.mk.loading .mk-spin { opacity: 1; animation: mk-spin .7s linear infinite; }
+@keyframes mk-spin { to { transform: rotate(360deg); } }
+.mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 10px; transition: opacity .2s var(--ease); }
+.mk.loading .mk-grid { opacity: .55; }
+.mk-card {
+  position: relative; display: flex; flex-direction: column; gap: 9px; min-width: 0; padding: 12px 12px 10px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 1px rgba(0, 0, 0, .03);
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease);
+  animation: content-in .24s var(--ease) backwards;
+}
+.mk-card.click:hover { border-color: color-mix(in srgb, var(--fg) 22%, transparent); box-shadow: 0 6px 18px -8px rgba(0, 0, 0, .18); transform: translateY(-1px); }
+.mk-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mk-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 9px; overflow: hidden; display: grid; place-items: center;
+  position: relative; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .07);
+}
+/* The white sits on a plate 1px in, not on the tile: under an opaque logo
+   a white background bleeds through the rounded clip's soft edge as a white
+   fringe at each corner. */
+.mk-icon::before { content: ""; position: absolute; inset: 1px; border-radius: inherit; background: #fff; }
+.mk-icon.mono::before { content: none; }
+.mk-icon img { position: relative; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mk-icon.svg img { width: 72%; height: 72%; object-fit: contain; }
+.mk-icon.mono { background: var(--pill); box-shadow: none; }
+.mk-mono { font-size: 15px; font-weight: 600; color: var(--fg-2); }
+.mk-icon.skeleton { box-shadow: none; }
+:root[data-theme="dark"] .mk-icon:not(.mono):not(.skeleton) { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mk-icon:not(.mono):not(.skeleton) { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); } }
+.mk-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.mk-name { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.2; }
+.mk-title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-name.big { font-size: 15px; }
+.mk-meta { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11px; color: var(--muted); }
+.mk-pub { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-badge { flex: none; display: inline-flex; align-items: center; gap: 3px; height: 17px; padding: 0 6px; border-radius: 5px; background: var(--pill); color: var(--fg-2); font-size: 10.5px; font-family: var(--code-font, var(--code)); }
+:where(html[data-fonts]) .mk-badge { font-style: var(--code-style, inherit); font-weight: var(--code-weight, inherit); font-stretch: var(--code-stretch, 100%); }
+.mk-badge.mk-needs { width: 17px; padding: 0; justify-content: center; }
+/* one of uni-switch's own whose model or search isn't set up (matrix0487): the badge gives way before the row runs wide */
+.mk-badge.mk-unready { flex: 0 1 auto; min-width: 0; display: block; line-height: 17px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mk-official { flex: none; display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; background: var(--fg); color: var(--card); }
+.mk-desc { margin: 0; min-height: 2.9em; font-size: 12px; line-height: 1.45; color: var(--fg-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mk-desc.wait { background: linear-gradient(90deg, var(--pill) 25%, var(--pill-hover) 45%, var(--pill) 65%); background-size: 240% 100%; animation: skeleton-shift 1.4s ease-in-out infinite; border-radius: 5px; min-height: 0; height: 8px; margin: 6px 20% 10px 0; }
+.mk-foot { display: flex; align-items: center; gap: 8px; min-height: 26px; margin-top: auto; }
+.mk-id { min-width: 0; font: var(--code-style, normal) var(--code-weight, 400) 11px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-installs { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mk-add { flex: none; height: 26px; }
+.mk-add.busy { color: var(--muted); }
+.mk-have { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 4px; font-size: 12px; color: var(--muted); }
+.mk-card.have .mk-icon { opacity: .9; }
+/* the rest of a long list, a page at a time, across the grid under it */
+.mk-more { grid-column: 1 / -1; justify-self: center; margin-top: 4px; }
+.mk-msg { grid-column: 1 / -1; padding: 22px 12px; text-align: center; font-size: 12px; color: var(--muted); }
+.mk-msg.mk-custom { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; padding: 14px 12px; overflow-wrap: anywhere; }
+.mk-msg.mk-partial { padding: 4px 2px 2px; text-align: left; line-height: 1.45; overflow-wrap: anywhere; }
+.mk-msg.mk-partial::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 7px; vertical-align: 1px; border-radius: 50%; background: var(--amber); }
+.mk-msg.err { padding: 8px 12px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; text-align: left; line-height: 1.45; }
+.mk-skel { gap: 12px; min-height: 104px; }
+.mk-skel .mk-who { gap: 7px; }
+
+/* a market item up close */
+.mk-sheet .mk-sheethead { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line-2); }
+.mk-sheet .mk-icon { width: 44px; height: 44px; border-radius: 11px; }
+.mk-sheet .mk-about { grid-column: 1 / -1; margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--fg-2); }
+.mk-sheet .mk-hint { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 11.5px; color: var(--muted); }
+.mk-ext { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); text-decoration: none; padding: 3px 6px; border-radius: 6px; }
+.mk-ext:hover { color: var(--fg); background: var(--pill); }
+.mk-sheet .mk-hint .mk-ext { padding: 0; font-family: var(--code-font, var(--code)); font-size: 11.5px; }
+:where(html[data-fonts]) .mk-sheet .mk-hint .mk-ext { font-style: var(--code-style, inherit); font-weight: var(--code-weight, inherit); font-stretch: var(--code-stretch, 100%); }
+.mk-sheet .mk-hint .mk-ext:hover { background: none; text-decoration: underline; text-underline-offset: 2px; }
+.mk-sheet .bar .mk-id { margin-left: 2px; }
+.lib-rtk-gain { margin: 6px 12px 10px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.lib-card > .lib-acts { padding: 0 12px 12px; }
+.lib-rtk-note { margin: 6px 12px 0; font-size: 12px; line-height: 1.5; color: var(--amber); }
+.lib-rtk-scope { opacity: .8; }
+.lib-rtk-err { color: var(--red); user-select: text; overflow-wrap: anywhere; }
+.lib-rtk-chart { margin: 0 12px 12px; padding: 10px 12px 8px; }
+.lib-rtk-chart .bars { height: 88px; }
+.lib-rtk-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lib-rtk-foot .grow { flex: 1; }
+.lib-rtk-key { display: inline-flex; align-items: center; gap: 5px; }
+.lib-rtk-key i { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.lib-rtk-key i.in { opacity: .38; }
+.lib-cardhead button.text { height: 22px; font-size: 11.5px; }
+.lib-rtk-cmd { margin: -4px 12px 10px; font: var(--code-style, normal) var(--code-weight, 400) 11.5px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--muted); user-select: text; }
+
+/* projects: a card each, its skills shown when it is opened */
+.lib-project { margin-bottom: 8px; }
+.lib-project.missing .lib-projhead .name { color: var(--muted); }
+.lib-projhead .lib-tags { max-width: 45%; overflow: hidden; flex-wrap: nowrap; }
+/* whether a server works, beside its name: a dot and a few words, the
+   whole reason in the tooltip; a click checks it again */
+.lib-srvwho { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: center; }
+.lib-srvwho > .name { min-width: 0; }
+.lib-srvwho > .lib-health { justify-self: start; max-width: min(220px, 100%); }
+.lib-srvwho > :not(.name):not(.lib-health) { grid-column: 1 / -1; }
+.lib-health { display: inline-flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 5px; max-width: 220px; height: 17px; margin-left: 7px; padding: 0 6px; border-radius: 6px;
+  font: var(--ui-style, normal) 400 11px var(--ui-font, var(--font)); font-stretch: var(--ui-stretch, 100%); color: var(--muted); white-space: nowrap; transition: background .14s var(--ease); }
+.lib-health > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lib-health[hidden] { display: none; }
+.lib-health:hover { background: var(--pill); }
+.lib-health::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+.lib-health.ok::before { background: var(--green); }
+.lib-health.auth { color: var(--amber); }
+.lib-health.auth::before { background: var(--amber); }
+.lib-health.err { color: var(--red); }
+.lib-health.err::before { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
+/* not checked here, nothing known against it: a ring, not a red dot (#2308) */
+.lib-health.unknown::before { background: transparent; box-shadow: inset 0 0 0 1.2px var(--faint); }
+/* a server that listed its tools: its status opens them, a chevron says so */
+.lib-health.has-list::after { content: ""; flex: none; width: 4px; height: 4px; margin: 0 1px 2px 1px; border: solid currentColor; border-width: 0 1.2px 1.2px 0; transform: rotate(45deg); opacity: .7; transition: transform .14s var(--ease); }
+.lib-health.has-list[aria-expanded="true"]::after { transform: rotate(-135deg); margin-bottom: -2px; }
+.lib-tools { margin-top: 6px; min-width: 0; border: 1px solid var(--line-2); border-radius: 8px; background: var(--card-2); cursor: auto; }
+.lib-tools[hidden] { display: none; }
+.lib-toollist { list-style: none; margin: 0; padding: 4px 0; max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
+.lib-toollist li { display: flex; align-items: center; gap: 10px; padding: 4px 10px; min-width: 0; user-select: text; }
+/* each tool's switch (nf1qaz2w on Discord): one turned off is dimmed */
+.lib-tooltxt { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.lib-tool .lib-switch { width: 28px; height: 16px; padding: 0; border: 0; cursor: pointer; }
+.lib-tool .lib-switch i { width: 12px; height: 12px; }
+.lib-tool .lib-switch.on i { transform: translateX(12px); }
+.lib-tool.off .lib-tooltxt { opacity: .5; }
+.lib-tool.off .lib-toolname { text-decoration: line-through; }
+.lib-toolcant { margin: 0; padding: 6px 10px; border-top: 1px solid var(--line-2); font-size: 11px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+.lib-toolname { font: var(--code-style, normal) 500 11.5px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--fg-2); overflow-wrap: anywhere; }
+.lib-tooldesc { font-size: 11.5px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; white-space: normal; }
+.lib-toolfoot { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; border-top: 1px solid var(--line-2); }
+.lib-toolfoot .note { font-size: 11px; color: var(--faint); }
+.lib-toolfoot button.text { height: 22px; font-size: 11.5px; }
+.lib-health.checking::before { animation: lib-health-pulse 1s ease-in-out infinite alternate; }
+@keyframes lib-health-pulse { to { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .lib-health.checking::before { animation: none; } }
+.lib-tag.lib-dot::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
+.lib-projopts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 12px 8px 49px; border-top: 1px solid var(--line-2); background: var(--card-2); }
+.lib-projopts .note { font-size: 11px; color: var(--faint); line-height: 1.45; min-width: 0; flex: 1 1 220px; }
+.lib-projcopy { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-2); cursor: default; }
+.lib-project .lib-projskill { border-top: 1px solid var(--line-2); }
+.lib-projfoot { margin: 0; padding: 8px 12px 10px 49px; border-top: 1px solid var(--line-2); }
+.lib-projfoot + .lib-projfoot { border-top: 0; padding-top: 0; }
+
+/* the library's skills: a card for each GitHub repository they came from,
+   and one for those on this computer, folded to its heading line */
+.lib-groups { display: flex; flex-direction: column; gap: 8px; }
+/* a group's head is its card's title, not one more skill (#936): shaded,
+   its repository in bold, its chips cut out of the shade */
+.lib-row.lib-grouphead { background: var(--card-2); }
+.lib-row.lib-grouphead.click:hover { background: color-mix(in srgb, var(--card-2) 70%, var(--pill)); }
+.lib-grouphead .name, .lib-grouphead .name.mono { font-weight: 600; }
+.lib-grouphead > .lib-agents .lib-ag:not(:focus-visible) { outline-color: var(--card-2); }
+.lib-grouphead .sub { font-size: 11px; }
+.lib-grouphead > .lib-logo, .lib-grouphead > .lib-glyph { align-self: center; margin-top: 0; }
+.lib-grouphead .lib-updall { height: 24px; padding: 0 9px; font-size: 12px; }
+/* a group's chip whose agent has some of its skills: half lit */
+.lib-row > .lib-agents .lib-ag.some { border-style: dashed; border-color: var(--line); }
+.lib-ag.some .ic { filter: none; opacity: .55; }
+.lib-ag.some .ic.baked > img:not(.grey) { display: block; }
+.lib-ag.some .ic.baked > img.grey { display: none; }
+/* the skills' heading has the most on it: in a narrow window it goes on
+   to a second line rather than past the page's side. Its first line's
+   buttons sit 1px down with one line or two: one line was centred in the
+   26px and two began at the top, so a click that unwrapped it (German's
+   Select turned Fertig) moved the button 1px, and the page was scrolled to
+   hold it there */
+#view-library .row-head.lib-skillshead, #view-library .row-head.lib-serverhead { flex-wrap: wrap; row-gap: 6px; padding-block: 1px; }
+/* Select is as wide as the Done it turns into, and Done as Select: in a
+   heading on two lines the narrower word fitted on the first, and the
+   button left the pointer for the line above (German at 420) */
+#view-library .lib-select[data-alt]::after { content: attr(data-alt); display: block; height: 0; overflow: hidden; visibility: hidden; }
+#view-library .row-head.lib-skillshead .lib-skillq { flex: 1 1 90px; max-width: 190px; }
+#view-library .row-head .lib-skillq { width: 190px; height: 24px; margin: 0; flex: 0 1 auto; min-width: 90px; }
+.lib-skillq::-webkit-search-cancel-button { -webkit-appearance: none; }
+/* a project's skills out of view are neither laid out nor painted until they near it */
+.lib-projskill { content-visibility: auto; contain-intrinsic-size: auto 76px; }
+.lib-grouphead .lib-rowacts { min-width: 26px; }
+/* A group's skills are drawn near the view first (library.js, windowed),
+   room kept for the rest, which are drawn in while nothing else is going
+   on and then stay. Every row is held to the height the list counts on —
+   its description one line, the whole of it in its tooltip — so the room
+   kept is exactly what's missing. */
+.lib-vl { flex: none; }
+/* each row kept to itself, as a skipped one was; and a row the pointer
+   passes over in a scroll shows its buttons at once rather than fading them
+   in — in WebKit each fade, given a layer of its own while it ran, cost a
+   long frame (library.js marks a list .scrolling while it scrolls) */
+.lib-vl > .row { border-top: 1px solid var(--line-2); overflow: hidden; flex-wrap: nowrap; contain: layout paint style; }
+.lib-vl.scrolling > .row .lib-rowacts { transition: none; }
+.lib-vl.bare > .row.first { border-top: 0; }
+.lib-vl > .row.lib-skill { height: 51px; min-height: 0; padding: 7px 10px 7px 12px; gap: 11px; }
+.lib-vl > .row.lib-skill.src { height: 67px; }
+/* the "Off on this computer" tag's line (.lib-hereline: 20px and 3px
+   above it) is room the list counts too (library.js, HERE_H) */
+.lib-vl > .row.lib-skill.offhere { height: 74px; }
+.lib-vl > .row.lib-skill.src.offhere { height: 90px; }
+.lib-vl > .lib-skill .sub { display: block; white-space: nowrap; -webkit-line-clamp: none; }
+.lib-vl > .lib-skill .lib-src { margin-top: 2px; }
+/* a part of a group: the folder its skills sit in, or the start of their names */
+.lib-vl > .row.lib-subhead { height: 36px; min-height: 0; padding: 0 12px 0 14px; gap: 8px; }
+.lib-subhead { background: var(--card-2); }
+.lib-subhead .name { font-size: 12px; color: var(--fg-2); }
+.lib-subhead .name.mono { font: var(--code-style, normal) 500 11.5px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); }
+.lib-subhead .sub { margin: 0; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.lib-subhead .lib-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+.lib-row.lib-subhead:hover { background: color-mix(in srgb, var(--card-2) 70%, var(--pill)); }
+/* no color-mix() before Safari 16.2 (#220): the sticky head stays opaque */
+@supports not (color: color-mix(in srgb, red 50%, blue)) { .lib-head::before { background: var(--bg); } }
+/* skills picked to turn on or off together (#791): a box on each row and
+   heading, and a bar that stays in view under the list while it's long */
+.lib-pickbox { margin: 0; flex: none; }
+.lib-vl > .row.lib-skill.picked { background: var(--accent-soft); }
+.lib-list > .row.lib-server.picked { background: var(--accent-soft); }
+.lib-list > .row.lib-found.picked { background: var(--accent-soft); }
+.lib-pickbar { position: sticky; bottom: 12px; z-index: 3; margin-top: 8px; min-height: 44px; flex-wrap: wrap; row-gap: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+.lib-pickall { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-2); white-space: nowrap; }
+.lib-pickn { font-size: 12px; font-weight: 500; color: var(--fg); white-space: nowrap; }
+.lib-pickn.none { font-weight: 400; color: var(--faint); white-space: normal; }
+.lib-pickbar .lib-updall { height: 24px; padding: 0 9px; font-size: 12px; flex: none; }
+/* one the bar's Remove left (#1852): why, in its line's place */
+.lib-row .sub.lib-pickerr { color: var(--red); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-subhead > .lib-agents { margin-left: auto; }
+.lib-pickbar .lib-groupname { flex: 1 1 140px; min-width: 100px; max-width: 240px; margin: 0; }
+.lib-grouphead .lib-grouprename-in { height: 24px; margin: 0; max-width: 260px; font-weight: 500; }
+
+/* Safari before 15.4 has no :focus-visible and drops the chips' rings
+   above: there they go by :focus */
+@supports not selector(:focus-visible) {
+  .lib-row > .lib-agents .lib-ag:not(:focus) { outline: 1.5px solid var(--card); outline-offset: 0; }
+  .lib-row > .lib-agents:hover .lib-ag:not(:focus), .lib-row > .lib-agents:focus-within .lib-ag:not(:focus) { outline-color: transparent; }
+  .lib-row.click:hover > .lib-agents .lib-ag:not(:focus) { outline-color: var(--card-2); }
+  .lib-row.click:hover > .lib-agents:hover .lib-ag:not(:focus) { outline-color: transparent; }
+  .lib-grouphead > .lib-agents .lib-ag:not(:focus) { outline-color: var(--card-2); }
+}
+
+/* Hooks (#1790): the event and the tools it is for are app menus, as wide
+   as the dialog lets them be */
+.lib-hookedit .lib-menu { max-width: 100%; height: 28px; color: var(--fg); }
+.lib-hookedit .lib-hooktimeout { max-width: 140px; }
+/* a hook's description (#2011): its own words under its name, all of them,
+   wrapped (#2085) — at most 200 characters the user wrote, not a skill
+   author's paragraph */
+/* its words wrapped, the hook's name stays beside its glyph: the text's
+   whole length is not what the row lays out by */
+.lib-hook > .who { flex-basis: 240px; }
+.lib-hook .lib-hookdesc { font-size: 12px; line-height: 1.45; color: var(--fg); white-space: normal; overflow-wrap: anywhere; margin-top: 1px; }
+.lib-hookedit .lib-hookdescin { width: 100%; box-sizing: border-box; resize: none; font: inherit; font-size: 12.5px; line-height: 1.45; }
+
+/* Subagents (#2283): the row says what it is for, wrapped, as a hook's
+   description does; its skills and servers are menus as wide as the
+   dialog lets them be, and the prompt a box that grows with it */
+.lib-subagent > .who { flex-basis: 240px; }
+.lib-subagent .lib-subagentdesc { font-size: 12px; line-height: 1.45; color: var(--fg); white-space: normal; overflow-wrap: anywhere; margin-top: 1px; }
+.lib-subagent .lib-subagentuses { white-space: normal; overflow-wrap: anywhere; }
+.lib-subagentedit .lib-menu { max-width: 100%; height: 28px; color: var(--fg); }
+.lib-subagentedit .lib-menu > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-subagentedit .lib-subagentdescin, .lib-subagentedit .lib-subagentprompt { width: 100%; box-sizing: border-box; resize: none; font: inherit; font-size: 12.5px; line-height: 1.45; }
+.lib-subagentedit .lib-subagentprompt { max-height: 40vh; overflow-y: auto; }
+.lib-subagentedit .hint:empty { display: none; }
+
+/* a chip whose agent has the item whatever is ticked (it reads
+   ~/.agents/skills itself, #595): lit, as it has it, with a lock on its
+   corner rather than greyed out, so it doesn't pass for a switch (#1862) */
+.lib-ag.always.blocked { opacity: 1; }
+.lib-ag.always::before, .lib-ag.always::after { content: ""; position: absolute; left: -3px; bottom: -3px; width: 11px; height: 11px; border-radius: 50%; pointer-events: none; }
+.lib-ag.always::before { background: var(--card); box-shadow: 0 0 0 1px var(--line); }
+.lib-ag.always::after { background: var(--fg-2); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 7V5.5a3 3 0 0 1 6 0V7h.3a1 1 0 0 1 1 1v4.7a1 1 0 0 1-1 1H4.7a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1.6 0h2.8V5.5a1.4 1.4 0 0 0-2.8 0z'/%3E%3C/svg%3E") center / 7px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 7V5.5a3 3 0 0 1 6 0V7h.3a1 1 0 0 1 1 1v4.7a1 1 0 0 1-1 1H4.7a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1.6 0h2.8V5.5a1.4 1.4 0 0 0-2.8 0z'/%3E%3C/svg%3E") center / 7px no-repeat; }
+.lib-foldall[hidden] { display: none; }
+.mk-sheet .mk-browser { grid-column: 1 / -1; display: grid; gap: 8px; justify-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.mk-sheet .mk-browser-state { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.mk-sheet .mk-browser-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.mk-sheet .mk-browser-dot.on { background: var(--green); }
+.mk-sheet .mk-browser-steps { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+.mk-sheet .mk-browser-folder { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: center; max-width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 8px; background: var(--card); cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
+.mk-sheet .mk-browser-folder[hidden] { display: none; }
+.mk-sheet .mk-browser-folder > svg { grid-row: span 2; color: var(--fg-2); }
+.mk-sheet .mk-browser-folder-name { font-size: 12.5px; font-weight: 500; }
+.mk-sheet .mk-browser-folder-path { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+/* the ask is a line of its own under the row, from the name's left edge
+   to the row's right one (tao0194: in the name's column it was squeezed
+   between the command and the agents' chips); the line above keeps its
+   name, command and chips as every other server's row has them */
+.lib-row.lib-asking { flex-wrap: wrap; row-gap: 6px; }
+/* where a row's name starts: its picture (26px) and the row's gap, 12px in the window */
+.lib-list .lib-row { --lib-indent: 37px; }
+body.window .lib-list .lib-row { --lib-indent: 38px; }
+@media not all and (max-width: 560px) { .lib-row.lib-asking > .who { flex-basis: 0; } }
+.lib-browserask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; order: 1; flex: 0 0 calc(100% - var(--lib-indent)); margin-left: var(--lib-indent); min-width: 0; font-size: 12px; color: var(--fg-2); cursor: default; }
+.lib-browserask[hidden] { display: none; }
+.lib-browserask-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex: none; }
+.lib-browserask-q { min-width: 0; flex: 1 1 220px; overflow-wrap: anywhere; }
+.lib-browserask-picks { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.lib-browserask-pick { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; font-size: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--fg); }
+.lib-browserask-pick:hover { background: var(--accent-soft); }
+.lib-browserask-pick .ic { width: 14px; height: 14px; }
+
+/* an MCP server's command wraps, read whole (hema_17384 on Discord), and
+   a note is a line too: each starts as tall as an input beside it */
+.lib-editor :is(.lib-cmd, .lib-notein) { min-height: 0; height: 27px; padding: 4px 9px; border-radius: 7px; line-height: 17px; overflow: hidden; }
+.lib-editor .lib-cmd { font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lib-editor .lib-notein { font: inherit; font-size: 12.5px; line-height: 17px; }
+/* the server as JSON: wrapped, so a long argument never scrolls sideways */
+.lib-editor .lib-json { min-height: 160px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lib-editor .lib-json[aria-invalid="true"], .lib-editor .lib-json[aria-invalid="true"]:focus { border-color: var(--red); }
+.lib-serverhead { flex-wrap: wrap; row-gap: 6px; }
+.lib-serverhead .lib-viewpick { margin-left: auto; flex: none; }
+.lib-serverhead .note + .lib-viewpick { margin-left: 0; }
+/* a row's note, the user's own words, over the muted line it stands for */
+.lib-row .sub.lib-subnote { color: var(--fg-2); }
+/* a skill's note, over its SKILL.md */
+.lib-skillnote { display: flex; flex-direction: column; gap: 4px; }
+.lib-reader .lib-skillnote label { text-align: left; padding-top: 0; }
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1024px) {
+  body.web .lib-editor :is(.lib-cmd, .lib-notein) { min-height: 44px; font-size: 16px; line-height: 22px; padding: 10px 9px; }
+}
+
+/* the ⋯ at a list's heading (ryanpascal on Discord), and its Remove all red as the bar's was */
+#view-library .row-head .lib-barmore { display: inline-flex; align-items: center; justify-content: center; padding: 0 7px; }
+.row-menu .rm-item.lib-everyrm, .row-menu .rm-item.lib-everyrm svg { color: var(--red); }
+.row-menu .rm-item.lib-everyrm:not(:disabled):is(:hover, :focus) { background: var(--red-soft); }

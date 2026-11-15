@@ -1,0 +1,1 @@
+{"model":"m1","max_tokens":2048,"thinking":{"type":"enabled","budget_tokens":1024},"messages":[{"role":"user","content":"think"}],"model":"fake/m1"}

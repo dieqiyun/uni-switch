@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-27T10:01:00.000Z",
+  "agent": "agent_7f",
+  "sessionId": "1790503200000_ab12c",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Read the importer",
+      "ts": 1790503220000
+    },
+    {
+      "role": "assistant",
+      "content": "read",
+      "ts": 1790503250000,
+      "modelInfo": {
+        "id": "claude-haiku-4-5",
+        "provider": "anthropic"
+      },
+      "metrics": {
+        "inputTokens": 200,
+        "outputTokens": 20,
+        "cacheReadTokens": 100,
+        "cacheWriteTokens": 0,
+        "cost": 0.01
+      }
+    }
+  ]
+}

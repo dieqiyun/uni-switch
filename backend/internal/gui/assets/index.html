@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>uni-switch</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<!-- added to a phone's home screen, uni-switch web opens as an app of its own,
+     with no browser bars (ninja_s6114 on Discord); webGuard serves these
+     few files without the key, as a home screen may ask for them without
+     the page's cookie.
+     The theme colours are the window's in standalone alone, so a browser's
+     tab and the app's own windows look as they did -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="uni-switch">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" media="(display-mode: standalone) and (prefers-color-scheme: light)" content="#f4f4f6">
+<meta name="theme-color" media="(display-mode: standalone) and (prefers-color-scheme: dark)" content="#1a1a1e">
+<script src="boot.js"></script>
+<script src="theme.js"></script>
+<script src="omarchy.js"></script>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="plugins/library/library.css">
+<link rel="stylesheet" href="plugins/sessions/sessions.css">
+<link rel="stylesheet" href="context.css">
+<link rel="stylesheet" href="omarchy.css">
+<link rel="stylesheet" href="uni-switch.css">
+<script src="uni-switch-boot.js"></script>
+</head>
+<body>
+<script src="compat.js"></script>
+<script src="layout.js"></script>
+<script src="fonts.js"></script>
+<!-- the window's sidebar (app.js layoutNav): the brand, the pages (#nav)
+     with the open one's own tabs under it, and Settings at the foot; a
+     narrow window keeps them in the header instead -->
+<aside class="sidebar" id="side" hidden>
+  <div class="side-top" style="--wails-draggable:drag"></div>
+  <div class="side-scroll"></div>
+  <div class="side-foot">
+    <button type="button" class="side-gw" id="sideGw" data-feature="gateway" hidden><i></i><span></span></button>
+  </div>
+  <!-- its edge, dragged to make it wider or narrower (app.js sideDrag).
+       Out of Tab's reach, as a Mac split view's divider is: a Mac window
+       shown has WebKit focus the first stop Tab reaches, and its ring
+       showed on every open (ysm119) -->
+  <div class="side-edge" id="sideEdge" role="separator" aria-orientation="vertical" tabindex="-1" style="--wails-draggable:no-drag"></div>
+</aside>
+<header class="top" style="--wails-draggable:drag">
+  <!-- the sidebar shown or the header's tabs, the reader's own (app.js
+       toggleSideNav); the left pane filled while the sidebar shows. First
+       in the title bar, so it is in one place in both layouts (app.js
+       layoutNav moves it with the brand) -->
+  <button type="button" class="icon side-toggle" id="sideToggle" hidden style="--wails-draggable:no-drag">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect class="st-pane" x="2.5" y="3.5" width="4" height="9" rx="1"/><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.25"/><path d="M6.75 2.75v10.5"/></g></svg>
+  </button>
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 44 44" width="18" height="18"><defs><path id="bird" fill="currentColor" fill-rule="evenodd" d="M1.5 5.5C1.3 5.7 1.2 6.5 1.2 6.9C1.2 6.9 1.2 7 1.2 7.1C1.1 7.4 1.3 8 1.4 8.3C1.4 8.4 1.5 8.5 1.5 8.7C1.5 8.9 1.7 9 1.8 9.3C2.2 9.9 2.2 10 2.3 10.1C2.4 10.2 2.5 10.3 2.6 10.5C2.8 10.8 3 11.1 3.2 11.3C3.3 11.3 3.4 11.6 3.6 11.8C3.8 12 4.1 12.4 4.2 12.5C4.7 13 5.2 13.7 5.4 13.9C6 14.5 6.5 15.1 6.7 15.3C6.7 15.4 6.9 15.5 6.9 15.7C7.3 15.9 7.7 16.5 7.9 16.8C7.9 16.8 8 16.9 8 16.9C8.1 16.9 8.2 17.2 8.2 17.3C8.2 17.3 8.1 17.2 8.1 17.1C7.9 16.9 7.9 16.9 7.6 16.6C7.5 16.5 7.4 16.5 7.4 16.3C7.2 16.2 6.7 15.7 6.3 15.2C6.1 15.1 6 14.9 6 14.9C5.9 14.8 5.7 14.7 5.7 14.6C5.6 14.5 5.4 14.3 5.3 14.2C5.1 14.1 4.9 13.8 4.7 13.5C4.5 13.3 4.2 13.1 4.1 12.9C4.1 12.9 3.8 12.7 3.8 12.5C3.5 12.3 3 11.8 2.8 11.4C1.8 10.5 0.9 9.6 0.7 9.6C0.6 9.7 0.6 9.8 0.5 10C0.5 10.1 0.6 10.2 0.5 10.3C0.5 10.4 0.6 10.5 0.6 10.6C0.5 10.7 0.5 10.9 0.6 11C0.5 11.1 0.6 11.4 0.6 11.5C0.9 12.9 1.3 13.8 2.8 14.9C2.9 15.1 3.3 15.3 3.4 15.4C3.4 15.5 3.6 15.6 3.7 15.7C4.2 16 6.4 17.8 7 18.4C7.4 18.8 7.4 18.8 7.5 18.9C7.6 19 7.7 19 7.7 19.1C7.7 19.2 7.8 19.2 7.9 19.2C7.9 19.3 8.1 19.4 8.1 19.5C8.2 19.6 8.2 19.7 8.3 19.7C8.3 19.7 8.3 19.7 8.2 19.7C8.2 19.6 8.1 19.6 8 19.6C7.9 19.5 7.9 19.4 7.8 19.4C7.7 19.3 7.6 19.2 7.6 19.2C7.6 19.1 7.5 19 7.3 18.9C7.2 18.9 6.9 18.6 6.7 18.4C6.1 17.8 4.5 16.6 3.5 16C3.4 15.8 3 15.6 2.9 15.5C2.6 15.3 1.5 14.6 0.9 14.3C0.7 14.1 0.6 14.1 0.6 14.2C0.5 14.5 0.8 15.9 0.9 16.1C0.9 16.2 1 16.2 0.9 16.3C1.2 16.8 1.9 17.6 2.7 18.3C2.8 18.5 4 19.2 4.7 19.5C6.2 20.5 6.6 20.7 7.4 21.5C8.2 22.2 8.7 22.7 9.3 23.6C9.5 24.1 9.9 24.4 10.3 25.3C10.4 25.5 10.5 25.8 10.5 25.8C10.7 25.8 10.8 25.7 11 25.4C11.6 25 11.9 24.6 12.3 24.3C12.8 24 13 23.8 13 23.7C13.1 23.7 13.1 23.8 13 24C12 24.8 11 26 10.2 26.9C10.1 27.1 9.9 27.5 9.7 27.7C9.5 27.8 9.4 28 9.4 28C9.4 28 9.3 28.3 9.1 28.5C8.6 29.2 7.7 30.8 7.7 30.9C7.7 31 7.8 31 8.3 30.8C9 30.4 9.5 30.2 10.4 30C11.7 29.6 12.5 29.6 11.6 30C10.5 30.2 9.7 30.6 9.2 31.2C8.8 31.7 8.8 31.7 9.3 31.7C10.1 31.8 10.9 31.9 11.6 32.2C12.8 32.7 13.5 33.1 15.5 34.8C16.4 35.5 17.3 36.2 17.8 36.4C17.9 36.5 18.1 36.7 18.2 36.8C19.1 37.3 21.2 38.1 22.3 38.3C22.4 38.3 22.7 38.3 22.8 38.3C22.8 38.5 23 38.5 23 38.5C23.1 38.5 23.2 38.5 23.3 38.5C23.6 38.6 25.9 38.6 26.1 38.5C26.2 38.5 26.3 38.5 26.4 38.5C26.5 38.5 26.6 38.5 26.7 38.3C26.7 38.3 27 38.3 27.1 38.3C28.3 38.1 30.2 37.3 31.4 36.7C31.5 36.7 31.7 36.4 31.8 36.4C32.2 36.2 33.2 35.4 33.4 35.2C34.2 34.5 35.5 33 35.8 32.6C35.8 32.5 36 32.2 36.1 32C36.4 31.8 36.6 31.4 36.6 31.2C36.7 31.1 36.8 30.9 36.9 30.8C37.2 30.4 37.5 29.6 37.7 29.2C37.7 29.1 37.8 28.7 37.9 28.7C38.1 28.5 38.4 27.1 38.5 26.8C39 25.2 39.1 23.7 39 22.4C39 22.2 38.9 21.9 38.9 21.8C38.9 21.7 38.9 21.6 38.9 21.4C38.6 20.5 38.5 19.9 38.2 19C37.9 18.5 37.5 17.5 37.3 17.2C37 16.8 36.8 15.8 36.8 15.2C36.8 13.8 37.7 12.7 39.6 12.2C40.1 12.1 41.3 11.8 42.1 11.7C43.5 11.5 43.5 11.5 43.4 11.3C42.9 10.7 40.9 9.9 39.2 9.7C37.9 9.5 38.1 9.5 37.6 9C37 8.6 36.4 8 36 7.9C36 7.8 35.8 7.8 35.7 7.7C35.1 7.3 34.2 7 33.1 6.9C32.6 6.7 31.6 6.9 31 7C29.6 7.3 28.3 8 27.3 9.2C26.7 9.8 26.2 10.8 25.7 11.7C25.5 12.1 24.8 13.4 24.7 13.7C24.6 13.9 24.5 14.1 24.1 14.7C23.5 15.7 22.1 16.9 20.6 17.8C20.5 18 20.3 18.2 20.1 18.3C19.7 18.5 19.4 18.8 19.1 19C18.9 19.1 18.7 19.3 18.5 19.4C18 19.8 17.2 20.3 17 20.5C16.9 20.5 16.8 20.6 16.7 20.7C16.3 20.8 16.1 20.9 16 20.9C15.5 20.8 14.9 20.5 14.2 20.2C13.7 19.8 12.7 18.9 12.4 18.6C12.3 18.5 12.2 18.4 12.1 18.2C11.9 18 11.2 17.1 11 16.6C10.9 16.5 10.8 16.4 10.7 16.3C10.7 16.2 10.6 16.1 10.6 15.9C10.5 15.9 10.4 15.7 10.4 15.6C10.3 15.5 10.2 15.2 10.1 15C10 14.8 9.8 14.4 9.7 14.2C9.6 14 9.5 13.7 9.4 13.6C9.4 13.4 9.3 13.2 9.2 13C9.2 12.8 9 12.6 9 12.5C8.9 12.3 8.7 12.1 8.7 12C8.7 12 8.5 11.7 8.5 11.7C8.3 11.2 8.2 10.9 7.5 10C6.4 8.3 4.2 6.4 2.7 5.8C2 5.5 1.6 5.4 1.5 5.5ZM28.4 16.7C29.2 16.9 29.7 17.2 29.9 17.7C30.1 18.2 30 18.9 29.6 19.4C29.2 19.9 28.2 20.9 27.6 21.2C26.8 21.7 25.3 22.4 24.2 22.7C23.9 22.8 23.6 22.9 23.5 22.9C22.8 23.2 20.7 23.7 19.6 24C19 24.2 18.4 24.3 18.1 24.4C17.9 24.4 16.1 24.9 15.3 25.1C14.6 25.2 14.7 25.1 15.7 23.6C16.4 22.7 18.5 20.6 19.4 19.9C20.8 18.8 21.4 18.4 23.2 17.6C23.8 17.4 25.6 16.8 25.9 16.8C25.9 16.8 26.3 16.8 26.6 16.7C26.8 16.7 28.2 16.7 28.4 16.7ZM30.4 20.2C30.5 20.3 30.6 20.6 30.6 20.7C31.7 23.1 33.4 24.6 35.6 25.3C36.1 25.5 36.7 25.7 37.2 25.8C37.7 25.8 37.8 25.9 37.8 26.1C37.7 26.2 37.7 26.3 37.7 26.5C37.7 26.6 37.7 26.8 37.6 27C37.4 28.5 36.8 29.9 36.1 31C36.1 31.2 35.9 31.4 35.9 31.6C35.7 31.9 35.2 32.6 34.7 33.3C32.6 35.6 29.7 37.3 26.6 37.8C26.5 37.8 26.3 37.9 26.2 37.9C25.8 37.9 23.7 37.9 23.3 37.9C23.2 37.9 23 37.8 22.9 37.8C21.1 37.6 19.3 36.8 18 35.7C17.7 35.4 17 34.7 16.8 34.5C16.3 33.8 16.1 33 16.3 32.5C16.5 31.8 16.8 31.6 17.9 31.1C19.1 30.5 19.4 30.4 20.2 30C21.4 29.4 23.2 28.4 23.9 27.9C23.9 27.8 24.2 27.7 24.5 27.6C26.3 26.3 28 24.6 28.9 22.9C29.5 22.2 29.7 21.6 29.9 20.7C30.1 20 30.2 19.9 30.4 20.2Z"/><clipPath id="bird-body"><path clip-rule="evenodd" d="M16 0H44V44H0V26.4H10.6L13 24.2L16 19Z M29.8 18.3L26 19L22 21L17 23.5L14.6 24.7L10.6 26.4L6 29V32L9 31.5L12.5 32L16.4 31.8L19 31.4L24 28.8L28.5 24L30.6 21.4Z"/></clipPath><clipPath id="bird-notail"><path d="M17 0H44V44H0V26.4H10.6L14 25L17.2 19.6Z"/></clipPath><clipPath id="bird-tail"><path d="M0 0H17L17.2 19.6L14 25L10.6 26.4H0Z"/></clipPath><clipPath id="bird-wing"><path d="M29.8 18.3L26 19L22 21L17 23.5L14.6 24.7L10.6 26.4L6 29V32L9 31.5L12.5 32L16.4 31.8L19 31.4L24 28.8L28.5 24L30.6 21.4Z"/></clipPath></defs><g class="bird"><use class="whole" href="#bird"/><g class="parts"><use href="#bird" clip-path="url(#bird-body)"/><g class="tail"><use href="#bird" clip-path="url(#bird-tail)"/></g><g class="wing"><use href="#bird" clip-path="url(#bird-wing)"/></g></g></g></svg></span>
+    <span>uni-switch</span>
+  </div>
+  <h1 class="sr-only" id="pageTitle" data-t>Agents</h1>
+  <div class="crumb" id="crumb" aria-hidden="true" hidden></div>
+  <nav class="seg" id="nav" aria-label="Main navigation" data-ta style="--wails-draggable:no-drag">
+    <span class="nav-gl" data-t>Work</span>
+    <button data-view="agents" class="on" aria-current="page"><svg class="nav-ic" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4-4 4M10 14h6"/></g></svg><span data-t>Agents</span></button>
+    <button data-view="sessions" data-feature="sessions"><svg class="nav-ic" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12v8H9l-4 3v-3H4z"/></g></svg><span data-t>Sessions</span></button>
+    <button data-view="library" data-feature="library"><svg class="nav-ic" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h9v13H5a1.5 1.5 0 0 1 0-3h9"/></g></svg><span data-t>Library</span></button>
+    <span class="nav-gl" data-t>Models</span>
+    <button data-view="providers"><svg class="nav-ic" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="10" r="3"/><path d="M10 10h7M14 10v3M16.5 10v2"/></g></svg><span data-t>Providers</span></button>
+    <span class="nav-gl" data-t>Insights</span>
+  </nav>
+  <div class="actions" style="--wails-draggable:no-drag">
+    <span class="update-wrap">
+      <button class="update" id="update" hidden>
+        <svg viewBox="0 0 16 16" width="11" height="11"><path d="M8 13V3.5M3.75 7.5 8 3.25l4.25 4.25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Update</span>
+      </button>
+      <button class="update-hide" id="updateHide" title="Hide until the next version" data-tt>
+        <svg viewBox="0 0 10 10" width="8" height="8"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </span>
+    <button class="icon" id="sync" title="Look for agents on this computer again: one just installed or removed, or its settings changed" data-tt>
+      <svg viewBox="0 0 16 16" width="14" height="14"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon" id="open" title="Open the main window" data-tt>
+      <svg viewBox="0 0 16 16" width="14" height="14"><path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8a1.5 1.5 0 0 0 1.5-1.5V10M9 2h5v5M14 2 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon" id="prefs" title="Settings" data-tt data-keys="⌘,|Ctrl+,">
+      <svg viewBox="0 0 24 24" width="14" height="14"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></g></svg>
+    <span class="side-l" data-t>Settings</span></button>
+    <button class="icon winclose" id="winclose" title="Close" data-tt>
+      <svg viewBox="0 0 16 16" width="10" height="10"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<nav class="ptabs" id="ptabs" hidden>
+  <button type="button" data-ptab="agents"><span data-t>Agents</span><em id="ptabN"></em></button>
+  <button type="button" data-ptab="usage"><span data-t>Allowances</span></button>
+</nav>
+
+<main class="view" id="view-agents">
+  <div class="list" id="agents"></div>
+  <section class="profiles">
+    <span class="label" data-t>Profiles</span>
+    <div id="profiles" class="chips"></div>
+    <button class="text" id="save" data-t>＋ Save current</button>
+  </section>
+  <section class="panel-quota" id="panelQuota" hidden></section>
+</main>
+
+<main class="view" id="view-providers" hidden>
+  <div id="fileError" hidden></div>
+  <div id="movable" hidden></div>
+  <div class="pv-head" id="pvHead" hidden><input class="sess-filter pv-q" id="pvQ" type="search" spellcheck="false" autocomplete="off" placeholder="Find a provider" aria-label="Find a provider" data-tp><button class="text rt-mask" id="pvMask" aria-pressed="false" data-tt="Mask the accounts on every page — email addresses and account names — for a screenshot to share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 4.2A10.4 10.4 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20"/></svg><span data-t>Hide accounts</span></button></div>
+  <p class="set-none pv-none" id="pvNone" role="status" hidden></p>
+  <div class="list" id="providers"></div>
+  <div class="row-head off-head" id="offHead" hidden><button class="fold" id="foldOff" aria-expanded="false" aria-controls="offProviders"><span class="label" data-t>Turned off</span><span class="note" id="offCount"></span></button></div>
+  <div class="list" id="offProviders" hidden></div>
+  <div id="excluded"></div>
+  <div class="after-list">
+    <button class="text" id="addProvider" data-t>＋ Add provider</button>
+  </div>
+  <section class="sheet" id="addSheet" hidden></section>
+</main>
+
+<!-- the pages plugins add (kernel.js) go here, in the order they register -->
+<template data-slot="page"></template>
+
+
+
+
+<main class="view" id="view-settings" hidden>
+  <div class="row-head set-head"><div class="warm-tabs set-tabs" id="setTabs" role="tablist" aria-label="Settings">
+    <button type="button" role="tab" id="setTab-general" data-set="general" aria-controls="setPage-general" data-t>General</button>
+    <button type="button" role="tab" id="setTab-usage" data-set="usage" aria-controls="setPage-usage" data-t>Allowances</button>
+    <button type="button" role="tab" id="setTab-gateway" data-set="gateway" aria-controls="setPage-gateway" data-t>Gateway</button>
+    <button type="button" role="tab" id="setTab-network" data-set="network" aria-controls="setPage-network" data-t>Network</button>
+    <button type="button" role="tab" id="setTab-models" data-set="models" aria-controls="setPage-models" data-t>Models</button>
+    <button type="button" role="tab" id="setTab-privacy" data-set="privacy" aria-controls="setPage-privacy" data-t>Privacy</button>
+    <button type="button" role="tab" id="setTab-about" data-set="about" aria-controls="setPage-about" data-t>About</button>
+  </div><input class="sess-filter set-q" id="setQ" type="search" spellcheck="false" autocomplete="off" placeholder="Find a setting" aria-label="Find a setting" data-tp></div>
+  <p class="set-none" id="setNone" role="status" hidden></p>
+  <section class="set-page" id="setPage-general" role="tabpanel" aria-labelledby="setTab-general">
+    <div class="list prefs">
+      <div class="row pref">
+        <div class="who"><div class="name" data-t>Appearance</div><div class="sub om-only" data-t>Follows the Omarchy theme, as picked in Omarchy's menu</div></div>
+        <div id="themeSegs" class="om-hide"></div><span class="om-only om-theme-name"></span>
+      </div>
+      <div class="row pref" id="colorblindRow">
+        <div class="who"><div class="name" data-t>Colorblind mode</div></div>
+        <div id="colorblindSegs"></div>
+      </div>
+      <div class="row pref" id="reduceMotionRow">
+        <div class="who"><div class="name" data-t>Reduce motion</div></div>
+        <div id="reduceMotionSegs"></div>
+      </div>
+      <div class="row pref" id="birdRow">
+        <div class="who"><div class="name" data-t>Loading bird</div></div>
+        <div id="birdSegs"></div>
+      </div>
+      <div class="row pref">
+        <div class="who"><div class="name" data-t>Language</div></div>
+        <button type="button" id="langPick" class="sess-pick pref-pick" aria-label="Language" aria-haspopup="menu" aria-expanded="false"></button>
+      </div>
+      <div class="row pref" id="gatewayModeRow" hidden>
+        <div class="who"><div class="name" data-t>Gateway mode</div><div class="sub" id="gatewayModeSub"></div></div>
+        <div id="gatewayModeSegs"></div>
+      </div>
+      <div class="row pref app-only" id="textSizeRow">
+        <div class="who"><div class="name" data-t>Text size</div></div>
+        <div id="textSizeSegs"></div>
+      </div>
+      <div class="row pref font-row" id="uiFontRow" hidden>
+        <div class="who"><div class="name" data-t>Interface font</div><div class="sub font-note" hidden></div></div>
+        <div class="font-controls">
+          <button type="button" class="proto pick font-family" aria-haspopup="menu" aria-expanded="false"></button>
+          <button type="button" class="proto pick font-style" aria-haspopup="menu" aria-expanded="false"></button>
+          <div class="font-preview">Aa 0123 · 中文</div>
+        </div>
+      </div>
+      <div class="row pref font-row" id="codeFontRow" hidden>
+        <div class="who"><div class="name" data-t>Code font</div><div class="sub font-note" hidden></div></div>
+        <div class="font-controls">
+          <button type="button" class="proto pick font-family" aria-haspopup="menu" aria-expanded="false"></button>
+          <button type="button" class="proto pick font-style" aria-haspopup="menu" aria-expanded="false"></button>
+          <div class="font-preview">Aa 0123 · 中文</div>
+        </div>
+      </div>
+      <div class="row pref app-only">
+        <div class="who"><div class="name" data-t>Click the tray icon to</div></div>
+        <div id="traySegs"></div>
+      </div>
+      <div class="row pref app-only" id="panelKeyRow">
+        <div class="who"><div class="name" data-t>Quick panel shortcut</div><div class="sub" hidden></div></div>
+        <div id="panelKey"></div>
+      </div>
+      <div class="row pref" id="barIconRow" hidden>
+        <div class="who"><div class="name" data-t>Bar icon</div><div class="sub" data-t>uni-switch’s icon beside Omarchy’s own in the bar; right-click opens the window</div></div>
+        <div id="barIconSegs"></div>
+      </div>
+      <div class="row pref">
+        <div class="who"><div class="name" data-t>Provider in model names</div></div>
+        <div id="plainNamesSegs"></div>
+      </div>
+      <!-- Codex's and Claude Code's own settings are on the Agents page (AGENT_PREFS); while searching, a row here says where -->
+      <div id="agentPrefLinks"></div>
+      <div class="row pref app-only" id="loginRow">
+        <div class="who"><div class="name" data-t>Open at login</div></div>
+        <div id="loginSegs"></div>
+      </div>
+      <div class="row pref app-only" id="quitAskRow">
+        <div class="who"><div class="name" data-t>Ask before quitting</div><div class="sub" data-t>While agents go through uni-switch, Quit names them and asks first</div></div>
+        <div id="quitAskSegs"></div>
+      </div>
+      <div class="row pref" id="dockRow" hidden>
+        <div class="who"><div class="name" data-t>Show in Dock</div></div>
+        <div id="dockSegs"></div>
+      </div>
+      <div class="row pref" id="lightweightRow" hidden>
+        <div class="who"><div class="name" data-t>Lightweight mode</div><div class="sub" data-t>A closed window frees about 100 MB after a minute; the gateway and tasks keep running, only the page reloads</div></div>
+        <div id="lightweightSegs"></div>
+      </div>
+      <div class="row pref" id="keepAwakeRow">
+        <div class="who"><div class="name" data-t>Prevent sleep</div><div class="sub" data-t>Keeps this computer awake while uni-switch runs tasks</div></div>
+        <div id="keepAwakeSegs"></div>
+      </div>
+      <div class="row pref" id="wslAgentsRow" hidden>
+        <div class="who"><div class="name" data-t>Detect agents in WSL</div><div class="sub" data-t>Looks in running WSL distros for agents to set up, their sessions and Claude Code; off, WSL is never asked anything and the agents found there are no longer shown</div></div>
+        <div id="wslAgentsSegs"></div>
+      </div>
+      <div class="row pref" id="sessionTerminalRow" data-feature="sessions" hidden>
+        <div class="who"><div class="name" data-t>Session terminal</div><div class="sub" data-t>The terminal a session opens in</div></div>
+        <button type="button" id="sessionTerminalSelect" class="sess-pick session-terminal-select" aria-label="Session terminal" aria-haspopup="menu" aria-expanded="false" data-ta></button>
+      </div>
+    </div>
+  </section>
+  <section class="set-page" id="setPage-usage" role="tabpanel" aria-labelledby="setTab-usage">
+    <div class="list prefs">
+      <div class="row pref app-only" id="trayUsageRow">
+        <div class="who"><div class="name" data-t>Allowances in the menu bar</div><div class="sub" id="trayUsageSub"></div></div>
+        <div id="trayUsagePick"></div>
+      </div>
+      <div class="row pref" id="trayWindowsRow" hidden>
+        <div class="who"><div class="name" data-t>Menu bar windows</div><div class="sub" data-t>Which of a subscription's windows its card shows, such as 5 hours or 7 days alone; every window unless you pick, and every window again when those picked are gone</div></div>
+        <div id="trayWindowsPick" class="tray-windows"></div>
+      </div>
+      <div class="row pref" id="trayEveryRow" hidden>
+        <div class="who"><div class="name" data-t>Menu bar refresh</div><div class="sub" data-t>How often the allowances beside the icon are asked for again</div></div>
+        <div id="trayEverySegs"></div>
+      </div>
+      <div class="row pref" id="trayLogosRow" hidden>
+        <div class="who"><div class="name" data-t>Menu bar logos</div><div class="sub" data-t>Each subscription's logo before its numbers; off, the numbers alone with a thin line between subscriptions</div></div>
+        <div id="trayLogosSegs"></div>
+      </div>
+      <div class="row pref" id="trayBirdRow" hidden>
+        <div class="who"><div class="name" data-t>Menu bar uni-switch icon</div><div class="sub" data-t>uni-switch's icon before the allowances; off, the allowances alone, and a click on one still opens the panel</div></div>
+        <div id="trayBirdSegs"></div>
+      </div>
+      <div class="row pref" id="trayPaceRow" hidden>
+        <div class="who"><div class="name" data-t>Menu bar pace</div><div class="sub" data-t>Each window's Pace number beside its figure, as on the Usage page: +12% is 12% more of the window used than an even pace would have used by now, −8% that much less</div></div>
+        <div id="trayPaceSegs"></div>
+      </div>
+      <div class="row pref" id="trayNumberRow" hidden>
+        <div class="who"><div class="name" data-t>Tray icon number</div><div class="sub" data-t>The first allowance's figure as uni-switch's tray icon, used or left as Allowance display has it, every one when pointing at it; off, uni-switch's icon</div></div>
+        <div id="trayNumberSegs"></div>
+      </div>
+      <div class="row pref">
+        <div class="who"><div class="name" data-t>Allowance display</div><div class="sub" data-t>How much of each window is used, or how much is left, on the Usage page, the panel and the menu bar</div></div>
+        <div id="quotaLeftSegs"></div>
+      </div>
+      <div class="row pref" id="quotaReadsRow">
+        <div class="who"><div class="name" data-t>Allowance reads</div><div class="sub" data-t>When I ask: opening or refreshing the Usage page, a card's refresh, and uni-switch quota or accounts read them; routing, the menu bar and alerts go by the last reading till then. An account a vendor turns away for its quota is still read.</div></div>
+        <div id="quotaReadsSegs"></div>
+      </div>
+      <div class="row pref">
+        <div class="who"><div class="name" data-t>Currency</div><div class="sub" id="currencySub"></div></div>
+        <div id="currencySegs"></div>
+      </div>
+      <div class="row pref" id="unitsRow" hidden>
+        <div class="who"><div class="name" data-t>Number units</div><div class="sub" data-t>How a large count of tokens or requests is shortened on the Usage page and the panel</div></div>
+        <div id="unitsSegs"></div>
+      </div>
+      <div class="row pref" id="usageAlertRow">
+        <div class="who"><div class="name" data-t>Allowance alert</div><div class="sub" id="usageAlertSub"></div></div>
+        <div id="usageAlertSegs" class="warm-at"></div>
+      </div>
+      <div class="row pref" id="balanceAlertRow">
+        <div class="who"><div class="name" data-t>Low balance alert</div><div class="sub" id="balanceAlertSub"></div></div>
+        <div id="balanceAlertSegs" class="warm-at"></div>
+      </div>
+      <div class="row pref" id="resetReminderRow">
+        <div class="who"><div class="name" data-t>Reset reminder</div><div class="sub" id="resetReminderSub"></div></div>
+        <div id="resetReminderSegs"></div>
+      </div>
+      <div class="row pref" id="codexAutoResetRow" hidden>
+        <div class="who"><div class="name" data-t>Codex: auto-use resets</div><div class="sub wraps" data-t>A ChatGPT account uses one of its resets by itself when its week is used up and no other account can answer, or before one expires unused. Off until turned on, account by account; each account's card on the Usage page has the same switch.</div></div>
+      </div>
+      <div class="row pref" id="codexResetLeadRow" hidden>
+        <div class="who"><div class="name" data-t>Codex: how early before one expires</div><div class="sub wraps" data-t>For every account with "before one expires" on: the reset about to run out unused is used this long before it does. Earlier loses what the account's windows have left then; the default is half an hour.</div></div>
+        <div id="codexResetLeadPick"></div>
+      </div>
+      <div class="row pref" id="turnDoneRow">
+        <div class="who"><div class="name" data-t>Task done alert</div><div class="sub" id="turnDoneSub"></div></div>
+        <div id="turnDoneSegs"></div>
+      </div>
+    </div>
+  </section>
+  <section class="set-page" id="setPage-gateway" role="tabpanel" aria-labelledby="setTab-gateway" hidden>
+    <div class="list gwcard"><div class="row gw" id="gateway"></div></div>
+    <div id="gatewaySettingsStatus" role="status"></div>
+    <div class="row-head"><button type="button" class="fold" id="foldRecords" aria-expanded="false" aria-controls="requestRecords"><span class="label" data-t>Request records</span></button></div>
+    <section class="list request-records" id="requestRecords" aria-labelledby="foldRecords" hidden>
+      <div id="recordsStatus" role="status"></div>
+      <div id="recordsRows"></div>
+      <button type="button" class="text activity-more" id="recordsMore" data-t hidden>Show more</button>
+    </section>
+    <div class="row-head"><button type="button" class="fold" id="foldGatewayAdvanced" aria-expanded="false" aria-controls="gatewayAdvanced"><span class="label" data-t>Advanced configuration</span></button></div>
+    <section id="gatewayAdvanced" aria-labelledby="foldGatewayAdvanced" hidden>
+      <div class="row-head"><span class="label" data-t>Gateway address</span></div>
+      <div class="list prefs" id="portList"></div>
+      <div class="list prefs">
+        <div class="row pref" id="bareIdsRow">
+          <div class="who"><div class="name" data-t>Model ids without the provider</div><div class="sub" data-t>The gateway’s model list also names each model by its own id, as gpt-5.6-sol beside codex/gpt-5.6-sol, for apps moved from another proxy. One that several providers serve goes to them in the Providers order</div></div>
+          <div id="bareIdsSegs"></div>
+        </div>
+      </div>
+      <section id="gatewayKeysBlock" hidden>
+        <div class="row-head"><span class="label" data-t>Gateway keys</span><span class="grow"></span><button type="button" class="text" id="addGatewayKey" data-t>Add gateway key</button></div>
+        <section id="gatewayKeys"></section>
+      </section>
+      <div class="row-head"><span class="label" data-t>Manual connection</span></div>
+      <section class="list connect" id="connect"></section>
+    </section>
+  </section>
+  <section class="set-page" id="setPage-network" role="tabpanel" aria-labelledby="setTab-network">
+    <div class="list prefs">
+      <div class="row pref">
+        <div class="who"><div class="name" data-t>Proxy</div><div class="sub" id="proxySub"></div></div>
+        <div id="proxySegs" class="proxy-segs"></div>
+      </div>
+    </div>
+    <div class="row-head"><span class="label">GitHub</span></div>
+    <div class="list prefs" id="githubList"></div>
+    <div class="row-head"><span class="label" data-t>Web pages</span></div>
+    <div class="list prefs" id="corsList"></div>
+    <div class="row-head" id="webPageHead"><span class="label" data-t>Browser access</span></div>
+    <div class="list prefs" id="webPageList"></div>
+  </section>
+  <section class="set-page" id="setPage-models" role="tabpanel" aria-labelledby="setTab-models">
+    <div class="row-head"><span class="label" data-t>Images</span></div>
+    <div class="list prefs" id="imagesList"></div>
+    <div class="row-head"><span class="label" data-t>Web search</span></div>
+    <div class="list prefs" id="searchList"></div>
+    <div class="row-head"><span class="label" data-t>Replies</span></div>
+    <div class="list prefs" id="replyList"></div>
+    <div class="row-head"><span class="label" data-t>Disabled models</span></div>
+    <div class="list prefs" id="disabledModelsList"></div>
+  </section>
+  <section class="set-page" id="setPage-privacy" role="tabpanel" aria-labelledby="setTab-privacy">
+    <div class="row-head"><span class="label" data-t>Sharing</span></div>
+    <div class="list prefs" id="shareList"></div>
+    <div class="row-head"><span class="label" data-t>Agents' sign-ins</span></div>
+    <div class="list prefs" id="discoveryList"></div>
+    <div class="row-head"><span class="label" data-t>Sign-in pages</span></div>
+    <div class="list prefs" id="signInOpenList"></div>
+    <div class="row-head"><span class="label" data-t>Agents' session history</span></div>
+    <div class="list prefs" id="sessionReadsList"></div>
+  </section>
+  </section>
+  <section class="set-page" id="setPage-about" role="tabpanel" aria-labelledby="setTab-about">
+    <div class="list prefs" id="about"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <button type="button" class="text prof-btn" id="profBtn" hidden aria-haspopup="dialog" aria-expanded="false"><span data-t>Profiles</span><em id="profN"></em></button>
+  <span id="pqAge" class="pq-age" hidden></span>
+  <span id="status" class="status" role="status" aria-atomic="true"></span>
+  <span class="grow"></span>
+  <button class="text" id="openMain" data-t>Open the main window</button>
+  <button class="text" id="quit" data-t>Quit</button>
+</footer>
+
+<div class="modal" id="modal" hidden><div class="dialog"></div></div>
+
+<div id="pop" class="pop" hidden>
+  <div class="search">
+    <svg viewBox="0 0 16 16" width="13" height="13"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <input id="q" type="text" spellcheck="false" autocomplete="off" placeholder="Filter…" data-tp>
+  </div>
+  <div class="picker-body">
+    <nav id="pickerRail" aria-label="Model providers"></nav>
+    <ul id="list"></ul>
+  </div>
+  <div class="effort-control" id="effortControl" hidden>
+    <div class="effort-head"><span id="effortTitle"></span><b id="effortValue"></b></div>
+    <div class="effort-track">
+      <span class="effort-ticks" id="effortTicks" aria-hidden="true"></span>
+      <input id="effortRange" type="range" min="0" step="1" aria-labelledby="effortTitle">
+    </div>
+    <div class="effort-ends" aria-hidden="true"><span id="effortMin"></span><span id="effortMax"></span></div>
+  </div>
+</div>
+
+<!-- an agent's own settings, drawn here and shown in its sheet or opened row (AGENT_PREFS) -->
+<div id="agentPrefRows" hidden>
+  <div class="row pref" id="codexAgentsV1Row">
+    <div class="who"><div class="name" data-t>Codex subagents on any model</div><div class="sub" data-t>A GPT lead spawns subagents on uni-switch’s other models. New threads only; Codex’s own multi_agent_v2 still wins</div><div class="sub err" id="codexAgentsV1Warn" hidden></div></div>
+    <div id="codexAgentsV1Segs"></div>
+  </div>
+  <div class="row pref" id="codexSubagentModelRow" hidden>
+    <div class="who"><div class="name" data-t>Codex subagent model</div><div class="sub"></div></div>
+    <div class="val" id="codexSubagentModelPick"></div>
+  </div>
+  <div class="row pref" id="fullContextRow">
+    <div class="who"><div class="name" data-t>Long conversations</div><div class="sub" data-t>Codex, Claude Code and Grok Build compact at 272K (non-Claude [1m] too) or the size typed, on uni-switch's models only; a subscription's own models keep their own window and compaction; full window: slower, costlier</div></div>
+    <div id="fullContextSegs"></div>
+  </div>
+  <div class="row pref" id="codexAsyncRow">
+    <div class="who"><div class="name" data-t>Codex background compaction</div><div class="sub" data-t>Codex 0.163 and later summarise while a turn goes on, past the share of the window typed (65% when empty); a value set in its own config stays</div></div>
+    <div id="codexAsyncSegs"></div>
+  </div>
+  <div class="row pref" id="codexTitlesRow">
+    <div class="who"><div class="name" data-t>Codex thread titles</div></div>
+    <div class="val" id="codexTitlesPick"></div>
+  </div>
+  <div class="row pref" id="codexDescriptionsRow">
+    <div class="who"><div class="name" data-t>Codex thread descriptions</div></div>
+    <div class="val" id="codexDescriptionsPick"></div>
+  </div>
+  <div class="row pref" id="codexPredictionsRow">
+    <div class="who"><div class="name" data-t>Codex composer predictions</div></div>
+    <div class="val" id="codexPredictionsPick"></div>
+  </div>
+  <div class="row pref" id="codexAutoReviewRow">
+    <div class="who"><div class="name" data-t>Codex auto-review model</div></div>
+    <div class="val" id="codexAutoReviewPick"></div>
+  </div>
+  <div class="row pref" id="codexMemoriesRow" hidden>
+    <div class="who"><div class="name" data-t>Codex memories model</div></div>
+    <div class="val" id="codexMemoriesPick"></div>
+  </div>
+</div>
+<script src="i18n.js"></script>
+<script src="kernel.js"></script>
+<!-- the built-in plugins' own scripts (pluginrt.Manifest.Client) -->
+<script src="plugins/gateway/keys.js"></script>
+<script src="plugins/gateway/i18n.js"></script>
+<script src="plugins/gateway/client.js"></script>
+<script src="plugins/sessions/i18n.js"></script>
+<script src="plugins/sessions/client.js"></script>
+<script src="plugins/library/i18n.js"></script>
+<script src="plugins/library/client.js"></script>
+<script src="purposes.js"></script>
+<script src="app.js"></script>
+<script src="request-details-i18n.js"></script>
+<script src="context.js"></script>
+<script src="request-details.js"></script>
+<script src="plugins/gateway/settings.js"></script>
+<script src="plugins/search/settings.js"></script>
+<script src="plugins/sessions/settings.js"></script>
+<script src="image-setup.js"></script>
+<script src="uni-switch.js"></script>
+<script src="newcomer-i18n.js"></script>
+<script src="newcomer.js"></script>
+<script src="start.js"></script>
+</body>
+</html>
