@@ -3,7 +3,7 @@
 ## 0.5.30 — 2026-11-16
 
 - 修正蝶祈云 API「下游对接」端点为 `https://hgapi.dieqiyun.top`，同步更新 Chat Completions、Responses、Anthropic 地址与余额探测主机配置。
-- 按维护者要求跳过功能验证，直接构建并发布 Windows、Linux、macOS 安装包及对应源码。
+- 发布构建按维护者要求跳过额外功能验证，提供 Windows、Linux、macOS 安装包及对应源码。
 
 ## 0.5.29 — 2026-11-15
 
