@@ -199,15 +199,29 @@ func (t replayable) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	for n := 0; ; n++ {
 		var fresh, h2 atomic.Bool
-		trace := &httptrace.ClientTrace{GotConn: func(i httptrace.GotConnInfo) {
-			fresh.Store(!i.Reused)
-			if tc, ok := i.Conn.(interface{ ConnectionState() tls.ConnectionState }); ok {
-				h2.Store(tc.ConnectionState().NegotiatedProtocol == "h2")
-			}
-		}}
+		var wrote atomic.Pointer[httptrace.WroteRequestInfo]
+		trace := &httptrace.ClientTrace{
+			GotConn: func(i httptrace.GotConnInfo) {
+				fresh.Store(!i.Reused)
+				if tc, ok := i.Conn.(interface{ ConnectionState() tls.ConnectionState }); ok {
+					h2.Store(tc.ConnectionState().NegotiatedProtocol == "h2")
+				}
+			},
+			WroteRequest: func(info httptrace.WroteRequestInfo) { wrote.Store(&info) },
+		}
 		try := r.WithContext(httptrace.WithClientTrace(r.Context(), trace))
 		res, err := t.RoundTripper.RoundTrip(try)
-		if err == nil || !fresh.Load() || h2.Load() || !closedBeforeSent(err) || req.Context().Err() != nil {
+		if err == nil || !fresh.Load() || h2.Load() || req.Context().Err() != nil {
+			return res, err
+		}
+		closed := closedBeforeSent(err)
+		// The reader's EOF can win the race with a write error on
+		// Windows. The transport waits for its writer before returning;
+		// use its result only when it confirms a network write failed.
+		if info := wrote.Load(); !closed && info != nil && info.Err != nil {
+			closed = closedBeforeSent(info.Err)
+		}
+		if !closed {
 			return res, err
 		}
 		if n >= len(unsentAgain) || (r.Body != nil && r.Body != http.NoBody && r.GetBody == nil) {

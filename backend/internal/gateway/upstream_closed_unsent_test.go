@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httptrace"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -17,7 +18,7 @@ import (
 )
 
 // closingUpstream is a TLS vendor whose first closeFirst new connections are
-// ended by the far side as soon as the handshake is done, before the
+// ended by the far side after the request begins, before the whole
 // request is read (a TUN proxy's fake IP doing so, dealyang_ on X), or,
 // with afterSent, once the whole request was read. The rest are
 // answered 200 with the body's length.
@@ -49,6 +50,15 @@ func newClosingUpstream(t *testing.T, closeFirst int32, afterSent bool) *closing
 			}
 			n := u.accepts.Add(1)
 			go func() {
+				if n <= closeFirst && !afterSent {
+					// Keep the whole large request from being buffered by
+					// the OS before the server gets its turn to close it.
+					if err := c.(*net.TCPConn).SetReadBuffer(16 << 10); err != nil {
+						t.Errorf("set test receive buffer: %v", err)
+						c.Close()
+						return
+					}
+				}
 				tc := tls.Server(c, conf)
 				if tc.Handshake() != nil {
 					c.Close()
@@ -64,6 +74,11 @@ func newClosingUpstream(t *testing.T, closeFirst int32, afterSent bool) *closing
 						c.Close()
 						return
 					}
+					// Wait until the request writer has begun. Closing
+					// before that can return EOF with no write result,
+					// which the transport conservatively leaves alone.
+					var first [1]byte
+					tc.Read(first[:])
 					// closed, as a proxy whose own connection
 					// onward failed closes it: the reader sees
 					// the end while the request is being written
@@ -138,8 +153,53 @@ func closedUnsentPost(t *testing.T, cl *http.Client, addr string) (*http.Respons
 	return cl.Do(req)
 }
 
-// A new connection the network closes right after the TLS handshake,
-// before a byte of the request went out, is not the vendor's answer: the
+// On Windows the reader's EOF can win the race with a failed write even
+// though WroteRequest confirms that the whole request never went out.
+func TestEOFBeforeWriteFinishedIsRetried(t *testing.T) {
+	was := unsentAgain
+	unsentAgain = []time.Duration{0, 0}
+	t.Cleanup(func() { unsentAgain = was })
+	writeErr := &net.OpError{Op: "write", Net: "tcp", Err: net.ErrClosed}
+	for _, tt := range []struct {
+		name     string
+		writeErr error
+		reported bool
+		reused   bool
+		tries    int
+	}{
+		{name: "failed write", writeErr: writeErr, reported: true, tries: 3},
+		{name: "whole request sent", reported: true, tries: 1},
+		{name: "write unknown", tries: 1},
+		{name: "body read failed", writeErr: errors.New("request body failed"), reported: true, tries: 1},
+		{name: "reused connection", writeErr: writeErr, reported: true, reused: true, tries: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tries := 0
+			tr := replayable{roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				tries++
+				defer r.Body.Close()
+				trace := httptrace.ContextClientTrace(r.Context())
+				trace.GotConn(httptrace.GotConnInfo{Reused: tt.reused})
+				if tt.reported && trace.WroteRequest != nil {
+					trace.WroteRequest(httptrace.WroteRequestInfo{Err: tt.writeErr})
+				}
+				return nil, io.EOF
+			})}
+			req, err := http.NewRequest(http.MethodPost, "https://vendor.test/v1/responses", strings.NewReader(`{"model":"m"}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = tr.RoundTrip(req)
+			var cu errClosedUnsent
+			if tries != tt.tries || errors.As(err, &cu) != (tt.tries > 1) || !errors.Is(err, io.EOF) {
+				t.Fatalf("%d tries, error %v; want %d tries and closed-unsent=%v", tries, err, tt.tries, tt.tries > 1)
+			}
+		})
+	}
+}
+
+// A new connection the network closes while the request is being written,
+// before the whole request went out, is not the vendor's answer: the
 // request goes again on another new connection and is answered, whole.
 func TestClosedBeforeSentIsSentAgain(t *testing.T) {
 	u := newClosingUpstream(t, 2, false)

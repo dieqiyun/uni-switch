@@ -1,5 +1,3 @@
-//go:build uniswitchqa
-
 package provider
 
 import (
@@ -9,9 +7,10 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/proc"
 )
 
-// Only QA builds include this boundary. A temporary HOME alone does not
-// isolate the Windows process table: an app-server has no readable HOME.
-// Never enumerate or restart the host's Codex from an isolated UI run.
+// Every build honors the testenv isolation marker: an isolated UI launcher
+// can run an ordinary core too. A temporary HOME alone does not isolate
+// the Windows process table: an app-server has no readable HOME. Never
+// enumerate or restart the host's Codex from an isolated run.
 func init() {
 	list, end := listProcesses, endCodexAppServer
 	listProcesses = func(ctx context.Context) ([]proc.Process, error) {
