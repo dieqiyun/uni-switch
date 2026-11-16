@@ -2146,7 +2146,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 	subagentID := subagentTurnOf(r, call.Kind, body, desktopPick != nil || subagentEffort != "")
 	// Explicit client selections also qualify bare model names. A saved
 	// session requesting another provider is refused instead of spending it.
-	selectedProvider := provider.AgentProvider(agent)
+	selectedProvider := clientProvider(r)
 	if selectedProvider != "" {
 		if q, bare, found := provider.Resolve(asked); found && q.ID != selectedProvider {
 			if asked != bare {

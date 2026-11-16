@@ -113,6 +113,13 @@ func (s *Server) codexBackend(w http.ResponseWriter, r *http.Request) {
 			writeError(w, provider.Responses, 400, err.Error())
 			return
 		}
+		// A client explicitly put on an API provider must not spend its
+		// ChatGPT sign-in when an older session or side call names a bare
+		// model. Send that model through the selected provider's route.
+		if selected := clientProvider(r); selected != "" && selected != "codex" && !strings.Contains(model, "/") {
+			model = selected + "/" + model
+			body = withModel(body, model)
+		}
 		// the route that shows it while it is held before routing names
 		// it, as handle's and gemini's do (Jason on Discord: a held Codex
 		// turn showed as no model, "uni-switch · 0 on")
@@ -935,6 +942,14 @@ func (s *Server) codexUpstream(w http.ResponseWriter, r *http.Request, rest stri
 // codexUpstreamOn is codexUpstream signed by the account on instead of
 // Codex's own sign-in, when on isn't nil (compactOn).
 func (s *Server) codexUpstreamOn(w http.ResponseWriter, r *http.Request, rest string, body []byte, on *provider.Provider) {
+	// Side-call remapping can reach the native relay after the initial
+	// model check. Keep the same provider boundary here, before any I/O.
+	if selected := clientProvider(r); selected != "" &&
+		(rest == "/responses" || rest == "/responses/compact" || rest == AlphaSearchPath) &&
+		(selected != "codex" || on != nil && on.ID != selected) {
+		writeError(w, provider.Responses, http.StatusForbidden, "This client uses provider "+selected+"; native ChatGPT inference is outside that selection.")
+		return
+	}
 	start := time.Now()
 	usage.Saw(agentOf(r))
 	// Codex's own turns come here from the mux, not through serve: the
