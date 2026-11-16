@@ -51,24 +51,28 @@ func TestUniSwitchDieqiyunEndpoints(t *testing.T) {
 	if len(pr.Regions) != 3 {
 		t.Fatalf("endpoint choices = %d; want 3 dialogue endpoints", len(pr.Regions))
 	}
-	for i, host := range []string{"cfapi", "haapi", "hw"} {
-		t.Run(host, func(t *testing.T) {
+	for i, endpoint := range []struct{ id, host string }{
+		{"cfapi", "cfapi"},
+		{"haapi", "hgapi"},
+		{"hw", "hw"},
+	} {
+		t.Run(endpoint.id, func(t *testing.T) {
 			r := pr.Regions[i]
-			root := "https://" + host + ".dieqiyun.top"
-			if r.ID != host || r.Chat != root+"/v1" || r.Note == "" {
+			root := "https://" + endpoint.host + ".dieqiyun.top"
+			if r.ID != endpoint.id || r.Chat != root+"/v1" || r.Note == "" {
 				t.Fatalf("incorrect endpoint choice: %+v", r)
 			}
 			if r.ImagesOnly {
-				t.Fatalf("dialogue selector advertises an image-only endpoint: %s", host)
+				t.Fatalf("dialogue selector advertises an image-only endpoint: %s", endpoint.id)
 			}
 			if r.Responses != root+"/v1" || r.Anthropic != root {
 				t.Fatalf("incorrect protocol bases: %+v", r)
 			}
-			p, err := ParseImport("uni-switch://import?preset=dieqiyun&region=" + host)
+			p, err := ParseImport("uni-switch://import?preset=dieqiyun&region=" + endpoint.id)
 			if err != nil {
 				t.Fatal(err)
 			}
-			p.ID, p.Key = "dieqiyun-"+host, "sk-synthetic"
+			p.ID, p.Key = "dieqiyun-"+endpoint.id, "sk-synthetic"
 			if err := Save(p); err != nil {
 				t.Fatal(err)
 			}
