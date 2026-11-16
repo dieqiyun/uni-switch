@@ -49204,8 +49204,8 @@
     },
     {
       "path": "internal/provider/balance_probe.go",
-      "sha256": "1a84687a8ff382a5e0448cfe83586429e9216e695c5f445ff68ae0502d4c437d",
-      "reason": "Remove the retired commercial partner kind from balance probing. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Add the four documented Dieqiyun endpoint choices with a compact accessible menu, purpose hints, saved URL preservation and an image-only endpoint display; retain automatic balance-probe exclusions across these hosts."
+      "sha256": "87eb45d571c6417d6fcaf3590d35074f9a10d21bbc1b69e7679dc371677b81a0",
+      "reason": "Remove the retired commercial partner kind from balance probing. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Add the four documented Dieqiyun endpoint choices with a compact accessible menu, purpose hints, saved URL preservation and an image-only endpoint display; retain automatic balance-probe exclusions across these hosts. Correct the downstream endpoint hostname to hgapi.dieqiyun.top."
     },
     {
       "path": "internal/provider/balance_shared_test.go",
@@ -51225,8 +51225,8 @@
     },
     {
       "path": "internal/provider/presets.go",
-      "sha256": "0030e41f14209ffdb404cd72bd84fd9f6dc9955a65afbc9d0d65d95101065004",
-      "reason": "Replace all built-in relay recommendations with the single requested Dieqiyun preset; remove remote partner fallback. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Add the four documented Dieqiyun endpoint choices with a compact accessible menu, purpose hints, saved URL preservation and an image-only endpoint display; retain automatic balance-probe exclusions across these hosts. Limit the ordinary Dieqiyun provider preset to its three dialogue nodes; keep image-service configuration independent."
+      "sha256": "ba27cd3bc75a31acc9c1d26d9479172042e3458ed0fd2e4e7afc8d157c97346e",
+      "reason": "Replace all built-in relay recommendations with the single requested Dieqiyun preset; remove remote partner fallback. Remove LAN sharing and remote management listeners; retain local gateway, WSL and client configuration contracts, with corresponding help and regression updates. Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Use the uni-switch product namespaces and reduced provider directory; remove remote gateway discovery, following, management and bridges; provide a client-first sidebar and explicit Add flow. Add the four documented Dieqiyun endpoint choices with a compact accessible menu, purpose hints, saved URL preservation and an image-only endpoint display; retain automatic balance-probe exclusions across these hosts. Limit the ordinary Dieqiyun provider preset to its three dialogue nodes; keep image-service configuration independent. Correct the downstream endpoint hostname to hgapi.dieqiyun.top."
     },
     {
       "path": "internal/provider/price_any_test.go",
