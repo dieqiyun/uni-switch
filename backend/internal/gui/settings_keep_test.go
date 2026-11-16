@@ -111,6 +111,7 @@ func TestSettingsSaveKeepsWhatItDoesNotSend(t *testing.T) {
 		AgentsShown:          []string{"pi"},
 		AgentsHere:           []string{"codex"},
 		Visible:              map[string][]string{"claude": {"anthropic"}},
+		AgentProviders:       map[string]string{"codex": "p", "claude": "q"},
 		HiddenModels:         map[string][]string{"claude": {"p/m"}, "codex": {"p/n", "group/g"}},
 		DisabledModels:       []string{"*fable*", "p/m"},
 		PickedModels:         map[string][]string{"opencode": {"p/m"}},

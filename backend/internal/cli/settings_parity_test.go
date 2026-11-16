@@ -154,6 +154,8 @@ var cliForRoute = map[string]string{
 }
 
 var notYet = map[string]string{
+	"GET /api/agents/provider-models/{id}":       "Provider-card picker independent of the current client catalog; CLI model listing does not yet expose this picker.",
+	"POST /api/agents/use-provider/{id}":         "Client provider-card transaction, including combined Claude CLI/Desktop configuration; CLI model picks do not yet expose this combined action.",
 	"POST /api/settings/account-warmup":          "Per-account schedules are managed in the account UI; CLI retains shared warm-up settings.",
 	"POST /api/settings/account-checkin":         "Per-account switches are managed in the account UI; CLI retains shared check-in settings.",
 	"POST /api/agent-fast":                       A,  // agent_models.go
