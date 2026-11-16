@@ -91,6 +91,11 @@ html.uni-switch #pvMask { white-space:nowrap; }
 html.uni-switch #providers, html.uni-switch #offProviders { display:flex; flex-direction:column; gap:12px; border:0; border-radius:0; overflow:visible; background:transparent; }
 html.uni-switch .row.provider { display:grid; grid-template-columns:36px minmax(0,1fr) auto auto; align-items:center; gap:14px 12px; min-height:0; border:1px solid var(--line); border-radius:12px; padding:18px; margin:0; background:var(--card); cursor:default; }
 html.uni-switch .row.provider:hover, html.uni-switch .row.provider.selected { border-color:var(--muted); background:var(--card); }
+html.uni-switch .row.provider.uni-provider-active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+html.uni-switch .uni-provider-active .uni-use:disabled { opacity:1; background:var(--pill); color:var(--fg); border:1px solid var(--accent); }
+html.uni-switch .uni-client-target { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+html.uni-switch .uni-desktop-hint { flex-basis:100%; margin:0; color:var(--muted); font-size:12px; line-height:1.6; }
+html.uni-switch .uni-provider-pick select { width:100%; min-height:40px; margin:8px 0 16px; border:1px solid var(--line); border-radius:7px; background:var(--card); color:var(--fg); padding:8px; font:inherit; }
 html.uni-switch .row.provider > .pv-handle, html.uni-switch .row.provider > .ic { grid-column:1; grid-row:1; width:36px; height:36px; margin:0; padding:8px; border-radius:10px; background:var(--pill); }
 html.uni-switch .row.provider > .pv-handle .ic { width:22px; height:22px; }
 html.uni-switch .row.provider > .who { grid-column:2; grid-row:1; min-width:0; }

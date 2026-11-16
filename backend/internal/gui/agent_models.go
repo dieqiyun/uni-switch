@@ -153,10 +153,11 @@ func modelCount(id string) *modelCountJSON {
 func countModels(id string) modelCountJSON {
 	listed, _ := provider.ListedFor(id)
 	off := provider.ModelOff(id)
+	selected := provider.AgentProvider(id)
 	c := &modelCountJSON{Listed: len(listed)}
 	at := map[string]int{}
 	for _, e := range listed {
-		if off(e.ID) {
+		if off(e.ID) || selected != "" && e.Provider.ID != selected {
 			continue
 		}
 		c.Shown++
@@ -198,11 +199,12 @@ func agentModelList(a *agent.Agent) []agentModelJSON {
 	id := a.ListsFor()
 	listed, _ := provider.ListedFor(id)
 	off := provider.ModelOff(id)
+	selected := provider.AgentProvider(id)
 	vals := a.Values()
 	out := []agentModelJSON{}
 	for _, e := range listed {
 		m := agentModelJSON{ID: e.ID, Name: e.Name, Group: e.Provider.Name, Icon: e.Provider.Icon, Context: e.Context,
-			Hidden: off(e.ID), InUse: usedBy(a, vals, e), Own: id == "codex" && provider.CodexOwn(e)}
+			Hidden: off(e.ID) || selected != "" && e.Provider.ID != selected, InUse: usedBy(a, vals, e), Own: id == "codex" && provider.CodexOwn(e)}
 		if m.Name == "" {
 			m.Name = e.Model
 		}

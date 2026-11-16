@@ -1,5 +1,32 @@
 # Agent wiring
 
+## Explicit provider selection in uni-switch
+
+The client-first Providers page's Use action loads an independent picker via
+`GET /api/agents/provider-models/{id}?provider=...`, then applies an enabled
+model with `POST /api/agents/use-provider/{id}`. The backend adapter spells
+the model for the client, connects it when needed, and persists
+`settings.AgentProviders`. `provider.CatalogFor` restricts its native model
+files and gateway model list to that provider. Request routing qualifies
+bare model names with the selection, refuses explicit references to another
+provider, and removes other providers from fallback candidates. The setting
+is per client; clients without a selection retain their existing behavior.
+The Use picker can still list a different provider for the next switch.
+
+Claude Code's Use action applies both the CLI and Claude Desktop adapters,
+including Desktop's native third-party deployment/profile and tier/subagent
+model mappings. A failed apply restores the previous selection and client
+fields/connections, reporting any rollback errors. The page shows separate
+CLI/Desktop connection controls and a restart hint; applying never restarts
+either application. Active card borders and disabled In use buttons derive
+from persisted state and connection status, including after a page reload.
+
+Regression coverage: `TestUseProviderSwitchesCatalogAndCanSwitchAgain`,
+`TestUseProviderConfiguresClaudeCLIAndDesktop`,
+`TestClientProviderSelectionBlocksOtherProviderAndFallback`,
+`TestCodexPartialAuthKeepsAPIOnlyAcrossRestartAndModelChange`, and
+`internal/gui/tests/uni-switch-provider-use.test.cjs`.
+
 API key group selections carry a stable qualified model ID through every client
 adapter. Where the client supports display names, `provider.Labels` supplies
 Model · Group · Provider. Codex's catalog and the client picker use the same ID;
@@ -30,8 +57,11 @@ menus. Translation loading can still depend on the client's `enable_i18n` rollou
 ChatGPT login. A usable sign-in keeps `true`; a missing login, API-key-only
 login, forced API login or revoked sign-in writes `false`, allowing Codex to
 reach the local gateway with its configured bearer without stopping at login.
-An unknown read (a partial auth.json or failed credential-store read) retains
-the conservative `true` behavior. A spent allowance alone does not sign the
+An unknown read (a partial auth.json or failed credential-store read) preserves
+the existing boolean in the managed provider table. With no valid previous
+value it defaults to `true`. This prevents a token refresh from repeatedly
+turning a working API-only client back into a login requirement, including
+after a restart or model change. A spent allowance alone does not sign the
 client out. This replaces the earlier unconditional-true policy.
 
 Apply and Sync use `codexChatGPTKnown` with the adapter's resolved `codexHome`,

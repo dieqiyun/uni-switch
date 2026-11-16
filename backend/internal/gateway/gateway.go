@@ -2144,6 +2144,22 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 	}
 	// any Claude Code subagent's turn, moved or not, for the Routing page's tag
 	subagentID := subagentTurnOf(r, call.Kind, body, desktopPick != nil || subagentEffort != "")
+	// Explicit client selections also qualify bare model names. A saved
+	// session requesting another provider is refused instead of spending it.
+	selectedProvider := provider.AgentProvider(agent)
+	if selectedProvider != "" {
+		if q, bare, found := provider.Resolve(asked); found && q.ID != selectedProvider {
+			if asked != bare {
+				call.Status, call.Error = 403, "client is pinned to another provider"
+				writeError(w, from, 403, "This client uses provider "+selectedProvider+"; choose a model from that provider or change the selection in uni-switch.")
+				turnedAway()
+				return
+			}
+		}
+		if !strings.HasPrefix(asked, selectedProvider+"/") {
+			asked = selectedProvider + "/" + asked
+		}
+	}
 	p, model, ok := provider.Resolve(asked)
 	// a model the user disabled (#1867) — asked by its id, the model a
 	// sub-agent was put on, a group with every model in it disabled — is
@@ -2366,6 +2382,11 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 			others = provider.All()
 		}
 		cands, pl = s.planProviders(p, model, from, others)
+		if selectedProvider != "" {
+			cands, pl, _ = keepCandidates(cands, pl, func(c candidate) bool { return c.p.ID == selectedProvider })
+			pl.unlisted = slices.DeleteFunc(slices.Clone(pl.unlisted), func(c candidate) bool { return c.p.ID != selectedProvider })
+			pl.unlistedW = slices.DeleteFunc(slices.Clone(pl.unlistedW), func(w Weighed) bool { return w.Provider != selectedProvider })
+		}
 		if handedOnOf(r) != nil {
 			// Codex's own sign-in, asked as often as it is asked: only
 			// the fallbacks are left (codexFallBack)

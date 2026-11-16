@@ -14,6 +14,10 @@ if (window.bootPrefs?.uniSwitch) (() => {
     "Desktop and CLI":["桌面端与 CLI","桌面版與 CLI","デスクトップと CLI","Desktop und CLI"],
     "Model configuration":["模型配置","模型設定","モデル設定","Modelleinstellungen"],
     "Use →":["使用 →","使用 →","使用 →","Verwenden →"],
+    "In use":["使用中","使用中","使用中","In Verwendung"],
+    "Use in CLI and Desktop":["同时应用到 CLI 和桌面版","同時套用到 CLI 與桌面版","CLI とデスクトップに適用","Für CLI und Desktop verwenden"],
+    "Applies to Claude Code CLI and Claude Desktop. Restart Claude Desktop to load its new configuration.":["将同时配置 Claude Code CLI 和 Claude 桌面版。请重启 Claude 桌面版以载入新配置。","將同時設定 Claude Code CLI 和 Claude 桌面版。請重新啟動 Claude 桌面版以載入新設定。","Claude Code CLI と Claude Desktop を設定します。新しい設定を読み込むには Claude Desktop を再起動してください。","Konfiguriert Claude Code CLI und Claude Desktop. Claude Desktop neu starten, um die neue Konfiguration zu laden."],
+    "{client} uses {provider}":["{client} 已使用 {provider}","{client} 已使用 {provider}","{client} は {provider} を使用します","{client} verwendet {provider}"],
     "Edit":["编辑","編輯","編集","Bearbeiten"],
     "Current model":["当前模型","目前模型","現在のモデル","Aktuelles Modell"],
     "Available models":["可用模型","可用模型","利用可能なモデル","Verfügbare Modelle"],
@@ -191,11 +195,8 @@ if (window.bootPrefs?.uniSwitch) (() => {
       actions=el("div","uni-card-actions");
       const use=button(say("使用 →","Use →"),"uni-use",e=>{
         e.stopPropagation();
-        const agent=state.agents.find(a=>a.id===selected);
-        if(!agent?.wired){status(t("Connect this client above, then choose a model."));$("#uniClientControls .ag-conn")?.focus(NO_SCROLL);return;}
-        const a=p.agents.find(a=>a.id===selected)||agent;
-        if(modelField(a))pickForAgent(a,p,use,e);
-        else if(agent.models)openAgentModels(agent,use,e);
+        const current=providers.providers.find(x=>x.id===row.dataset.id);
+        if(current)useProvider(current,use);
       });
       use.disabled=!!p.off;
       use.setAttribute("aria-label",t("Use {provider} in {client}",{provider:p.name,client:agent?.name||primary.find(([id])=>id===selected)?.[1]}));
@@ -204,7 +205,12 @@ if (window.bootPrefs?.uniSwitch) (() => {
       actions.append(edit,use);row.append(actions);
       }
       actions.querySelector(".uni-use").setAttribute("aria-label",t("Use {provider} in {client}",{provider:p.name,client:agent?.name||primary.find(([id])=>id===selected)?.[1]}));
-      actions.querySelector(".uni-use").disabled=!!p.off;
+      const current=providerInUse(p);
+      row.classList.toggle("uni-provider-active",current);
+      const use=actions.querySelector(".uni-use");
+      use.textContent=t(current?"In use":"Use →");
+      use.disabled=!!p.off||current;
+      if(current)use.setAttribute("aria-label",t("In use")+" · "+p.name);
       const modelFieldHere=agent?.fields?.find(f=>f.key==="model");
       const chosen=p.agents.find(a=>a.id===selected&&a.current)?.model;
       const active=p.models.filter(m=>m.on);
@@ -249,6 +255,45 @@ if (window.bootPrefs?.uniSwitch) (() => {
     window.renderClientImageSetup?.(selected, primary.find(([id])=>id===selected)?.[1] || selected);
     renderProviderEntry();
     renderHeading();
+  }
+  function providerInUse(p) {
+    const ids=selected==="claude"?["claude","claude-desktop"]:[selected];
+    return !p.off && ids.every(id=>{
+      const a=state.agents.find(a=>a.id===id);
+      if(!a?.wired)return false;
+      const pinned=state.settings?.agentProviders?.[id];
+      if(pinned)return pinned===p.id;
+      const field=a.fields.find(f=>f.key===(id==="claude-desktop"?"sonnet":"model"));
+      return !!field && ofProvider(p).test(field.value);
+    });
+  }
+  async function useProvider(p,trigger) {
+    const client=selected;
+    trigger.disabled=true;
+    try {
+      const models=await api("agents/provider-models/"+encodeURIComponent(client)+"?provider="+encodeURIComponent(p.id));
+      if(!models.length){status(t("{p} exposes no models yet — pick some below",{p:p.name}),"warn");return;}
+      const ed=el("div","editor uni-provider-pick");
+      ed.append(el("h2","",t("Use {provider} in {client}",{provider:p.name,client:primary.find(([id])=>id===client)?.[1]||client})));
+      const label=el("label","",t("Current / available model"));
+      const choose=el("select","");choose.id="uniProviderModel";label.htmlFor=choose.id;
+      for(const m of models){const o=document.createElement("option");o.value=m.value;o.textContent=m.label||m.value;choose.append(o);}
+      const existing=state.agents.find(a=>a.id===client)?.fields.find(f=>f.key==="model")?.value;
+      if(models.some(m=>m.value===existing))choose.value=existing;
+      ed.append(label,choose);
+      if(client==="claude")ed.append(el("p","sub",t("Applies to Claude Code CLI and Claude Desktop. Restart Claude Desktop to load its new configuration.")));
+      const bar=el("div","bar"),cancel=button(t("Cancel"),"text",()=>closeConfirmAsk());
+      const apply=button(t(client==="claude"?"Use in CLI and Desktop":"Use →"),"text primary",async()=>{
+        apply.disabled=true;cancel.disabled=true;choose.disabled=true;
+        try{
+          state=await api("agents/use-provider/"+encodeURIComponent(client),{provider:p.id,model:choose.value});
+          closeConfirmAsk();renderAgents();await loadProviders();
+          status(t("{client} uses {provider}",{client:client==="claude"?"Claude Code CLI + Claude Desktop":primary.find(([id])=>id===client)?.[1]||client})+(client==="claude"?" · "+t("Applies to Claude Code CLI and Claude Desktop. Restart Claude Desktop to load its new configuration."):""),"ok",9000);
+        }catch(error){statusErr(error);apply.disabled=false;cancel.disabled=false;choose.disabled=false;}
+      });
+      bar.append(cancel,apply);ed.append(bar);confirmAsk=ed;openModal(ed);choose.focus(NO_SCROLL);
+    }catch(error){statusErr(error);}
+    finally{enhanceProviders();}
   }
   let openingProvider = false;
   async function openProviderSetup(custom = false, trigger = null) {
@@ -309,6 +354,20 @@ if (window.bootPrefs?.uniSwitch) (() => {
     if(!panel){panel=el("div","uni-client-controls");panel.id="uniClientControls";$("#view-providers").prepend(panel);}
     const focus=panel.contains(document.activeElement)?document.activeElement.dataset.uniControl:null;
     panel.replaceChildren();
+    if(selected==="claude"){
+      for(const [id,name] of [["claude","Claude Code CLI"],["claude-desktop","Claude Desktop"]]){
+        const a=state.agents.find(a=>a.id===id),group=el("div","uni-client-target");
+        group.append(el("strong","",name));
+        if(a&&connectable(a)){const sw=connectSwitch(a);sw.dataset.uniControl="connect-"+id;group.append(sw);}
+        else if(!a){const prepare=button(t("Connect"),"text",async()=>{prepare.disabled=true;try{state=await api("agents/connect/"+id,{});renderAgents();}catch(error){prepare.disabled=false;statusErr(error);}});prepare.dataset.uniControl="connect-"+id;group.append(prepare);}
+        if(a?.wired&&id==="claude"){const f=modelField(a);if(f){const pick=button(optionFor(f,f.value)?.label||f.value,"field uni-model",ev=>openPicker(a,f,pick,ev));pick.setAttribute("aria-label",name+" · "+t("Current / available model"));pick.dataset.uniControl="model-"+id;group.append(pick);}}
+        if(a?.wired&&id==="claude-desktop"){const pick=button(t("Model configuration"),"text",ev=>{const field=a.fields.find(f=>f.key==="sonnet");if(field)openPicker(a,field,pick,ev);});pick.dataset.uniControl="model-"+id;group.append(pick);}
+        panel.append(group);
+      }
+      panel.append(el("p","uni-desktop-hint",t("Applies to Claude Code CLI and Claude Desktop. Restart Claude Desktop to load its new configuration.")));
+      if(focus)panel.querySelector('[data-uni-control="'+focus+'"]')?.focus(NO_SCROLL);
+      return;
+    }
     if(!agent)return;
     panel.append(el("strong","",agent.name));
     if(connectable(agent)){const sw=connectSwitch(agent);sw.dataset.uniControl="connect";panel.append(sw);}

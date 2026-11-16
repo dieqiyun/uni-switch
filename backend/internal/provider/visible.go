@@ -86,8 +86,9 @@ var catalogsBuilt atomic.Int64
 func catalogFor(agent string) (shown, hidden []Entry) {
 	listed, hidden := ListedFor(agent)
 	off := ModelOff(agent)
+	selected := AgentProvider(agent)
 	for _, e := range listed {
-		if off(e.ID) {
+		if off(e.ID) || selected != "" && e.Provider.ID != selected {
 			hidden = append(hidden, e)
 		} else {
 			shown = append(shown, e)
