@@ -2,6 +2,11 @@ name: Build desktop releases
 
 on:
   workflow_dispatch:
+    inputs:
+      skip_verification:
+        description: 'Skip tests, lint and launch checks for an explicitly requested hotfix'
+        type: boolean
+        default: false
   push:
     tags:
       - 'v*'
@@ -53,11 +58,13 @@ jobs:
           go-version: '1.26.8'
           cache: false
       - name: Go core tests
+        if: ${{ !inputs.skip_verification }}
         run: node scripts/test-go.mjs -timeout=20m -p=2
       - name: Go core vet
+        if: ${{ !inputs.skip_verification }}
         run: node scripts/test-go.mjs vet
       - name: Go race detector
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !inputs.skip_verification
         run: node scripts/test-go.mjs -race -timeout=30m -p=2
       - name: Build own Go core
         run: node scripts/build-go.mjs
@@ -73,30 +80,35 @@ jobs:
       - name: Audit release source
         run: python scripts/audit-source.py
       - name: Verify documentation
+        if: ${{ !inputs.skip_verification }}
         run: corepack pnpm docs:check
       - name: Frontend typecheck
+        if: ${{ !inputs.skip_verification }}
         run: corepack pnpm typecheck
       - name: Frontend tests
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !inputs.skip_verification
         run: corepack pnpm test
       - name: Rust tests
+        if: ${{ !inputs.skip_verification }}
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
       - name: Embedded core management contract
+        if: ${{ !inputs.skip_verification }}
         run: node scripts/qa-source-core.mjs
       - name: Clippy
+        if: ${{ !inputs.skip_verification }}
         run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - name: Build native packages
         run: corepack pnpm tauri build ${{ matrix.build_args }}
       - name: Linux isolated launch
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !inputs.skip_verification
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: dbus-run-session -- xvfb-run -a python scripts/smoke-platform.py linux-x64
       - name: macOS isolated launch and universal signature
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && !inputs.skip_verification
         run: python scripts/smoke-platform.py macos-universal
       - name: Windows isolated launch
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !inputs.skip_verification
         run: python scripts/smoke-platform.py windows-x64
       - name: Collect versioned artifacts
         run: python scripts/collect-platform-assets.py ${{ matrix.platform }}

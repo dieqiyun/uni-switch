@@ -236,6 +236,7 @@ func Merge(body []byte, cur settings.Settings, web bool) (settings.Settings, err
 	// round — keyed by agent, not by "<provider>/<model>" — so they are
 	// not among them, and belong to the Agents page.
 	in.Visible, in.HiddenModels, in.OrderedModels = cur.Visible, cur.HiddenModels, cur.OrderedModels
+	in.AgentProviders = cur.AgentProviders // selected on the client Providers page
 	in.PickedModels = cur.PickedModels       // "only models I pick" (#1337)
 	in.OwnModelsHidden = cur.OwnModelsHidden // an agent's own models left out (#1642)
 	in.FastPicks = cur.FastPicks             // switched in the agents' pickers (#954)

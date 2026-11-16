@@ -12,6 +12,8 @@
 
 ## 产物与发布
 
+维护者明确要求跳过功能验证的紧急修复，可手动触发构建并传入 `skip_verification=true`；这会跳过测试、静态检查和隔离启动，但仍执行源码凭据审计、原生编译、打包和发布附件校验。默认构建继续执行全部检查，发布说明须注明本次跳过验证。
+
 下载成功工作流的三组产物，运行 `scripts/prepare-multiplatform-release.py --artifacts 产物目录`。该脚本核对各 build-manifest 的版本、提交、文件哈希，要求与当前源码提交一致；生成精确对应的 source.zip、完整教程、SHA256SUMS 及本地发布清单。
 
 发布附件共十项：Windows 安装/独立/便携三项，Linux DEB / AppImage 两项，macOS DMG / app.tar.gz 两项，对应 source.zip、README-zh-CN.md 和 SHA256SUMS.txt。

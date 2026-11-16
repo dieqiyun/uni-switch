@@ -644,11 +644,20 @@ func codexIn(at place) *Agent {
 	}
 	// Codex checks this before contacting the gateway. A known missing or
 	// unusable sign-in must allow the gateway bearer to work without login.
-	// An unreadable/partly rewritten auth file is unknown, so keep requiring
-	// auth until it can be read. dir is the resolved CODEX_HOME/WSL location.
+	// A transient/partial auth read must not turn a working API-only setup
+	// back into a login requirement. Keep its last value until a known read;
+	// a new provider still defaults to requiring auth when the read is unknown.
 	openAIAuth := func() bool {
 		signedIn, known := codexChatGPTKnown(dir)
-		return !known || signedIn
+		if known {
+			return signedIn
+		}
+		if table, err := edit.GetTOMLTable(path, "model_providers."+uniSwitchID); err == nil && table != nil {
+			if value, err := strconv.ParseBool(table["requires_openai_auth"]); err == nil {
+				return value
+			}
+		}
+		return true
 	}
 	putProvider := func() error {
 		kvs := []edit.KV{

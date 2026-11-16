@@ -1029,6 +1029,7 @@ func Handler(w Windows, gw *gateway.Server) http.Handler {
 			keepStateSummed(s, sum)
 		}
 	})
+	agentProviderAPI(mux)
 	mux.HandleFunc("POST /api/set", func(rw http.ResponseWriter, r *http.Request) {
 		var in struct{ Agent, Field, Value string }
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {

@@ -70,3 +70,33 @@ func TestCodexProviderAuthUsesCustomHome(t *testing.T) {
 	}
 	check("false")
 }
+
+func TestCodexPartialAuthKeepsAPIOnlyAcrossRestartAndModelChange(t *testing.T) {
+	home, read := codexHome(t, `{"OPENAI_API_KEY":"synthetic"}`, "")
+	cx := codex(home)
+	if err := cx.Pick("model", "fake/m1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, raw := range []string{" ", `{"tokens":`} {
+		writeFile(t, filepath.Join(home, ".codex", "auth.json"), raw)
+		cx = codex(home) // a fresh adapter after restarting uni-switch
+		for range 3 {
+			if err := cx.Sync(); err != nil {
+				t.Fatal(err)
+			}
+			if err := cx.Pick("model", "fake/m1"); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(read(), "requires_openai_auth = false") {
+				t.Fatalf("partial auth re-enabled login:\n%s", read())
+			}
+		}
+	}
+	writeFile(t, filepath.Join(home, ".codex", "auth.json"), `{"tokens":{"access_token":"synthetic","id_token":"x.e30.x"}}`)
+	if err := cx.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(read(), "requires_openai_auth = true") {
+		t.Fatal("a complete sign-in did not restore account auth")
+	}
+}

@@ -113,11 +113,11 @@
   },
   {
     "file": "backend/internal/gui/settings_keep_test.go",
-    "sha256": "c1278bd90bee85acf2dd548ce62904aca3014e07010d16004df462879c8a81f8",
+    "sha256": "9d1cd4c26125d3a4b228b1f2269c319312ada2b8560487c0f81baa452edb52de",
     "types": [
       "credential_url"
     ],
-    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file. Updated synthetic fixture after removing configurable masking; no private client data."
+    "reason": "Synthetic fixed-source test fixture, not a user credential or generated runtime file. Updated synthetic fixture after removing configurable masking; no private client data. Adds the client provider-selection preservation fixture; the existing example.invalid/example.com proxy credential remains synthetic test input."
   },
   {
     "file": "backend/internal/gui/tests/github-token.test.cjs",

@@ -7,7 +7,7 @@
 - Anthropic Messages Base URL：https://cfapi.dieqiyun.top（请求路径 /v1/messages）
 - 服务端点选择（按用户 2026-11-09 提供的官网截图）：
   - 普通用户（默认推荐）：`https://cfapi.dieqiyun.top`
-  - 下游对接（美国洛杉矶）：`https://haapi.dieqiyun.top`
+  - 下游对接（美国洛杉矶）：`https://hgapi.dieqiyun.top`
   - 生图专用：`https://cfimg.dieqiyun.top`，不提供 Responses / Anthropic 地址或对话端点测试。
   - CF CDN 备用：`https://hw.dieqiyun.top`
 - 对话端点沿用 OpenAI / Responses 的 `/v1` 地址和 Anthropic 根地址；生图专用端点使用 `/v1` 作为图像 API 的基础地址。切换端点会自动更新表单地址，保存后才应用；已有自定义地址不会自动改写。

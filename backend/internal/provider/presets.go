@@ -133,7 +133,7 @@ var presets = []PresetDef{
 			{ID: "cfapi", Name: "Recommended endpoint", Note: "For regular users. CDN endpoint; recommended by default.",
 				Chat: "https://cfapi.dieqiyun.top/v1", Responses: "https://cfapi.dieqiyun.top/v1", Anthropic: "https://cfapi.dieqiyun.top"},
 			{ID: "haapi", Name: "Downstream endpoint", Note: "Los Angeles endpoint for downstream resellers. Regular users should use the recommended endpoint.",
-				Chat: "https://haapi.dieqiyun.top/v1", Responses: "https://haapi.dieqiyun.top/v1", Anthropic: "https://haapi.dieqiyun.top"},
+				Chat: "https://hgapi.dieqiyun.top/v1", Responses: "https://hgapi.dieqiyun.top/v1", Anthropic: "https://hgapi.dieqiyun.top"},
 			{ID: "hw", Name: "CF CDN backup", Note: "Backup endpoint behind Cloudflare CDN.",
 				Chat: "https://hw.dieqiyun.top/v1", Responses: "https://hw.dieqiyun.top/v1", Anthropic: "https://hw.dieqiyun.top"},
 		}},

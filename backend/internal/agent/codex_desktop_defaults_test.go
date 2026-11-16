@@ -82,7 +82,11 @@ func TestCodexManagedDesktopDefaults(t *testing.T) {
 			if err := cx.Sync(); err != nil {
 				t.Fatal(err)
 			}
-			assertCodexDesktopDefaults(t, path, c.want)
+			want := c.want
+			if c.name == "unknown sign-in" {
+				want = "false" // a partial read preserves the working API-only value
+			}
+			assertCodexDesktopDefaults(t, path, want)
 			before := read()
 			if err := cx.Sync(); err != nil || read() != before {
 				t.Fatalf("stable defaults rewritten: %v\n%s", err, read())
