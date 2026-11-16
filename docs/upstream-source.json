@@ -29722,8 +29722,8 @@
     },
     {
       "path": "docs/subsystems/gateway-routing.md",
-      "sha256": "5839a4f4ddafc0c4d155cff63fd9783221bc720b55ac53da6e81c4ffdb494ee2",
-      "reason": "Document watch model updates after delayed body parsing so timeout reports remain identifiable, alongside the retained local gateway and ordinary fallback contracts."
+      "sha256": "43a59e39d8cd66cf577f68702c4fe4c08bdfed0192f33e8d7c16641fb8ea9898",
+      "reason": "Document watch model updates after delayed body parsing so timeout reports remain identifiable, alongside the retained local gateway and ordinary fallback contracts. Recognize a failed HTTP/1.1 request write when the reader returns EOF first; preserve complete-write and unknown-write boundaries."
     },
     {
       "path": "docs/subsystems/gateway-sessions.md",
@@ -39436,8 +39436,8 @@
     },
     {
       "path": "internal/gateway/upstream_transport.go",
-      "sha256": "a452cab555f1c85d74d0bcf9644dda4c3d7f71376279636bf676d8e34a415660",
-      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair integrated retained behavior: local key attribution and revocation, ordinary provider/key fallback, stable client sync, native identity and Windows transport/path handling; remove retired terminal usage reports."
+      "sha256": "9e7ea27920b55a64a04e421f655186627a66f17f092e15999931f991afdb97e6",
+      "reason": "Use the uni-switch product, module and client/wire namespaces; remove built-in vendor API presets and unavailable upstream services/recommendations. Repair integrated retained behavior: local key attribution and revocation, ordinary provider/key fallback, stable client sync, native identity and Windows transport/path handling; remove retired terminal usage reports. Recognize a failed HTTP/1.1 request write when the reader returns EOF first; preserve complete-write and unknown-write boundaries."
     },
     {
       "path": "internal/gateway/upstream.go",
@@ -54283,6 +54283,11 @@
       "path": "internal/sessions/prefix_hash_test.go",
       "sha256": "b8bc50cb91e56659712657be5ca88a119e5bfda7485cc0b03629f17ac4f8dcb1",
       "reason": "Allow a cold 64 KiB scratch buffer on every hash under race/GC pool eviction and count allocations to reject the old per-sample reader/buffer path; preserve exact hash and missing-tail checks."
+    },
+    {
+      "path": "internal/gateway/upstream_closed_unsent_test.go",
+      "reason": " Recognize a failed HTTP/1.1 request write when the reader returns EOF first; preserve complete-write and unknown-write boundaries.",
+      "sha256": "5445cfce3d4a0640275891a52ec7102099d86edb09dd69d1419ecca0a45133b2"
     }
   ],
   "removedFiles": [
