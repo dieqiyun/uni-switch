@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.5.30 — 2026-11-16
+
+- 修正蝶祈云 API「下游对接」端点为 `https://hgapi.dieqiyun.top`，同步更新 Chat Completions、Responses、Anthropic 地址与余额探测主机配置。
+- 按维护者要求跳过功能验证，直接构建并发布 Windows、Linux、macOS 安装包及对应源码。
+
 ## 0.5.29 — 2026-11-15
 
 - 同一个供应商支持多个命名 API Key 分组，分别获取和调整可用模型；新增供应商可填写首个 Key 的分组名称，已有 Key 支持重命名。

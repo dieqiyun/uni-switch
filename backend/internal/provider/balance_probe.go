@@ -123,7 +123,7 @@ var noProbeHosts = []string{
 	"ollama.com",
 	"inference-api.nousresearch.com",
 	"cfapi.dieqiyun.top",
-	"haapi.dieqiyun.top",
+	"hgapi.dieqiyun.top",
 	"cfimg.dieqiyun.top",
 	"hw.dieqiyun.top",
 }
