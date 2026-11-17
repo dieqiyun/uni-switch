@@ -2399,7 +2399,7 @@ func Handler(w Windows, gw *gateway.Server) http.Handler {
 	devListen(mux)
 	page := noFramedAPI(held(mux))
 	if uniSwitchApplication.Load() {
-		return uniSwitchPage(page, Version)
+		return noFramedAPI(uniSwitchPage(page, Version, desktopUpdater(w)))
 	}
 	return page
 }

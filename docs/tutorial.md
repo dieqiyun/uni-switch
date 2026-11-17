@@ -5,10 +5,18 @@ uni-switch 在本机管理 AI 供应商、API Key 和客户端模型配置。首
 ## 安装与启动
 
 - Windows：运行 `x64-setup.exe` 安装；便携版解压后运行 `uni-switch.exe`。
-- Linux：安装 `.deb` 包，或给 `.AppImage` 添加执行权限后运行，例如 `chmod +x uni-switch_0.5.29_x86_64.AppImage`。
+- Linux：安装 `.deb` 包，或给下载的 `.AppImage` 添加执行权限后运行，例如 `chmod +x uni-switch_*.AppImage`。
 - macOS：打开通用 `.dmg`，把应用拖入「应用程序」。发行包使用 ad-hoc 签名，未做 Apple Developer ID 公证；首次打开可能需要在系统设置中确认。
 
 启动后保持 uni-switch 运行，让客户端能够访问本机网关。下载时可以用 `SHA256SUMS.txt` 核对文件；Windows 可使用 PowerShell 的 `Get-FileHash -Algorithm SHA256`。
+
+## 检查和安装更新
+
+v0.5.32 起，默认在启动时和每六小时查询本项目 GitHub 最新稳定版。点击侧栏底部的版本行进入「设置 > 关于」，可以手动检查或关闭自动检查；发现新版后，侧栏显示「有新版本」。
+
+点击「下载更新」后显示实际进度，可取消和重试。安装包通过大小、SHA-256 和格式校验后，再单独点击「安装更新」。Windows 打开安装向导并退出 uni-switch，完成后重新打开；macOS 打开 DMG，由用户替换应用；Linux 打开 DEB 系统安装程序或 AppImage 下载目录。也可通过「GitHub 下载」手动获取安装包。关闭 uni-switch 期间，本地网关暂时停止。
+
+**v0.5.30 / v0.5.31 需要先从 GitHub 发布页手动升级一次**，旧版缺少实际查询更新的客户端代码，无法仅靠远端发布新版本获得提示。
 
 ## 添加供应商和 API Key
 

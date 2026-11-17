@@ -263,6 +263,14 @@ html.uni-native #textSizeRow, html.uni-native #loginRow { display: flex !importa
 .manual-models > input { box-sizing: border-box; min-width: 0; max-width: calc(100% - 20px); }
 .res.connection-failure { display: block; height: auto; padding: 5px 7px; min-width: 0; white-space: normal; }
 .res.connection-failure .connection-reason { white-space: normal; }
+html.uni-switch .uni-update-row { flex-wrap:wrap; }
+html.uni-switch .uni-update-panel { flex:1 1 100%; min-width:0; padding-top:10px; }
+html.uni-switch .uni-update-actions { display:flex; flex-wrap:wrap; gap:8px 16px; padding:10px 0; }
+html.uni-switch .uni-update-preferences { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:10px 0; }
+html.uni-switch .uni-update-status, html.uni-switch .uni-update-detail { white-space:normal; overflow-wrap:anywhere; }
+html.uni-switch .uni-update-panel progress { width:100%; margin:10px 0; }
+html.uni-switch .uni-update-panel [hidden] { display:none; }
+html.uni-switch .uni-update-notes { max-height:240px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; color:var(--muted); padding:12px; background:var(--card); border-radius:8px; }
 /* Endpoint failures occupy their own row; expanded details grow the list. */
 html.uni-switch .editor .eps .ep { display:grid; grid-template-columns:64px minmax(0,1fr) auto; align-items:center; gap:6px 8px; height:auto; min-height:24px; }
 html.uni-switch .editor .eps .ep > .pl { grid-column:1; grid-row:1; }

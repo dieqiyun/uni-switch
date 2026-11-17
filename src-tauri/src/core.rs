@@ -55,6 +55,7 @@ impl Core {
         command
             .arg("__uni_switch_desktop")
             .env("UNI_SWITCH_DATA_DIR", directory)
+            .env("UNI_SWITCH_DESKTOP_EXE", std::env::current_exe()?)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(log);

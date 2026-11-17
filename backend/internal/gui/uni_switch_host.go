@@ -8,13 +8,16 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/dieqiyun/uni-switch/backend/internal/desktopupdate"
 	"github.com/dieqiyun/uni-switch/backend/internal/proc"
+	"github.com/dieqiyun/uni-switch/backend/internal/settings"
 )
 
 // Only OS-window operations cross the inherited pipes. All business APIs and
@@ -25,6 +28,7 @@ type uniSwitchHost struct {
 	mu       sync.Mutex
 	pending  map[uint64]chan string
 	sequence atomic.Uint64
+	updater  *desktopupdate.Updater
 }
 
 // Also marks optional browser-access pages served by this same application.
@@ -78,9 +82,13 @@ func (*uniSwitchHost) OpenFolder(path string) error {
 
 // Distribution endpoints belong to our desktop bundle. Provider, plugin,
 // agent, model, protocol and gateway handlers pass through unchanged.
-func uniSwitchPage(next http.Handler, version string) http.Handler {
+func uniSwitchPage(next http.Handler, version string, updater *desktopupdate.Updater) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
+		if updater != nil && (p == "/api/update" || strings.HasPrefix(p, "/api/update/")) {
+			uniSwitchUpdateAPI(w, r, updater)
+			return
+		}
 		if p == "/api/update" && r.Method == "GET" {
 			writeJSON(w, map[string]any{"current": version, "version": version})
 			return
@@ -108,6 +116,9 @@ func RunUniSwitchCore(version string) error {
 	var once sync.Once
 	stop := func() { once.Do(func() { close(quit) }) }
 	host := &uniSwitchHost{quit: stop, encode: json.NewEncoder(os.Stdout), pending: make(map[uint64]chan string)}
+	host.updater = desktopupdate.New(version, filepath.Join(settings.Dir(), "desktop-updates"), host.installUpdate)
+	host.updater.Start()
+	defer host.updater.Close()
 	// A separate authenticated management port never serves inference routes.
 	gw := startBackend()
 	server := &http.Server{Handler: webHandler(port, key, 0, Handler(host, gw)), ReadHeaderTimeout: 30 * time.Second}
