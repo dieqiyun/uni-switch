@@ -5,6 +5,21 @@ if (window.bootPrefs?.uniSwitch) (() => {
     "Sent with that event, by built-in ids and counts; a provider you added yourself is only “custom”. No names, addresses, accounts, keys or usage":["随该事件发送内置 ID 和数量；自行添加的供应商仅记为 custom。不含名称、地址、账号、密钥或用量。","隨該事件傳送內建 ID 與數量；自行新增的供應商僅記為 custom。不含名稱、位址、帳號、金鑰或用量。","組み込み ID と件数を送信します。独自のプロバイダーは custom として記録されます。名前、アドレス、アカウント、キー、使用量は含まれません。","Sendet integrierte IDs und Anzahlen. Eigene Anbieter werden als custom erfasst. Keine Namen, Adressen, Konten, Schlüssel oder Nutzungsdaten."],
     "View releases":["查看发布页","查看發布頁","リリースを見る","Versionen ansehen"],
     "New version":["有新版本","有新版本","新バージョンあり","Neue Version verfügbar"],
+    "Check GitHub for updates":["检查 GitHub 更新","檢查 GitHub 更新","GitHub の更新を確認","Auf GitHub nach Updates suchen"],
+    "Download update":["下载更新","下載更新","更新をダウンロード","Update herunterladen"],
+    "Install update":["安装更新","安裝更新","更新をインストール","Update installieren"],
+    "GitHub download":["GitHub 下载","GitHub 下載","GitHub ダウンロード","GitHub-Download"],
+    "Checks GitHub at startup and every six hours. Downloads and installation require your click.":["启动时及每六小时查询 GitHub。下载和安装均需你点击确认。","啟動時及每六小時查詢 GitHub。下載和安裝均需你點選確認。","起動時と6時間ごとに GitHub を確認します。ダウンロードとインストールはクリックで開始します。","Prüft GitHub beim Start und alle sechs Stunden. Download und Installation starten erst per Klick."],
+    "Automatic update checks are off. You can check manually.":["自动检查已关闭，仍可手动检查更新。","自動檢查已關閉，仍可手動檢查更新。","自動確認はオフです。手動で確認できます。","Automatische Prüfung ist aus. Manuelles Prüfen ist möglich."],
+    "Check automatically":["自动检查更新","自動檢查更新","自動で更新を確認","Automatisch nach Updates suchen"],
+    "Canceling…":["正在取消…","正在取消…","キャンセル中…","Wird abgebrochen…"],
+    "Latest release: {v}":["最新版本：{v}","最新版本：{v}","最新リリース: {v}","Neueste Version: {v}"],
+    "Checked: {time}":["检查时间：{time}","檢查時間：{time}","確認日時: {time}","Geprüft: {time}"],
+    "Verified. Click Install update to continue.":["校验通过，点击「安装更新」继续。","驗證通過，點選「安裝更新」繼續。","検証済みです。「更新をインストール」で続行します。","Geprüft. Zum Fortfahren auf Update installieren klicken."],
+    "Windows will open the installer and close uni-switch. Complete the installation wizard, then reopen uni-switch.":["Windows 将打开安装程序并退出 uni-switch。请完成安装向导后重新打开 uni-switch。","Windows 將開啟安裝程式並結束 uni-switch。請完成安裝精靈後重新開啟 uni-switch。","Windows インストーラーを開き uni-switch を終了します。インストール後に uni-switch を開いてください。","Windows öffnet das Installationsprogramm und beendet uni-switch. Den Assistenten abschließen und uni-switch erneut öffnen."],
+    "Open the downloaded disk image, replace uni-switch in Applications, then reopen it.":["打开下载的磁盘映像，替换「应用程序」中的 uni-switch 后重新打开。","開啟下載的磁碟映像，替換「應用程式」中的 uni-switch 後重新開啟。","ディスクイメージを開き、アプリケーション内の uni-switch を置き換えて再起動してください。","Das Disk-Image öffnen, uni-switch unter Programme ersetzen und erneut öffnen."],
+    "Open the downloaded package with your system installer, then reopen uni-switch.":["使用系统安装程序打开下载的软件包，安装完成后重新打开 uni-switch。","使用系統安裝程式開啟下載的套件，安裝完成後重新開啟 uni-switch。","システムのインストーラーでパッケージを開き、完了後に uni-switch を再起動してください。","Das Paket mit der Systeminstallation öffnen und uni-switch danach erneut öffnen."],
+    "The download folder will open. Replace your AppImage, make it executable, then reopen uni-switch.":["将打开下载目录。请替换原 AppImage，添加执行权限后重新打开 uni-switch。","將開啟下載目錄。請替換原 AppImage，加入執行權限後重新開啟 uni-switch。","ダウンロードフォルダーが開きます。AppImage を置き換え、実行権限を付けて起動してください。","Der Downloadordner wird geöffnet. AppImage ersetzen, ausführbar machen und uni-switch erneut öffnen."],
     "uni-switch recommended providers":["uni-switch推荐供应商","uni-switch推薦供應商","uni-switchおすすめプロバイダー","Von uni-switch empfohlene Anbieter"],
     "Connect this client above, then choose a model.":["请先在上方接入当前客户端，再选择模型。","請先在上方連接目前用戶端，再選擇模型。","上でクライアントを接続してからモデルを選択してください。","Diesen Client oben verbinden, dann ein Modell wählen."],
     "Client not detected. Add a provider to prepare its configuration.":["未检测到此客户端。可先添加供应商准备配置。","未偵測到此用戶端。可先新增供應商準備設定。","クライアント未検出。プロバイダーを追加して設定を準備できます。","Client nicht erkannt. Einen Anbieter hinzufügen, um die Einrichtung vorzubereiten."],
@@ -94,13 +109,13 @@ if (window.bootPrefs?.uniSwitch) (() => {
     if(servedAnew(u))return;
     if(u)updateLast=u,u.at=Date.now();
     const current=u||updateLast;
-    const available=!!current?.latest && current.latest!==pageVersion && ["available","found","ready"].includes(current.state);
+    const available=!!current?.latest && current.latest!==pageVersion && ["available","found","ready","downloading","canceling","installing","error"].includes(current.state);
     const b=$("#update"), label=b.querySelector("span");
     b.hidden=false;
     b.classList.toggle("uni-update-available",available);
     label.textContent=available ? `v${pageVersion} · ${t("New version")}` : `${t("Version")} v${pageVersion}`;
-    b.title=available ? `${t("New version")} ${current.latest} · ${t("View releases")}` : `${t("Version")} v${pageVersion}`;
-    b.onclick=available ? openReleases : e=>openSettingsAt(e,"about");
+    b.title=available ? `${t("New version")} ${current.latest}` : `${t("Version")} v${pageVersion}`;
+    b.onclick=e=>openSettingsAt(e,"about");
     b.oncontextmenu=null;
     $("#updateHide").hidden=true;
   };
@@ -390,13 +405,67 @@ if (window.bootPrefs?.uniSwitch) (() => {
   const add=button("+ " + t("Add Dieqiyun provider"),"uni-add",e=>openProviderSetup(false,e.currentTarget));
   $(".top .actions").prepend(add);
   window.uniSwitchQuit=()=>askQuit();
-  // The distribution belongs to this desktop bundle, not the source project's
-  // installer. Keep a real release-page action instead of an inert updater.
-  renderUpdate = async (row) => {
-    const value=row.querySelector(".val");
-    const release=button(say("查看发布页","View releases"),"text",openReleases);
-    value.replaceChildren(el("code","",pageVersion),release);
-    row.querySelector(".who .sub")?.remove();
+  // Keep the original standalone core updater out of the desktop distribution.
+  // This API downloads the complete, matching uni-switch desktop installer.
+  renderUpdate = async (row, snapshot) => {
+    clearTimeout(row.uniUpdateTimer);
+    const epoch=row.uniUpdateEpoch=(row.uniUpdateEpoch||0)+1;
+    let panel=row.querySelector(".uni-update-panel");
+    if(!panel){
+      row.classList.add("uni-update-row");
+      panel=el("div","uni-update-panel");
+      const status=el("div","uni-update-status"),detail=el("div","sub uni-update-detail");
+      status.setAttribute("role","status");status.setAttribute("aria-live","polite");
+      const progress=document.createElement("progress");progress.max=100;progress.setAttribute("aria-label",t("Download update"));
+      const actions=el("div","uni-update-actions"),notes=el("pre","uni-update-notes");
+      for(const [action,label] of [["check","Check GitHub for updates"],["download","Download update"],["cancel","Cancel"],["install","Install update"],["github","GitHub download"]]){
+        const b=button(t(label),"text",async()=>{
+          if(panel.dataset.pending)return;
+          if(action==="github")return openReleases();
+          panel.dataset.pending="1";++row.uniUpdateEpoch;
+          for(const control of actions.querySelectorAll("button"))control.disabled=true;
+          try{
+            const current=panel.uniState||{};
+            const body=action==="download"?{version:current.latest}:action==="install"?{task:current.task}:{};
+            const next=await api("update/"+action,body);
+            delete panel.dataset.pending;
+            await renderUpdate(row,next);renderUpdateBadge();
+          }catch(error){
+            delete panel.dataset.pending;
+            await renderUpdate(row);
+            status.textContent=t("Update failed")+": "+error.message;
+          }
+        });
+        b.dataset.updateAction=action;actions.append(b);
+      }
+      panel.append(status,progress,detail,actions,notes);
+      row.querySelector(".val").replaceChildren(el("code","",pageVersion));
+      row.append(panel);row.querySelector(".who .sub")?.remove();
+    }
+    if(panel.dataset.pending)return;
+    let u=snapshot;
+    try{u??=await api(updatePath("update"));}catch(error){
+      if(row.uniUpdateEpoch!==epoch)return;
+      panel.querySelector(".uni-update-status").textContent=t("Update failed")+": "+error.message;
+      return;
+    }
+    if(!row.isConnected||row.uniUpdateEpoch!==epoch)return;
+    panel.uniState=u;updateLast={...u,at:Date.now()};
+    const busy=["checking","downloading","canceling","installing"].includes(u.state);
+    const newer=u.latest&&u.latest!==pageVersion&&u.state!=="latest";
+    const status=panel.querySelector(".uni-update-status"),progress=panel.querySelector("progress"),detail=panel.querySelector(".uni-update-detail");
+    const installHelp=u.installVia==="windows"?"Windows will open the installer and close uni-switch. Complete the installation wizard, then reopen uni-switch.":u.installVia==="darwin"?"Open the downloaded disk image, replace uni-switch in Applications, then reopen it.":u.installVia==="appimage"?"The download folder will open. Replace your AppImage, make it executable, then reopen uni-switch.":"Open the downloaded package with your system installer, then reopen uni-switch.";
+    status.textContent=u.state==="checking"?t("Checking…"):u.state==="downloading"?t("Downloading…")+` ${u.total>0?Math.min(100,Math.floor(u.done/u.total*100)):0}% · ${(u.done/1e6).toFixed(1)} / ${(u.total/1e6).toFixed(1)} MB`:u.state==="ready"?t("Verified. Click Install update to continue."):u.state==="error"?t("Update failed")+": "+u.error:u.state==="handedoff"?t(installHelp):u.state==="canceling"?t("Canceling…"):u.state==="installing"?t("Updating…"):u.latest?t("Latest release: {v}",{v:u.latest}):t("Check GitHub for updates");
+    if(newer&&u.state!=="available")status.textContent=t("Latest release: {v}",{v:u.latest})+" · "+status.textContent;
+    progress.hidden=u.state!=="downloading";progress.value=u.total>0?Math.min(100,u.done/u.total*100):0;
+    detail.textContent=(u.state==="ready"?t(installHelp):u.autoCheck?t("Checks GitHub at startup and every six hours. Downloads and installation require your click."):t("Automatic update checks are off. You can check manually."))+(u.checkedAt?" "+t("Checked: {time}",{time:new Date(u.checkedAt).toLocaleString(locale)}):"");
+    for(const b of panel.querySelectorAll("[data-update-action]")){
+      const action=b.dataset.updateAction;
+      b.hidden=action==="download"?(!newer||["ready","handedoff"].includes(u.state)||busy):action==="install"?u.state!=="ready":action==="cancel"?!["downloading","ready"].includes(u.state):false;
+      b.disabled=action==="github"?false:action==="cancel"?u.state==="canceling":busy||u.state==="handedoff";
+    }
+    const notes=panel.querySelector(".uni-update-notes");notes.textContent=u.notes||"";notes.hidden=!u.notes;
+    row.uniUpdateTimer=setTimeout(()=>{if(row.isConnected&&view==="settings"&&setTab==="about")renderUpdate(row);},busy?700:30000);
   };
   const originalSettings=renderSettings;
   renderSettings=(...args)=>{
@@ -407,7 +476,9 @@ if (window.bootPrefs?.uniSwitch) (() => {
       const row=document.getElementById(id);if(row)row.hidden=true;
     }
     $("#traySegs").parentElement.hidden=true;
-    for(const row of $$("#about [class*='update-'],#about .whatsnew-row"))row.hidden=true;
+    for(const row of $$("#about [class*='update-'],#about .whatsnew-row"))if(!row.closest(".uni-update-row"))row.hidden=true;
+    const automatic=$("#about .update-auto-row");
+    if(automatic){automatic.hidden=false;automatic.querySelector(".who .name").textContent=t("Check automatically");}
     for(const row of $$("#about .row")){
       const value=row.querySelector(".val");
       if(value?.textContent.includes("io.uni-switch.desktop")){

@@ -5,11 +5,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/dieqiyun/uni-switch/backend/internal/desktopupdate"
 )
 
 func TestUniSwitchDistributionNeverInstallsAnotherProduct(t *testing.T) {
 	called := false
-	handler := uniSwitchPage(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true; w.WriteHeader(204) }), "development")
+	handler := uniSwitchPage(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true; w.WriteHeader(204) }), "development", nil)
 	for _, path := range []string{"/api/update", "/api/update/install", "/api/update/check", "/api/uninstall", "/api/cli", "/api/settings/login"} {
 		called = false
 		rec := httptest.NewRecorder()
@@ -28,8 +30,35 @@ func TestUniSwitchDistributionNeverInstallsAnotherProduct(t *testing.T) {
 	}
 }
 
+func TestUniSwitchUsesDesktopUpdaterAndRefusesPageSuppliedPaths(t *testing.T) {
+	u := desktopupdate.New("0.5.30", t.TempDir(), func(string) error { t.Fatal("installer must not run"); return nil })
+	defer u.Close()
+	h := uniSwitchPage(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("reached standalone updater") }), "0.5.30", u)
+	read := httptest.NewRecorder()
+	h.ServeHTTP(read, httptest.NewRequest("GET", "/api/update", nil))
+	if !strings.Contains(read.Body.String(), `"state":"idle"`) || read.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("desktop updater was replaced by current-version stub: %s", read.Body.String())
+	}
+	for _, tc := range []struct {
+		path, body string
+		status     int
+	}{
+		{"/api/update/download", `{"url":"https://example.com/run.exe"}`, 400},
+		{"/api/update/install", `{"path":"C:\\other.exe"}`, 400},
+		{"/api/update/check", `{} {}`, 400},
+		{"/api/update/install", `{"task":"unknown"}`, 409},
+		{"/api/update/other", `{}`, 404},
+	} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("POST", tc.path, strings.NewReader(tc.body)))
+		if rec.Code != tc.status {
+			t.Errorf("%s accepted invalid request: %d", tc.path, rec.Code)
+		}
+	}
+}
+
 func TestUniSwitchManagementUsesCookieAndSameOrigin(t *testing.T) {
-	h := webHandler("18999", "test-key", 0, uniSwitchPage(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }), "dev"))
+	h := webHandler("18999", "test-key", 0, uniSwitchPage(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }), "dev", nil))
 	read := httptest.NewRecorder()
 	h.ServeHTTP(read, httptest.NewRequest("GET", "http://127.0.0.1:18999/?k=test-key", nil))
 	cookies := read.Result().Cookies()

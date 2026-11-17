@@ -15,12 +15,20 @@ pub fn run() {
     }
     #[cfg(feature = "qa-webview")]
     {
-        let port = std::env::var("UNI_SWITCH_QA_DEBUG_PORT").ok().and_then(|v| v.parse::<u16>().ok()).filter(|p| *p > 0).unwrap_or(9223);
+        let port = std::env::var("UNI_SWITCH_QA_DEBUG_PORT")
+            .ok()
+            .and_then(|v| v.parse::<u16>().ok())
+            .filter(|p| *p > 0)
+            .unwrap_or(9223);
         context.config_mut().app.windows[0].additional_browser_args = Some(format!("--remote-debugging-port={port} --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
     }
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_autostart::Builder::new().args(["--background"]).build());
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .args(["--background"])
+                .build(),
+        );
     if !cfg!(feature = "qa-webview") {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _| {
             if !args.iter().any(|a| a == "--background") {

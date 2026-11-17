@@ -36,6 +36,7 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/applog"
 	"github.com/dieqiyun/uni-switch/backend/internal/autostart"
 	"github.com/dieqiyun/uni-switch/backend/internal/catalog"
+	"github.com/dieqiyun/uni-switch/backend/internal/desktopupdate"
 	"github.com/dieqiyun/uni-switch/backend/internal/filememo"
 	"github.com/dieqiyun/uni-switch/backend/internal/fonts"
 	"github.com/dieqiyun/uni-switch/backend/internal/fx"
@@ -2399,7 +2400,11 @@ func Handler(w Windows, gw *gateway.Server) http.Handler {
 	devListen(mux)
 	page := noFramedAPI(held(mux))
 	if uniSwitchApplication.Load() {
-		return uniSwitchPage(page, Version)
+		var updater *desktopupdate.Updater
+		if host, ok := w.(*uniSwitchHost); ok {
+			updater = host.updater
+		}
+		return uniSwitchPage(page, Version, updater)
 	}
 	return page
 }

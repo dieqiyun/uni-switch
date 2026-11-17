@@ -67,13 +67,13 @@ try{
     const errors=[],opened=[],requests=[];let phase='none';
     page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/groups'))requests.push(r.url());});
     await page.route('**/api/open',async route=>{opened.push(route.request().postDataJSON());await route.fulfill({json:{}});});
-    await page.route('**/api/update?*',async route=>phase==='error'?route.abort():route.fulfill({json:phase==='available'?{current:'0.5.28',latest:'999.0.0',state:'available'}:phase==='same'?{current:'0.5.28',latest:'0.5.28',state:'available'}:{current:'0.5.28'}}));
+    await page.route('**/api/update?*',async route=>phase==='error'?route.abort():route.fulfill({json:phase==='available'?{current:app.ready().version,latest:'999.0.0',state:'available'}:phase==='same'?{current:app.ready().version,latest:app.ready().version,state:'available'}:{current:app.ready().version}}));
     const url=new URL(app.ready().url);url.searchParams.set('locale',language);await page.goto(url.href);
     await page.locator('#uniClients').waitFor();await page.waitForFunction(()=>!!providers);
     await page.evaluate(()=>renderUpdateBadge());
     assert.equal(await page.locator('#uniVersion,.uni-sidebar-note').count(),0);
     assert.equal(await page.locator('#update').count(),1);
-    assert.match(await page.locator('#update').innerText(),/v0\.5\.28/);
+    assert.ok((await page.locator('#update').innerText()).includes('v'+app.ready().version));
     assert.equal(await page.locator('#update.uni-update-available').count(),0);
     assert.equal(await page.locator('#updateHide').isVisible(),false);
     await checkDisclosure(page);
@@ -90,7 +90,7 @@ try{
     assert.equal(await page.locator('#update.uni-update-available').count(),1);
     assert.match(await page.locator('#update').getAttribute('title'),/999\.0\.0/);
     if(language==='zh')assert.match(await page.locator('#update').innerText(),/有新版本/);
-    await page.locator('#update').click();assert.equal(opened.at(-1).url,'https://github.com/dieqiyun/uni-switch/releases');
+    await page.locator('#update').click();await page.waitForFunction(()=>view==='settings'&&setTab==='about');
     phase='error';await page.evaluate(()=>renderUpdateBadge());assert.equal(await page.locator('#update.uni-update-available').count(),1);
     phase='same';await page.evaluate(()=>renderUpdateBadge());assert.equal(await page.locator('#update.uni-update-available').count(),0);
     phase='none';await page.evaluate(()=>renderUpdateBadge());

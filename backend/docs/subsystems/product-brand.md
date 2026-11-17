@@ -20,8 +20,7 @@ endpoints are retained; removed vendor presets cannot be added implicitly.
 The website and release links point to
 `https://github.com/dieqiyun/uni-switch`. No upstream icon proxy or update
 feed is contacted by default. `UNI_SWITCH_ICON_PROXY`, `UNI_SWITCH_UPDATE_FEED`
-and `UNI_SWITCH_NOTES_FEED` are explicit overrides. Native desktop updates
-use the release page. Unavailable upstream setup/quota skill recommendations
+and `UNI_SWITCH_NOTES_FEED` are explicit overrides. Native desktop updates read this repository's GitHub Latest directly through `internal/desktopupdate`; only the standalone core's legacy feed uses those explicit overrides. Desktop checks never download or install automatically, and GitHub download remains available. See the repository's `docs/remote-update.md`. Unavailable upstream setup/quota skill recommendations
 and plugin-list mirrors are removed instead of inventing replacement URLs.
 Retired migration records remain readable, but do not name installable
 replacement packages. Third-party extension execution stays disabled.
