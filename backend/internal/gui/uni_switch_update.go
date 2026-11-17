@@ -92,9 +92,7 @@ func (h *uniSwitchHost) installUpdate(path string) error {
 		if !filepath.IsAbs(exe) {
 			return errors.New("desktop installation location is unavailable")
 		}
-		// NSIS requires /D to be the final argument, without added quotes.
-		// This also offers the current portable folder in the install wizard.
-		if err := proc.Command(path, "/D="+filepath.Dir(exe)).Start(); err != nil {
+		if err := startWindowsInstaller(path, filepath.Dir(exe)); err != nil {
 			return err
 		}
 		time.AfterFunc(time.Second, h.quit)

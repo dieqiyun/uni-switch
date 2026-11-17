@@ -1127,6 +1127,8 @@ The product sidebar shows the first eight clients by default. Show more clients 
 
 The product's Add-provider sheet passes presentation options to `renderAdd`: subscription sign-in and excluded-account recovery rows belong only to the selected client, relays are labelled uni-switch recommended providers, and the local-preset section is omitted even during search. The retained relay is displayed as 蝶祈云API. Clients with no currently supported native subscription have no subscription section; retired extension subscriptions are not reintroduced. This filters the picker only: the native subscription registry, account handlers, local-server presets, saved providers and gateway execution retain their existing behavior. The shared shell keeps its default picker presentation when these options are absent. `scripts/qa-source-client-flow.mjs` covers all eleven sidebar clients in both browser engines and five languages, including search and the retained backend preset directory.
 
+Windows installer handoff keeps NSIS's final `/D=` directory unquoted even for spaces and non-ASCII names; `uni_switch_update_windows.go` provides its native command line, and `TestWindowsInstallerKeepsDirectoryWithSpaces` captures a fake installer's actual Win32 command line without running an installer.
+
 See `TestUniSwitchDistributionNeverInstallsAnotherProduct`, `TestUniSwitchManagementUsesCookieAndSameOrigin`, and the repository's `docs/source-integration.md`.
 
 ## Removed usage reporting
