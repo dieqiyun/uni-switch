@@ -117,7 +117,7 @@ func RunUniSwitchCore(version string) error {
 	stop := func() { once.Do(func() { close(quit) }) }
 	host := &uniSwitchHost{quit: stop, encode: json.NewEncoder(os.Stdout), pending: make(map[uint64]chan string)}
 	host.updater = desktopupdate.New(version, filepath.Join(settings.Dir(), "desktop-updates"), host.installUpdate)
-	host.updater.Start(func() bool { return !settings.Load().NoAutoUpdate })
+	host.updater.Start()
 	defer host.updater.Close()
 	// A separate authenticated management port never serves inference routes.
 	gw := startBackend()

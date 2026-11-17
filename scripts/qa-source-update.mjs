@@ -24,7 +24,8 @@ try{
      const request=route.request(),path=new URL(request.url()).pathname;
      if(request.method()==='POST'){
       const body=request.postDataJSON();posts.push({path,body});
-      if(path.endsWith('/check'))state={...state,state:'available',latest:'999.0.0',notes:'Release notes\n修复更新提示',checkedAt:new Date().toISOString()};
+      if(path.endsWith('/preferences'))state={...state,autoCheck:body.autoCheck};
+      if(path.endsWith('/check'))state={...state,state:'available',available:true,latest:'999.0.0',notes:'Release notes\n修复更新提示',checkedAt:new Date().toISOString()};
       if(path.endsWith('/download')){assert.deepEqual(body,{version:'999.0.0'});state={...state,state:'downloading',done:5e6,total:20e6};}
       if(path.endsWith('/cancel'))state={...state,state:'available',done:0,total:0,task:''};
       if(path.endsWith('/install')){assert.deepEqual(body,{task:'verified-fixture'});state={...state,state:'handedoff'};}
@@ -41,7 +42,11 @@ try{
      console.error(JSON.stringify({errors,debug:await page.evaluate(()=>({view,setTab,about:document.querySelector('#about')?.outerHTML,fn:String(renderUpdate).slice(0,180)}))}));throw error;
     });
     const action=name=>panel.locator(`[data-update-action="${name}"]`);
-    assert.ok(await page.locator('.update-auto-row').isVisible(),'automatic checks have a visible preference');
+    const toggle=panel.locator('.uni-update-toggle');
+    await toggle.locator('button').first().click();
+    await page.waitForFunction(()=>document.querySelector('.uni-update-panel')?.uniState?.autoCheck===false);
+    await toggle.locator('button').last().click();
+    await page.waitForFunction(()=>document.querySelector('.uni-update-panel')?.uniState?.autoCheck===true);
     await action('check').focus();await page.keyboard.press('Enter');
     await page.waitForFunction(()=>document.querySelector('.uni-update-panel')?.uniState?.state==='available');
     assert.equal(posts.filter(p=>p.path.endsWith('/download')).length,0,'checking never downloads');

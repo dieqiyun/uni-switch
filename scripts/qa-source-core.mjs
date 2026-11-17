@@ -67,6 +67,8 @@ async function check(){
    assert.equal((await fetch(base+"/api/state")).status,401);
    assert.equal((await request("/api/state",{headers:{"Sec-Fetch-Site":"cross-site"}})).status,403);
    const state=await (await request("/api/state")).json();
+   const update=await (await request("/api/update")).json();
+   assert.equal(update.autoCheck,true,"desktop GitHub checks must not inherit the disabled standalone updater");
    assert.ok(state.clients.length>=5);
    const directory=await (await request("/api/providers")).json();
    assert.ok(!directory.presets.some(p=>p.kind==="partner"),"commercial partners must not be offered");

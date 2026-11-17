@@ -2404,7 +2404,7 @@ func Handler(w Windows, gw *gateway.Server) http.Handler {
 		if host, ok := w.(*uniSwitchHost); ok {
 			updater = host.updater
 		}
-		return uniSwitchPage(page, Version, updater)
+		return noFramedAPI(uniSwitchPage(page, Version, updater))
 	}
 	return page
 }

@@ -67,7 +67,7 @@ try{
     const errors=[],opened=[],requests=[];let phase='none';
     page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/groups'))requests.push(r.url());});
     await page.route('**/api/open',async route=>{opened.push(route.request().postDataJSON());await route.fulfill({json:{}});});
-    await page.route('**/api/update?*',async route=>phase==='error'?route.abort():route.fulfill({json:phase==='available'?{current:app.ready().version,latest:'999.0.0',state:'available'}:phase==='same'?{current:app.ready().version,latest:app.ready().version,state:'available'}:{current:app.ready().version}}));
+    await page.route('**/api/update?*',async route=>phase==='error'?route.abort():route.fulfill({json:phase==='available'?{current:app.ready().version,latest:'999.0.0',state:'available',available:true}:phase==='same'?{current:app.ready().version,latest:app.ready().version,state:'available'}:{current:app.ready().version}}));
     const url=new URL(app.ready().url);url.searchParams.set('locale',language);await page.goto(url.href);
     await page.locator('#uniClients').waitFor();await page.waitForFunction(()=>!!providers);
     await page.evaluate(()=>renderUpdateBadge());

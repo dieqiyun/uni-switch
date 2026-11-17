@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +33,7 @@ const maxAssetSize = 1 << 30
 var releaseVersion = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
 
 type asset struct {
+	ID     int64  `json:"id"`
 	Name   string `json:"name"`
 	URL    string `json:"browser_download_url"`
 	Size   int64  `json:"size"`
@@ -50,6 +52,7 @@ type State struct {
 	Current    string `json:"current"`
 	State      string `json:"state"`
 	Latest     string `json:"latest,omitempty"`
+	Available  bool   `json:"available"`
 	URL        string `json:"url"`
 	Notes      string `json:"notes,omitempty"`
 	Error      string `json:"error,omitempty"`
@@ -62,20 +65,22 @@ type State struct {
 }
 
 type Updater struct {
-	mu       sync.Mutex
-	state    State
-	client   *http.Client
-	goos     string
-	arch     string
-	cache    string
-	path     string
-	expected asset
-	ctx      context.Context
-	close    context.CancelFunc
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
-	last     time.Time
-	install  func(string) error
+	mu         sync.Mutex
+	prefsMu    sync.Mutex
+	state      State
+	client     *http.Client
+	goos       string
+	arch       string
+	cache      string
+	path       string
+	expected   asset
+	ctx        context.Context
+	close      context.CancelFunc
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+	last       time.Time
+	install    func(string) error
+	preference string
 }
 
 func New(current, cache string, install func(string) error) *Updater {
@@ -90,7 +95,20 @@ func New(current, cache string, install func(string) error) *Updater {
 		}
 		return nil
 	}
-	u.state = State{Current: current, State: "idle", URL: repository + "/releases", InstallVia: runtime.GOOS}
+	u.state = State{Current: current, State: "idle", URL: repository + "/releases", InstallVia: runtime.GOOS, AutoCheck: true}
+	u.preference = filepath.Join(cache, "checks.json")
+	if data, err := os.ReadFile(u.preference); err == nil {
+		var pref struct {
+			AutoCheck *bool `json:"autoCheck"`
+		}
+		if json.Unmarshal(data, &pref) != nil || pref.AutoCheck == nil {
+			u.state.AutoCheck, u.state.Error = false, "could not read automatic update preference"
+		} else {
+			u.state.AutoCheck = *pref.AutoCheck
+		}
+	} else if !os.IsNotExist(err) {
+		u.state.AutoCheck, u.state.Error = false, err.Error()
+	}
 	if runtime.GOOS == "linux" && os.Getenv("APPIMAGE") != "" {
 		u.state.InstallVia = "appimage"
 	}
@@ -98,15 +116,14 @@ func New(current, cache string, install func(string) error) *Updater {
 }
 
 // Start checks at launch and every six hours. A failed check is retried after
-// fifteen minutes. enabled is read again each minute so preference changes apply.
-func (u *Updater) Start(enabled func() bool) {
+// fifteen minutes. The desktop preference is separate from the standalone
+// core's NoAutoUpdate, which older desktop builds deliberately disabled.
+func (u *Updater) Start() {
 	u.wg.Go(func() {
 		tick := time.NewTicker(time.Minute)
 		defer tick.Stop()
 		for {
-			auto := enabled()
 			u.mu.Lock()
-			u.state.AutoCheck = auto
 			interval := 6 * time.Hour
 			if u.state.Error != "" {
 				interval = 15 * time.Minute
@@ -123,6 +140,37 @@ func (u *Updater) Start(enabled func() bool) {
 			}
 		}
 	})
+}
+
+func (u *Updater) SetAutoCheck(enabled bool) error {
+	u.prefsMu.Lock()
+	defer u.prefsMu.Unlock()
+	if err := os.MkdirAll(u.cache, 0o700); err != nil {
+		return err
+	}
+	data, _ := json.Marshal(map[string]bool{"autoCheck": enabled})
+	f, err := os.CreateTemp(u.cache, "checks-*.json")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	_, err = f.Write(data)
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
+	}
+	if err == nil {
+		err = os.Rename(f.Name(), u.preference)
+	}
+	if err != nil {
+		return err
+	}
+	u.mu.Lock()
+	u.state.AutoCheck = enabled
+	u.mu.Unlock()
+	if enabled {
+		u.Check()
+	}
+	return nil
 }
 
 func (u *Updater) Close() {
@@ -190,7 +238,8 @@ func (u *Updater) accept(r release) {
 	u.state.URL = repository + "/releases/tag/" + r.Tag
 	u.state.Notes = r.Notes
 	u.state.State = "latest"
-	if update.Newer(u.state.Latest, u.state.Current) {
+	u.state.Available = update.Newer(u.state.Latest, u.state.Current)
+	if u.state.Available {
 		u.state.State = "available"
 	}
 }
@@ -216,7 +265,11 @@ func (u *Updater) get(ctx context.Context, address string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "uni-switch/"+u.state.Current)
-	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Accept", "application/octet-stream")
+	if address == latestAPI {
+		req.Header.Set("Accept", "application/vnd.github+json")
+	}
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	res, err := u.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -272,6 +325,15 @@ func findAsset(r release, name string) (asset, error) {
 	return asset{}, errors.New("this release has no verified package for this platform; use GitHub download")
 }
 
+func assetURL(a asset) string {
+	// GitHub's asset API redirects directly to its official asset CDN. It
+	// also works where the github.com browser/download endpoint is blocked.
+	if a.ID > 0 {
+		return "https://api.github.com/repos/dieqiyun/uni-switch/releases/assets/" + strconv.FormatInt(a.ID, 10)
+	}
+	return a.URL
+}
+
 func (u *Updater) checksum(ctx context.Context, r release, a asset) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
@@ -284,7 +346,7 @@ func (u *Updater) checksum(ctx context.Context, r release, a asset) (string, err
 	if err != nil {
 		return "", errors.New("release has no SHA-256 checksum")
 	}
-	res, err := u.get(ctx, sums.URL)
+	res, err := u.get(ctx, assetURL(sums))
 	if err != nil {
 		return "", err
 	}
@@ -390,7 +452,7 @@ func (u *Updater) download(ctx context.Context, version string) error {
 	defer cancel()
 	stall := time.AfterFunc(time.Minute, cancel)
 	defer stall.Stop()
-	res, err := u.get(ctx, a.URL)
+	res, err := u.get(ctx, assetURL(a))
 	if err != nil {
 		f.Close()
 		return err

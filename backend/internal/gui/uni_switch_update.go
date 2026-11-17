@@ -25,8 +25,9 @@ func uniSwitchUpdateAPI(w http.ResponseWriter, r *http.Request, u *desktopupdate
 		return
 	}
 	var in struct {
-		Version string `json:"version"`
-		Task    string `json:"task"`
+		Version   string `json:"version"`
+		Task      string `json:"task"`
+		AutoCheck *bool  `json:"autoCheck"`
 	}
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2048))
 	decoder.DisallowUnknownFields()
@@ -39,6 +40,16 @@ func uniSwitchUpdateAPI(w http.ResponseWriter, r *http.Request, u *desktopupdate
 		return
 	}
 	switch r.URL.Path {
+	case "/api/update/preferences":
+		if in.AutoCheck == nil {
+			http.Error(w, "autoCheck is required", http.StatusBadRequest)
+			return
+		}
+		if err := u.SetAutoCheck(*in.AutoCheck); err != nil {
+			w.WriteHeader(http.StatusConflict)
+			writeJSON(w, map[string]string{"error": err.Error()})
+			return
+		}
 	case "/api/update/check":
 		u.Check()
 	case "/api/update/download":

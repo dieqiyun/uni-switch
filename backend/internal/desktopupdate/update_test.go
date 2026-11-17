@@ -89,7 +89,7 @@ func waitFinished(t *testing.T, u *Updater) State {
 
 func TestStartupChecksGitHubWithoutDownloading(t *testing.T) {
 	u, f := newFixture(t)
-	u.Start(func() bool { return true })
+	u.Start()
 	deadline := time.After(5 * time.Second)
 	for u.Snapshot().Latest == "" {
 		select {
@@ -127,6 +127,39 @@ func TestFailedCheckKeepsKnownReleaseAndCanRetry(t *testing.T) {
 	u.Check()
 	if s = waitFinished(t, u); s.State != "available" || s.Error != "" {
 		t.Fatalf("check cannot recover: %+v", s)
+	}
+}
+
+func TestDesktopCheckPreferencePersistsIndependently(t *testing.T) {
+	u, _ := newFixture(t)
+	if !u.Snapshot().AutoCheck {
+		t.Fatal("desktop checks are not enabled by default")
+	}
+	if err := u.SetAutoCheck(false); err != nil {
+		t.Fatal(err)
+	}
+	v := New("0.5.32", u.cache, nil)
+	defer v.Close()
+	if v.Snapshot().AutoCheck {
+		t.Fatal("disabled desktop checks were lost on restart")
+	}
+	// A malformed preference is unknown, never permission for network access.
+	if err := os.WriteFile(u.preference, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	w := New("0.5.32", u.cache, nil)
+	defer w.Close()
+	if w.Snapshot().AutoCheck || w.Snapshot().Error == "" {
+		t.Fatal("invalid preference enabled automatic checks")
+	}
+	if err := u.SetAutoCheck(true); err != nil {
+		t.Fatal(err)
+	}
+	waitFinished(t, u)
+	x := New("0.5.32", u.cache, nil)
+	defer x.Close()
+	if !x.Snapshot().AutoCheck {
+		t.Fatal("enabled desktop checks were lost on restart")
 	}
 }
 
@@ -230,6 +263,26 @@ func TestChecksumFileAndPlatformPackages(t *testing.T) {
 		if tc.suffix == "" && got != "" || tc.suffix != "" && got != "uni-switch_0.5.32"+tc.suffix {
 			t.Errorf("package for %+v: %s", tc, got)
 		}
+	}
+}
+
+func TestDownloadUsesGitHubAssetAPIWithoutBrowserEndpoint(t *testing.T) {
+	u, f := newFixture(t)
+	f.release.Assets[0].ID = 756551439
+	original := u.client.Transport
+	var assetCalls atomic.Int32
+	u.client.Transport = roundTrip(func(r *http.Request) (*http.Response, error) {
+		if r.URL.String() != latestAPI {
+			if r.URL.String() != "https://api.github.com/repos/dieqiyun/uni-switch/releases/assets/756551439" || r.Header.Get("Accept") != "application/octet-stream" {
+				t.Errorf("download used a browser endpoint or incorrect media type: %s", r.URL)
+			}
+			assetCalls.Add(1)
+		}
+		return original.RoundTrip(r)
+	})
+	u.Download("0.5.32")
+	if s := waitFinished(t, u); s.State != "ready" || assetCalls.Load() != 1 {
+		t.Fatalf("GitHub API asset download failed: %+v", s)
 	}
 }
 

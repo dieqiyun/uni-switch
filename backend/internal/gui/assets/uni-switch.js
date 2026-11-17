@@ -109,7 +109,7 @@ if (window.bootPrefs?.uniSwitch) (() => {
     if(servedAnew(u))return;
     if(u)updateLast=u,u.at=Date.now();
     const current=u||updateLast;
-    const available=!!current?.latest && current.latest!==pageVersion && ["available","found","ready","downloading","canceling","installing","error"].includes(current.state);
+    const available=!!current?.available;
     const b=$("#update"), label=b.querySelector("span");
     b.hidden=false;
     b.classList.toggle("uni-update-available",available);
@@ -438,7 +438,11 @@ if (window.bootPrefs?.uniSwitch) (() => {
         });
         b.dataset.updateAction=action;actions.append(b);
       }
-      panel.append(status,progress,detail,actions,notes);
+      const automatic=el("div","uni-update-preferences");
+      const automaticLabel=el("span","",t("Check automatically"));automaticLabel.id="uniUpdateAutomaticLabel";
+      const automaticControl=el("div","uni-update-toggle");
+      automatic.append(automaticLabel,automaticControl);
+      panel.append(status,progress,detail,actions,automatic,notes);
       row.querySelector(".val").replaceChildren(el("code","",pageVersion));
       row.append(panel);row.querySelector(".who .sub")?.remove();
     }
@@ -451,8 +455,18 @@ if (window.bootPrefs?.uniSwitch) (() => {
     }
     if(!row.isConnected||row.uniUpdateEpoch!==epoch)return;
     panel.uniState=u;updateLast={...u,at:Date.now()};
+    const toggle=panel.querySelector(".uni-update-toggle");
+    if(toggle.dataset.value!==String(u.autoCheck)){
+      toggle.dataset.value=String(u.autoCheck);
+      const choices=segs([["off",t("Off")],["on",t("On")]],u.autoCheck?"on":"off",async value=>{
+        try{const next=await api("update/preferences",{autoCheck:value==="on"});renderUpdate(row,next);}
+        catch(error){delete toggle.dataset.value;await renderUpdate(row);panel.querySelector(".uni-update-status").textContent=t("Update failed")+": "+error.message;}
+      });
+      choices.setAttribute("role","group");choices.setAttribute("aria-labelledby","uniUpdateAutomaticLabel");
+      toggle.replaceChildren(choices);
+    }
     const busy=["checking","downloading","canceling","installing"].includes(u.state);
-    const newer=u.latest&&u.latest!==pageVersion&&u.state!=="latest";
+    const newer=u.available;
     const status=panel.querySelector(".uni-update-status"),progress=panel.querySelector("progress"),detail=panel.querySelector(".uni-update-detail");
     const installHelp=u.installVia==="windows"?"Windows will open the installer and close uni-switch. Complete the installation wizard, then reopen uni-switch.":u.installVia==="darwin"?"Open the downloaded disk image, replace uni-switch in Applications, then reopen it.":u.installVia==="appimage"?"The download folder will open. Replace your AppImage, make it executable, then reopen uni-switch.":"Open the downloaded package with your system installer, then reopen uni-switch.";
     status.textContent=u.state==="checking"?t("Checking…"):u.state==="downloading"?t("Downloading…")+` ${u.total>0?Math.min(100,Math.floor(u.done/u.total*100)):0}% · ${(u.done/1e6).toFixed(1)} / ${(u.total/1e6).toFixed(1)} MB`:u.state==="ready"?t("Verified. Click Install update to continue."):u.state==="error"?t("Update failed")+": "+u.error:u.state==="handedoff"?t(installHelp):u.state==="canceling"?t("Canceling…"):u.state==="installing"?t("Updating…"):u.latest?t("Latest release: {v}",{v:u.latest}):t("Check GitHub for updates");
@@ -477,8 +491,6 @@ if (window.bootPrefs?.uniSwitch) (() => {
     }
     $("#traySegs").parentElement.hidden=true;
     for(const row of $$("#about [class*='update-'],#about .whatsnew-row"))if(!row.closest(".uni-update-row"))row.hidden=true;
-    const automatic=$("#about .update-auto-row");
-    if(automatic){automatic.hidden=false;automatic.querySelector(".who .name").textContent=t("Check automatically");}
     for(const row of $$("#about .row")){
       const value=row.querySelector(".val");
       if(value?.textContent.includes("io.uni-switch.desktop")){
