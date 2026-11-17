@@ -14,6 +14,18 @@ import (
 	"github.com/dieqiyun/uni-switch/backend/internal/proc"
 )
 
+func desktopUpdater(w Windows) *desktopupdate.Updater {
+	switch host := w.(type) {
+	case *uniSwitchHost:
+		return host.updater
+	case appWebHost:
+		// The authenticated local browser page belongs to the same desktop
+		// process; it must not fall back to the retired current-version stub.
+		return desktopUpdater(host.app)
+	}
+	return nil
+}
+
 func uniSwitchUpdateAPI(w http.ResponseWriter, r *http.Request, u *desktopupdate.Updater) {
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodGet && r.URL.Path == "/api/update" {

@@ -57,6 +57,21 @@ func TestUniSwitchUsesDesktopUpdaterAndRefusesPageSuppliedPaths(t *testing.T) {
 	}
 }
 
+func TestUniSwitchBrowserPageSharesDesktopUpdater(t *testing.T) {
+	u := desktopupdate.New("0.5.30", t.TempDir(), nil)
+	defer u.Close()
+	host := &uniSwitchHost{updater: u}
+	was := uniSwitchApplication.Swap(true)
+	defer uniSwitchApplication.Store(was)
+	for _, w := range []Windows{host, appWebHost{app: host}} {
+		read := httptest.NewRecorder()
+		Handler(w, nil).ServeHTTP(read, httptest.NewRequest("GET", "/api/update", nil))
+		if !strings.Contains(read.Body.String(), `"state":"idle"`) || !strings.Contains(read.Body.String(), `"autoCheck":true`) {
+			t.Fatalf("desktop or local browser page lost updater: %s", read.Body.String())
+		}
+	}
+}
+
 func TestUniSwitchManagementUsesCookieAndSameOrigin(t *testing.T) {
 	h := webHandler("18999", "test-key", 0, uniSwitchPage(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }), "dev", nil))
 	read := httptest.NewRecorder()
