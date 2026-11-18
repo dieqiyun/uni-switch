@@ -11,7 +11,11 @@
 3. 编辑供应商，使用「添加 API Key 分组」添加其他分组。
 4. 在客户端页面连接软件并选择模型，重新打开客户端以加载更新后的模型列表。
 
-详见 [中文使用指南](docs/tutorial.md) 和 [API Key 分组说明](docs/api-key-groups.md)。网关只接受本机请求；专用 WSL 适配器保留独立的连接与 Key 契约。
+详见 [中文使用指南](docs/tutorial.md) 和 [API Key 分组说明](docs/api-key-groups.md)。
+
+新手可阅读带完整截图与箭头的 [蝶祈云配置教程（0.5.29）](docs/tutorials/dieqiyun-0.5.29/README.md)，包含 GPT、生图、Claude Key 分组和客户端接入。
+
+网关只接受本机请求；专用 WSL 适配器保留独立的连接与 Key 契约。
 
 ## 从源码构建
 
