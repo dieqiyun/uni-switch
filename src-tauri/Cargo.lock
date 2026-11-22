@@ -4116,7 +4116,7 @@ dependencies = [
 
 [[package]]
 name = "uni-switch"
-version = "0.5.32"
+version = "0.5.33"
 dependencies = [
  "serde",
  "serde_json",

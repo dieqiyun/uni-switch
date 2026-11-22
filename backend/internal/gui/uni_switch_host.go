@@ -28,6 +28,7 @@ type uniSwitchHost struct {
 	mu       sync.Mutex
 	pending  map[uint64]chan string
 	sequence atomic.Uint64
+	quitAt   atomic.Int64
 	updater  *desktopupdate.Updater
 }
 
@@ -48,6 +49,16 @@ func (*uniSwitchHost) FitPanel(int, Glide)              {}
 func (*uniSwitchHost) TintPanel([4]uint8, int) bool     { return false }
 func (*uniSwitchHost) TintTitleBar([4]uint8, bool) bool { return false }
 func (*uniSwitchHost) SetTextSize(int)                  {}
+
+func (h *uniSwitchHost) AskQuit() {
+	now := time.Now()
+	if quitAtOnce(h.quitAt.Load(), now) {
+		h.Quit()
+		return
+	}
+	h.quitAt.Store(now.UnixNano())
+	h.send(map[string]string{"type": "host", "method": "askQuit"})
+}
 
 func (h *uniSwitchHost) ChooseFolder(title string) (string, error) {
 	id := h.sequence.Add(1)
@@ -131,8 +142,13 @@ func RunUniSwitchCore(version string) error {
 	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			if scanner.Text() == "quit" {
-				break
+			switch scanner.Text() {
+			case "quit":
+				stop()
+				return
+			case "askQuit":
+				host.AskQuit()
+				continue
 			}
 			var message struct {
 				ID     uint64 `json:"id"`
@@ -157,6 +173,7 @@ func RunUniSwitchCore(version string) error {
 		return err
 	}
 	<-quit
+	host.send(map[string]string{"type": "host", "method": "exiting"})
 	server.Close()
 	stopServing()
 	proc.EndProbes()

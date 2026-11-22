@@ -404,7 +404,6 @@ if (window.bootPrefs?.uniSwitch) (() => {
   $(".top").addEventListener("pointerdown",e=>{if(e.button===0&&!e.target.closest("button,input,a,nav"))native?.startDragging?.();});
   const add=button("+ " + t("Add Dieqiyun provider"),"uni-add",e=>openProviderSetup(false,e.currentTarget));
   $(".top .actions").prepend(add);
-  window.uniSwitchQuit=()=>askQuit();
   // Keep the original standalone core updater out of the desktop distribution.
   // This API downloads the complete, matching uni-switch desktop installer.
   renderUpdate = async (row, snapshot) => {
