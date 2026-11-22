@@ -89,6 +89,15 @@ impl Core {
                         let _ = ready_tx.send(message["url"].as_str().unwrap_or("").to_owned());
                     }
                     Some("host") => match message["method"].as_str() {
+                        Some("exiting") => break,
+                        Some("askQuit") => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.unminimize();
+                                let _ = window.set_focus();
+                                let _ = window.eval("window.askQuit?.()");
+                            }
+                        }
                         Some("hide") => {
                             if let Some(w) = app.get_webview_window("main") {
                                 let _ = w.hide();
@@ -124,7 +133,6 @@ impl Core {
                     _ => {}
                 }
             }
-            // An ended core cannot leave an apparently working settings window.
             app.exit(0);
         });
         let endpoint = match ready_rx.recv_timeout(Duration::from_secs(90)) {
@@ -151,6 +159,14 @@ impl Core {
             input,
             child: Mutex::new(child),
         })
+    }
+
+    pub fn request_quit(&self) -> std::io::Result<()> {
+        let mut pipe = self
+            .input
+            .lock()
+            .map_err(|_| std::io::Error::other("core input unavailable"))?;
+        writeln!(pipe, "askQuit")
     }
 
     pub fn shutdown(&self) {

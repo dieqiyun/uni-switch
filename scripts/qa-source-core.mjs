@@ -90,6 +90,23 @@ async function check(){
    assert.match(await (await request("/api/notices")).text(),/Copyright \(c\) 2026 yetone/);
   }
   assert.equal(readFileSync(resolve(app.home,".codex/config.toml"),"utf8"),"# isolated QA; disconnected client\n");
+  if(desktop<0){
+   let exiting=false;
+   let output="";
+   app.child.stdout.on("data",chunk=>{
+    output+=chunk;
+    const lines=output.split("\n");
+    output=lines.pop();
+    for(const line of lines){
+     const event=JSON.parse(line);
+     if(event.type==="host"&&event.method==="exiting")exiting=true;
+    }
+   });
+   app.child.stdin.write("askQuit\n");
+   await app.wait(()=>app.child.exitCode!==null,12000);
+   assert.equal(app.child.exitCode,0);
+   assert.ok(exiting,"Confirmed quit must notify the desktop before waiting for the gateway");
+  }
   console.log(JSON.stringify({runtime:desktop>=0?"desktop":"compiled-core",started:true,isolatedHome:true,disconnectedClientUnchanged:true,...(desktop<0?{onlyRelay:"dieqiyun",partnerDirectoryRemoved:true,bundledLogo:true}:{})}));
  }finally{await app.stop();}
 }

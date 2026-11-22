@@ -69,14 +69,10 @@ pub fn run() {
                             let _ = w.set_focus();
                         }
                     }
-                    if event.id.as_ref() == "exit" {
-                        // The page's original quit flow names connected clients and
-                        // confirms first. No configuration decision lives in Rust.
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.show();
-                            let _ = w.unminimize();
-                            let _ = w.eval("window.uniSwitchQuit?.()");
-                        }
+                    if event.id.as_ref() == "exit"
+                        && app.state::<Arc<core::Core>>().request_quit().is_err()
+                    {
+                        app.exit(0);
                     }
                 });
             if let Some(icon) = app.default_window_icon() {
